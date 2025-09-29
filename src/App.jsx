@@ -1,8 +1,8 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import "./App.css";
 import AdminPage from "./pages/AdminPage";
-import AccountList from "./components/AccountList";
-import WarehouseArea from "./components/WarehouseArea";
+import AccountList from "./pages/AccountList";
+import WarehouseArea from "./pages/WarehouseArea";
 import Login from "./pages/LoginPage";
 
 function App() {

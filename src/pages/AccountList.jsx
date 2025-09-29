@@ -1,6 +1,6 @@
-import Spinner from "./Spinner";
-import AdminNavbar from "./AdminNavbar";
-import AdminSidebar from "./AdminSidebar";
+import Spinner from "../components/Spinner";
+import AdminNavbar from "../components/AdminNavbar";
+import AdminSidebar from "../components/AdminSidebar";
 import { useEffect } from "react";
 
 export default function AccountList() {
