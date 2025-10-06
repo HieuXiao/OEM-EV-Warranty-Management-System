@@ -20,7 +20,7 @@ export default function AdminSidebar({ image, name, role }) {
             funcName={"User Management"}
           />
           <NavigationItem
-            path={"/admin/warehouse"}
+            path={"/admin/warehouses"}
             icon={Warehouse}
             funcName={"Warehouse Area"}
           />

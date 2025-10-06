@@ -223,6 +223,29 @@ export const mockActivityLogs = [
   },
 ];
 
+export const mockWarehouses = [
+  {
+    id: "HN-05",
+    name: "Gear Hub",
+    location: "102C9 Nguyen Hong Street, Dong Da District, Hanoi",
+  },
+  {
+    id: "TG-30",
+    name: "Wheel Base",
+    location: " 545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
+  },
+  {
+    id: "HCM-03",
+    name: "Car Keep",
+    location: "42 Street 26, Ward 10, District 6, Ho Chi Minh City",
+  },
+  {
+    id: "BRVT-19",
+    name: "Box Garage",
+    location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
+  },
+];
+
 export const vehicleModels = [
   "VF 3",
   "VF 5",

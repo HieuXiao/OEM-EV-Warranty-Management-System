@@ -1,7 +1,7 @@
 import Sidebar from "@/components/AdminSidebar";
 import Header from "@/components/Header";
 import profile from "../assets/profile.jpg";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -127,6 +127,10 @@ export default function AdminUserManagement() {
         return "Unknown";
     }
   }
+
+  useEffect(() => {
+    document.title = "Users Management";
+  }, []);
 
   return (
     <div className="min-h-screen bg-muted/30">
