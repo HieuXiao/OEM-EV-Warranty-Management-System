@@ -1,0 +1,75 @@
+/* Tinh chỉnh navbar/sidebar fit 1512x729 + FORCE gap 31px dọc - EXTREME specificity */
+
+/* Sidebar: 250x729 full height */
+body .content main aside.sidebar {
+  width: 250px !important;
+  height: 729px !important;
+  background: var(--light) !important;
+}
+
+/* Navbar: 1162x64 full content width, chạm sát edge */
+body .content main > .d-flex.justify-content-between {
+  width: 1162px !important;
+  height: 64px !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-bottom: 2rem !important;
+  align-items: center !important;
+}
+
+/* Job container grid: EXTREME specificity cho gap */
+body .content main .sc-technician-grid {
+  margin-top: 24px !important;
+  margin-left: 124px !important;
+  width: 1014px !important;
+  padding: 0 !important;
+}
+
+body .content main .sc-technician-grid .row {
+  display: grid !important;
+  grid-template-columns: repeat(4, 248px) !important;
+  grid-auto-rows: 227px !important;
+  gap: 31px 18px !important; /* DỌC 31px FORCE */
+  grid-gap: 31px 18px !important; /* Fallback old name */
+  width: 1014px !important;
+  height: 485px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Xóa margin Bootstrap + fallback gap dọc 31px cho hàng 1 */
+body .content main .sc-technician-grid .row > div,
+body .content main .sc-technician-grid .row .col-md-3 {
+  padding: 0 !important;
+  margin: 0 !important; /* Bỏ -15px Bootstrap */
+  width: 248px !important;
+  height: 227px !important;
+  flex: none !important;
+}
+
+/* FALLBACK: Margin-bottom 31px cho 4 card đầu (hàng 1) nếu grid gap không apply */
+body .content main .sc-technician-grid .row .col-md-3:nth-child(-n+4) {
+  margin-bottom: 31px !important; /* Gap dọc 31px giữa hàng 1-2 */
+}
+
+body .content main .sc-technician-grid .col-md-3:nth-child(n+5) {
+  margin-top: 0 !important; /* Không margin top cho hàng 2 */
+}
+
+/* Job card fit */
+body .content main .sc-technician-grid .col-md-3 .border {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0.75rem !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  overflow: hidden !important;
+}
+
+body .content main .sc-technician-grid .row .col-md-3 {
+  margin-bottom: 0 !important; /* Override fallback nếu grid apply */
+}
+
