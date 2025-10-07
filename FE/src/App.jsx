@@ -9,6 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/admin/users" element={<AdminUserManagement />} />
+        <Route path="/evmstaff" element={< EVMStaff />} />
       </Routes>
     </>
   );
