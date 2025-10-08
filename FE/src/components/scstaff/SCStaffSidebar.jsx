@@ -7,10 +7,10 @@ import {
   Phone,
   FileUser,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import UserInfo from "./UserInfo";
-import NavigationItem from "./NavigationItem";
-import Logo from "./Logo";
+import { Button } from "../ui/button";
+import UserInfo from "../UserInfo";
+import NavigationItem from "../NavigationItem";
+import Logo from "../Logo";
 
 export default function SCStaffSibebar({ image, name, role }) {
   return (

@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
-import axios from "../api/axios";
-import { Button } from "./ui/button";
-import { CardContent } from "./ui/card";
+import axios from "../../api/axios";
+import { Button } from "../ui/button";
+import { CardContent } from "../ui/card";
 import { Label } from "@radix-ui/react-label";
-import { Input } from "./ui/input";
+import { Input } from "../ui/input";
 
 export default function LoginForm({ email, setEmail, password, setPassword }) {
   const [isLoading, setIsLoading] = useState(false);
