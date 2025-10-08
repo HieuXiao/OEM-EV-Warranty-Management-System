@@ -1,0 +1,30 @@
+-----------------------------------------Entity---------------------------------------
+- ServiceRecord -> record lại các dịch vụ đã thực hiện trên xe
+- SCTechnician
+- ServiceCenter -> thông tin trung tâm dịch vụ
+- Part -> thông tin về các phụ tùng
+- ServiceAppointment -> lịch hẹn dịch vụ
+- Vehicle
+- (x)Customer => xong
+- SCStaff
+- WarrantyClaim
+- ClaimReplacementPart -> các phụ tùng thay thế trong yêu cầu bảo hành
+- Inventory -> quản lý kho phụ tùng
+- Campaign -> các chiến dịch bảo hành
+- Policy -> chính sách bảo hành
+- ClaimAttchment -> các tệp đính kèm trong yêu cầu bảo hành
+- EVMStaff
+- Admin
+- (x)Account
+
+-----------------------------------------Controller---------------------------------------
+"Name entity" + "Controller"
+Ex: VehicleController, CustomerController, WarrantyClaimController
+
+-----------------------------------------Service---------------------------------------
+"Name entity" + "Service"
+Ex: VehicleService, CustomerService, WarrantyClaimService
+
+-----------------------------------------Repository---------------------------------------
+"Name entity" + "Repository"
+Ex: VehicleRepository, CustomerRepository, WarrantyClaimRepository

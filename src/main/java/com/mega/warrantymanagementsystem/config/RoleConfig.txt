@@ -1,0 +1,1 @@
+đây là folder cấu hình hệ thống, đa phần là code cứng, ít chỉnh sửa

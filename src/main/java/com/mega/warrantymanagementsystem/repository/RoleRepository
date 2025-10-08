@@ -1,0 +1,4 @@
+- Thực hiện thao tác lên Database
+- Tương tác với Entity Role
+
+- Nhớ anotation @Repository
