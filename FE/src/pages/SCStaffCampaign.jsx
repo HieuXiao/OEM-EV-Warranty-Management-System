@@ -41,7 +41,7 @@ import {
 import { Search, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 
 // IMPORT FROM REACT
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // IMPORT FROM LIB
 import { mockCustomers } from "@/lib/Mock-data";
@@ -50,6 +50,10 @@ export default function SCStaffProfile() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customers, setCustomers] = useState(mockCustomers);
+
+  useEffect(() => {
+    document.title = `Campaigns`;
+  }, []);
 
   // Form state
   const [formDataCustomer, setFormDataCustomer] = useState({
