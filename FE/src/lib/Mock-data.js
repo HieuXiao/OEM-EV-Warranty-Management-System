@@ -261,3 +261,41 @@ export const vehicleModels = [
   "Limo Green",
   "Minio Green",
 ];
+
+export const mockCustomers = [
+  {
+    id: "1",
+    name: "Nguyen Thi H",
+    email: "nguyenthih@gmail.com",
+    phone: "0945678901",
+    address: "12 Tran Phu, Ba Dinh, Hanoi",
+  },
+  {
+    id: "2",
+    name: "Le Van K",
+    email: "levank@gmail.com",
+    phone: "0912345678",
+    address: "45 Nguyen Hue, District 1, Ho Chi Minh City",
+  },
+  {
+    id: "3",
+    name: "Tran Thi L",
+    email: "tranthil@gmail.com",
+    phone: "0938765432",
+    address: "89 Le Loi, Hai Chau, Da Nang",
+  },
+  {
+    id: "4",
+    name: "Pham Van M",
+    email: "phamvanm@gmail.com",
+    phone: "0902233445",
+    address: "23 Tran Hung Dao, Ninh Kieu, Can Tho",
+  },
+  {
+    id: "5",
+    name: "Do Thi N",
+    email: "dothin@gmail.com",
+    phone: "0977889900",
+    address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
+  },
+];

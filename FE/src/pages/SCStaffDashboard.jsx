@@ -1,4 +1,4 @@
-import SCStaffSibebar from "@/components/SCStaffSidebar";
+import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";

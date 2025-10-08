@@ -1,12 +1,11 @@
-import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+// IMPORT FROM COMPONENT
 import Header from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import { Search, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+import ScStaffOverview from "@/components/scstaff/ScStaffOverview";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { mockCustomers } from "@/lib/Mock-data";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -37,6 +36,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// IMPORT FROM LUCIDE-REACT
+import { Search, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+
+// IMPORT FROM REACT
+import { useState } from "react";
+
+// IMPORT FROM LIB
+import { mockCustomers } from "@/lib/Mock-data";
 
 export default function SCStaffProfile() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,12 +112,18 @@ export default function SCStaffProfile() {
                 Configure system preferences and integrations
               </p>
             </div>
-            <Tabs defaultValue="customers" className="space-y-6">
+
+            <Tabs defaultValue="overview" className="space-y-6">
+              {/* === TabsTrigger === */}
               <TabsList>
-                <TabsTrigger value="customers">Customers</TabsTrigger>
-                <TabsTrigger value="register">VIN Register</TabsTrigger>
-                <TabsTrigger value="attach">Attach Part</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="list_campaign">List Campaign</TabsTrigger>
+                <TabsTrigger value="calendar">Calender</TabsTrigger>
+                <TabsTrigger value="campaign_status">
+                  Campaign Status
+                </TabsTrigger>
               </TabsList>
+
               {/* Customer */}
               <TabsContent value="customers" className="space-y-4">
                 <Card>
@@ -122,6 +136,7 @@ export default function SCStaffProfile() {
                           Customer detatails and contact information
                         </CardDescription>
                       </div>
+
                       {/* Search bar + Add Button */}
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         {/* Search bar */}
@@ -134,6 +149,7 @@ export default function SCStaffProfile() {
                             className="pl-8"
                           />
                         </div>
+
                         {/* Add button */}
                         <Dialog
                           open={isAddDialogOpen}
@@ -220,6 +236,7 @@ export default function SCStaffProfile() {
                       </div>
                     </div>
                   </CardHeader>
+
                   {/* Customer Table */}
                   <CardContent>
                     <div className="rounded-md border">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import LoginHeader from "../components/LoginHeader";
-import LoginForm from "../components/LoginForm";
+import LoginForm from "../components/login/LoginForm";
 
 export default function Login() {
   const [email, setEmail] = useState("");
