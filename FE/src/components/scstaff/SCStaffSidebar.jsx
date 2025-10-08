@@ -28,7 +28,7 @@ export default function SCStaffSibebar({ image, name, role }) {
             funcName={"Dashboard"}
           />
           <NavigationItem
-            path={"/scstaff/claims"}
+            path={"/scstaff/warranty"}
             icon={Shield}
             funcName={"Warranty claim"}
           />

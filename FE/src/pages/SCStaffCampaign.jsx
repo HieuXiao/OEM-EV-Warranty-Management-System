@@ -1,7 +1,7 @@
 // IMPORT FROM COMPONENT
 import Header from "@/components/Header";
 import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
-import ScStaffOverview from "@/components/scstaff/ScStaffOverview";
+// import ScStaffOverview from "@/components/scstaff/ScStaffOverview";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
