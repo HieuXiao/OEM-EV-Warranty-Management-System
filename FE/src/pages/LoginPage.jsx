@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import LoginHeader from "../components/LoginHeader";
+import LoginHeader from "../components/login/LoginHeader";
 import LoginForm from "../components/login/LoginForm";
 
 export default function Login() {
