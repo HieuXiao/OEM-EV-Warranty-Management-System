@@ -1,0 +1,10 @@
+- Đây là folder chứa các lớp thực thể (entity classes) đại diện cho các bảng trong cơ sở dữ liệu.
+- Mỗi lớp trong thư mục này thường được chú thích với các annotation của JPA (Java Persistence API) để ánh xạ các thuộc tính của lớp với các cột trong bảng cơ sở dữ liệu.
+- Các lớp thực thể thường bao gồm các thuộc tính, phương thức getter và setter, và các phương thức khác như equals(), hashCode(), và toString().
+- Ví dụ, nếu bạn có một bảng "User" trong cơ sở dữ liệu, bạn có thể có một lớp thực thể User trong thư mục này với các thuộc tính như id, name, email, v.v.
+- Các lớp thực thể giúp quản lý dữ liệu và tương tác với cơ sở dữ liệu một cách dễ dàng và hiệu quả trong ứng dụng Java.package
+
+-Nhớ anotation @Entity
+-Nhớ anotation @Data để tự tạo getter, setter, toString, hashcode, equals
+-Nhớ anotation @NoArgsConstructor để tự tạo constructor không tham số
+-Nhớ anotation @AllArgsConstructor để tự tạo constructor có tham số

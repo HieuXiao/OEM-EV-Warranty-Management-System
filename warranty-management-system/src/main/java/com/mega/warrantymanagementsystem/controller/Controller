@@ -1,0 +1,8 @@
+-controller
+-đưa ra các api để tương tác với front-end
+-Controller sẽ gọi service để xử lý nghiệp vụ
+-Controller sẽ trả về dữ liệu cho front-end
+-Nhớ annotation @RestController để đánh dấu đây là controller
+-Nhớ annotation @RequestMapping để định nghĩa đường dẫn cho controller
+-Nhớ annotation @Autowired để tiêm service vào controller
+-Nhớ annotation @GetMapping, @PostMapping, @PutMapping, @DeleteMapping để định nghĩa các phương thức xử lý yêu cầu HTTP
