@@ -1,263 +1,309 @@
-"use client"
+// IMPORT FROM COMPONENT
+import Header from "@/components/Header";
+import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+import ScStaffOverview from "@/components/scstaff/ScStaffOverview";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-import { useState } from "react"
-import { Search, Filter, Eye } from "lucide-react"
-import SCStaffSidebar from "@/components/SCStaffSidebar"
-import Header from "@/components/Header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockRecallCampaigns } from "@/lib/Mock-data"
-import profile from "../assets/profile.jpg"
+// IMPORT FROM LUCIDE-REACT
+import { Search, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 
-const getStatusColor = (status) => {
-  const colors = {
-    active: "bg-blue-100 text-blue-800 border-blue-300",
-    completed: "bg-green-100 text-green-800 border-green-300",
-    planned: "bg-gray-100 text-gray-800 border-gray-300",
-  }
-  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300"
-}
+// IMPORT FROM REACT
+import { useState } from "react";
 
-const getSeverityColor = (severity) => {
-  const colors = {
-    low: "bg-gray-100 text-gray-700 border-gray-300",
-    medium: "bg-orange-100 text-orange-700 border-orange-300",
-    high: "bg-red-100 text-red-700 border-red-300",
-  }
-  return colors[severity] || "bg-gray-100 text-gray-700 border-gray-300"
-}
+// IMPORT FROM LIB
+import { mockCustomers } from "@/lib/Mock-data";
 
-export default function SCStaffCampaign() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [selectedCampaign, setSelectedCampaign] = useState(null)
-  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false)
+export default function SCStaffProfile() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [customers, setCustomers] = useState(mockCustomers);
 
-  const totalCampaigns = mockRecallCampaigns.length
-  const activeCampaigns = mockRecallCampaigns.filter((campaign) => campaign.status === "active").length
-  const completedCampaigns = mockRecallCampaigns.filter((campaign) => campaign.status === "completed").length
+  // Form state
+  const [formDataCustomer, setFormDataCustomer] = useState({
+    id: "",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
 
-  const filteredCampaigns = mockRecallCampaigns.filter((campaign) => {
-    const matchesSearch =
-      campaign.campaignNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleChangeCustomer = (e) => {
+    const { name, value } = e.target;
+    setFormDataCustomer({ ...formDataCustomer, [name]: value });
+  };
 
-    const matchesStatus = statusFilter === "all" || campaign.status === statusFilter
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-    return matchesSearch && matchesStatus
-  })
+  const handleAddCustomer = () => {
+    const newCustomer = {
+      id: formDataCustomer.id,
+      name: formDataCustomer.name,
+      email: formDataCustomer.email,
+      phone: formDataCustomer.phone,
+      address: formDataCustomer.address,
+    };
+    setCustomers([...customers, newCustomer]);
+    setIsAddDialogOpen(false);
+    resetFormCustomer();
+  };
 
-  const handleViewCampaign = (campaign) => {
-    setSelectedCampaign(campaign)
-    setIsCampaignDialogOpen(true)
-  }
+  const resetFormCustomer = () => {
+    setFormDataCustomer({
+      id: "",
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSidebar name={"Nam"} image={profile} role={"SC Staff"} />
-
+      {/* Sidebar */}
+      <SCStaffSibebar name={"Nam"} role={"SC Staff"} />
+      {/* Main Content */}
       <div className="lg:pl-64">
-        <Header name={"Pham Nhut Nam"} image={profile} email={"nam.admin@gmail.com"} />
-
+        <Header name={"Pham Nhut Nam"} email={"nam.admin@gmail.com"} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalCampaigns}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{activeCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Ongoing campaigns</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Finished campaigns</p>
-                </CardContent>
-              </Card>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                Profile Management
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Configure system preferences and integrations
+              </p>
             </div>
 
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by campaign number or title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="planned">Planned</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Tabs defaultValue="overview" className="space-y-6">
+              {/* === TabsTrigger === */}
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="list_campaign">List Campaign</TabsTrigger>
+                <TabsTrigger value="calendar">Calender</TabsTrigger>
+                <TabsTrigger value="campaign_status">
+                  Campaign Status
+                </TabsTrigger>
+              </TabsList>
 
-            <div className="space-y-4">
-              {filteredCampaigns.map((campaign) => (
-                <Card key={campaign.campaignNumber} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold">{campaign.campaignNumber}</h3>
-                          <Badge variant="outline" className={getStatusColor(campaign.status)}>
-                            {campaign.status}
-                          </Badge>
-                          <Badge variant="outline" className={getSeverityColor(campaign.severity)}>
-                            {campaign.severity}
-                          </Badge>
-                        </div>
-
-                        <h4 className="font-medium mb-2">{campaign.title}</h4>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                          <div>
-                            <span className="text-muted-foreground">Affected Models: </span>
-                            <span className="font-medium">{campaign.affectedModels.join(", ")}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Start Date: </span>
-                            <span className="font-medium">{new Date(campaign.startDate).toLocaleDateString()}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Affected Vehicles: </span>
-                            <span className="font-medium">{campaign.affectedVehicles.toLocaleString()}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Completed: </span>
-                            <span className="font-medium">{campaign.completedVehicles.toLocaleString()}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">{campaign.description}</p>
-
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                            <span>Progress</span>
-                            <span>{Math.round((campaign.completedVehicles / campaign.affectedVehicles) * 100)}%</span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all"
-                              style={{
-                                width: `${(campaign.completedVehicles / campaign.affectedVehicles) * 100}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
+              {/* Customer */}
+              <TabsContent value="customers" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      {/* Title */}
+                      <div>
+                        <CardTitle>Customer Information</CardTitle>
+                        <CardDescription>
+                          Customer detatails and contact information
+                        </CardDescription>
                       </div>
 
-                      <Button variant="ghost" size="sm" onClick={() => handleViewCampaign(campaign)} className="ml-4">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
+                      {/* Search bar + Add Button */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Search bar */}
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search Customers..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8"
+                          />
+                        </div>
+
+                        {/* Add button */}
+                        <Dialog
+                          open={isAddDialogOpen}
+                          onOpenChange={setIsAddDialogOpen}
+                        >
+                          <DialogTrigger asChild>
+                            <Button className="gap-2">
+                              <Plus className="h-4 w-4" />
+                              Add Customer
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[500px]">
+                            <DialogHeader>
+                              <DialogTitle>Add New Customer</DialogTitle>
+                              <DialogDescription>
+                                Create a new customer
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label htmlFor="id">ID</Label>
+                                <Input
+                                  id="id"
+                                  name="id"
+                                  value={formDataCustomer.id}
+                                  onChange={handleChangeCustomer}
+                                  placeholder=""
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="name">Customer Name</Label>
+                                <Input
+                                  id="name"
+                                  name="name"
+                                  value={formDataCustomer.name}
+                                  onChange={handleChangeCustomer}
+                                  placeholder="Nguyen Van A"
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="Email">Customer Email</Label>
+                                <Input
+                                  id="email"
+                                  name="email"
+                                  value={formDataCustomer.email}
+                                  onChange={handleChangeCustomer}
+                                  placeholder="abc@gmail.com"
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="phone">Customer Phone</Label>
+                                <Input
+                                  id="phone"
+                                  name="phone"
+                                  value={formDataCustomer.phone}
+                                  onChange={handleChangeCustomer}
+                                  placeholder="0987654321"
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="address">Address</Label>
+                                <Input
+                                  id="address"
+                                  name="address"
+                                  value={formDataCustomer.address}
+                                  onChange={handleChangeCustomer}
+                                  placeholder=""
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => setIsAddDialogOpen(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button onClick={handleAddCustomer}>
+                                Add Customer
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  {/* Customer Table */}
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Address</TableHead>
+                            <TableHead className="text-right">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredCustomers.map((c) => (
+                            <TableRow key={c.id}>
+                              <TableCell>
+                                <p className="font-medium text-sm">{c.id}</p>
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">{c.name}</p>
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">{c.email}</p>
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">{c.phone}</p>
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-medium text-sm">
+                                  {c.address}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
-
-      <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">{selectedCampaign?.campaignNumber}</DialogTitle>
-              <Badge variant="outline" className={getStatusColor(selectedCampaign?.status)}>
-                {selectedCampaign?.status}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">Campaign service details</p>
-          </DialogHeader>
-
-          {selectedCampaign && (
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-semibold mb-2">{selectedCampaign.title}</h4>
-                <p className="text-sm text-muted-foreground">{selectedCampaign.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Severity</h4>
-                  <Badge variant="outline" className={getSeverityColor(selectedCampaign.severity)}>
-                    {selectedCampaign.severity}
-                  </Badge>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Start Date</h4>
-                  <p className="font-medium">{new Date(selectedCampaign.startDate).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Affected Models</h4>
-                  <p className="font-medium">{selectedCampaign.affectedModels.join(", ")}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
-                  <Badge variant="outline" className={getStatusColor(selectedCampaign.status)}>
-                    {selectedCampaign.status}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Progress</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Completed Vehicles</span>
-                    <span className="font-medium">
-                      {selectedCampaign.completedVehicles.toLocaleString()} /{" "}
-                      {selectedCampaign.affectedVehicles.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{
-                        width: `${(selectedCampaign.completedVehicles / selectedCampaign.affectedVehicles) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground text-right">
-                    {Math.round((selectedCampaign.completedVehicles / selectedCampaign.affectedVehicles) * 100)}%
-                    complete
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
-  )
+  );
 }
