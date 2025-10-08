@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Filter, Eye, Plus } from "lucide-react"
-import SCStaffSidebar from "@/components/SCStaffSidebar"
+import { Search, Filter, Eye, Plus, ArrowUpDown, Calendar } from "lucide-react"
+import SCStaffSidebar from "@/components/scstaff/SCStaffSidebar"
 import Header from "@/components/Header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockWarrantyClaims } from "@/lib/Mock-data"
-import profile from "../assets/profile.jpg"
+import { Label } from "@/components/ui/label"
+import { mockWarrantyClaims, vehicleModels } from "@/lib/Mock-data"
 
 const getStatusColor = (status) => {
   const colors = {
@@ -32,28 +32,82 @@ const getPriorityColor = (priority) => {
   return colors[priority] || "bg-gray-100 text-gray-700 border-gray-300"
 }
 
+const getStatisticsClaims = (dateFrom, dateTo) => {
+  return mockWarrantyClaims.filter((claim) => {
+    const claimDate = new Date(claim.createdAt)
+    const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom)
+    const matchesDateTo = !dateTo || claimDate <= new Date(dateTo + "T23:59:59")
+    return matchesDateFrom && matchesDateTo
+  })
+}
+
+const getDefaultDateFrom = () => {
+  const date = new Date()
+  date.setDate(date.getDate() - 10)
+  return date.toISOString().split("T")[0]
+}
+
+const getDefaultDateTo = () => {
+  return new Date().toISOString().split("T")[0]
+}
+
 export default function SCStaffWarrantyClaim() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedClaim, setSelectedClaim] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [dateFrom, setDateFrom] = useState(getDefaultDateFrom())
+  const [dateTo, setDateTo] = useState(getDefaultDateTo())
+  const [vehicleModelFilter, setVehicleModelFilter] = useState("all")
+  const [sortBy, setSortBy] = useState("date-desc")
 
-  const totalClaims = mockWarrantyClaims.length
-  const pendingClaims = mockWarrantyClaims.filter((claim) => claim.status === "pending").length
-  const inProgressClaims = mockWarrantyClaims.filter((claim) => claim.status === "in progress").length
-  const completedClaims = mockWarrantyClaims.filter((claim) => claim.status === "completed").length
+  const statisticsClaims = getStatisticsClaims(dateFrom, dateTo)
+  const totalClaims = statisticsClaims.length
+  const pendingClaims = statisticsClaims.filter((claim) => claim.status === "pending").length
+  const inProgressClaims = statisticsClaims.filter((claim) => claim.status === "in progress").length
+  const completedClaims = statisticsClaims.filter((claim) => claim.status === "completed").length
 
-  const filteredClaims = mockWarrantyClaims.filter((claim) => {
-    const matchesSearch =
-      claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      claim.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      claim.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleSetToday = () => {
+    setDateFrom(getDefaultDateFrom())
+    setDateTo(getDefaultDateTo())
+  }
 
-    const matchesStatus = statusFilter === "all" || claim.status === statusFilter
+  const filteredClaims = mockWarrantyClaims
+    .filter((claim) => {
+      const matchesSearch =
+        claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        claim.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        claim.customerName.toLowerCase().includes(searchQuery.toLowerCase())
 
-    return matchesSearch && matchesStatus
-  })
+      const matchesStatus = statusFilter === "all" || claim.status === statusFilter
+
+      const matchesVehicleModel = vehicleModelFilter === "all" || claim.vehicleModel === vehicleModelFilter
+
+      const claimDate = new Date(claim.createdAt)
+      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom)
+      const matchesDateTo = !dateTo || claimDate <= new Date(dateTo + "T23:59:59")
+
+      return matchesSearch && matchesStatus && matchesVehicleModel && matchesDateFrom && matchesDateTo
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        case "date-asc":
+          return new Date(a.createdAt) - new Date(b.createdAt)
+        case "priority-high":
+          const priorityOrder = { high: 3, medium: 2, low: 1 }
+          return priorityOrder[b.priority] - priorityOrder[a.priority]
+        case "priority-low":
+          const priorityOrderLow = { high: 3, medium: 2, low: 1 }
+          return priorityOrderLow[a.priority] - priorityOrderLow[b.priority]
+        case "status":
+          return a.status.localeCompare(b.status)
+        default:
+          return 0
+      }
+    })
 
   const handleViewClaim = (claim) => {
     setSelectedClaim(claim)
@@ -77,10 +131,10 @@ export default function SCStaffWarrantyClaim() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSidebar name={"Nam"} image={profile} role={"SC Staff"} />
+      <SCStaffSidebar name={"Nam"} role={"SC Staff"} />
 
       <div className="lg:pl-64">
-        <Header name={"Pham Nhut Nam"} image={profile} email={"nam.admin@gmail.com"} />
+        <Header name={"Pham Nhut Nam"} email={"nam.admin@gmail.com"} />
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
@@ -152,6 +206,73 @@ export default function SCStaffWarrantyClaim() {
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="date-from" className="text-sm font-medium whitespace-nowrap">
+                  From:
+                </Label>
+                <Input
+                  id="date-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-[160px]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Label htmlFor="date-to" className="text-sm font-medium whitespace-nowrap">
+                  To:
+                </Label>
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-[160px]"
+                />
+              </div>
+
+              <Button variant="outline" size="sm" onClick={handleSetToday} className="gap-2 bg-transparent">
+                <Calendar className="h-4 w-4" />
+                Today
+              </Button>
+
+              <Select value={vehicleModelFilter} onValueChange={setVehicleModelFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Models" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Models</SelectItem>
+                  {vehicleModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[200px]">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">Date (Newest First)</SelectItem>
+                  <SelectItem value="date-asc">Date (Oldest First)</SelectItem>
+                  <SelectItem value="priority-high">Priority (High to Low)</SelectItem>
+                  <SelectItem value="priority-low">Priority (Low to High)</SelectItem>
+                  <SelectItem value="status">Status (A-Z)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredClaims.length} of {totalClaims} claims
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -249,10 +370,12 @@ export default function SCStaffWarrantyClaim() {
                 <p className="text-sm">{selectedClaim.issueDescription}</p>
               </div>
 
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Estimated Cost</h4>
-                <p className="text-lg font-semibold">{selectedClaim.estimatedCost.toLocaleString()} VND</p>
-              </div>
+              {selectedClaim.estimatedCost && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Estimated Cost</h4>
+                  <p className="text-lg font-semibold">{selectedClaim.estimatedCost.toLocaleString()} VND</p>
+                </div>
+              )}
 
               <Button onClick={handleMarkComplete} className="w-full bg-black hover:bg-gray-800 text-white">
                 Mark Complete

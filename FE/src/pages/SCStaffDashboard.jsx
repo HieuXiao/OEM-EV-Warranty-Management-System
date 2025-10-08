@@ -128,7 +128,7 @@ export default function SCStaffDashboard() {
                     </CardDescription>
                   </div>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/scstaff/claims">
+                    <Link to="/scstaff/warranty">
                       View all
                       <ArrowUpRight className="ml-1 h-4 w-4" />
                     </Link>
