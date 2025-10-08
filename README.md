@@ -1,47 +1,62 @@
-# OEM-EV-Warranty-Management-System
+1. npm install tailwindcss @tailwindcss/vite
 
-## Overview
-A web-based system designed for **automotive service centers** and **manufacturers** to manage vehicle warranty, service campaigns, and parts supply chain.
+2. mở file vite.config.js
+   
+  import { defineConfig } from "vite";
+  import react from "@vitejs/plugin-react";
+  import tailwindcss from "@tailwindcss/vite";
+  import path from "path";
 
----
+  // https://vite.dev/config/
+  export default defineConfig({
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+  });
 
-## Features
+3. Thêm "@import "tailwindcss";" trong file index.css (nếu không có thì tạo trong src và vào file main.jsx import "import "./index.css";" )
 
-### 1. Service Center (SC Staff, SC Technicians)
-- **Vehicle & Customer Management**
-  - Register vehicles by VIN.
-  - Attach part serial numbers to vehicles.
-  - Store service & warranty history.
-- **Warranty Claim Handling**
-  - Create warranty claim and submit to manufacturer.
-  - Attach inspection reports, diagnostic info.
-  - Track claim status.
-- **Warranty Execution**
-  - Receive replacement parts from manufacturer.
-  - Manage repair/replacement progress.
-  - Update warranty results and deliver vehicles.
-- **Recall/Service Campaigns**
-  - Receive list of affected vehicles.
-  - Notify customers → schedule service → perform recall → report results.
-- **Internal Management**
-  - Assign technicians to cases.
-  - Monitor handling time & performance.
-  - Archive warranty records for audits & reports.
+4. tạo 1 file tên "jsconfig.json" ngoài src và thêm :
+   
+   // jsconfig.json
+    {
+      "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+          "@/*": ["./src/*"]
+        }
+      },
+      "include": ["src/**/*"],
+      "exclude": ["node_modules", "dist"]
+    }
 
-### 2. Manufacturer (EVM Staff, Admin)
-- **Product & Parts Management**
-  - Database of EV components (battery, motor, BMS, inverter, charger, etc.).
-  - Link part serial numbers with vehicles (VIN).
-  - Manage warranty policies (duration, scope, conditions).
-- **Warranty Claim Management**
-  - Review & approve claims from service centers.
-  - Track claim lifecycle (received → verified → processed → completed).
-  - Manage warranty costs (paid by manufacturer).
-  - Initiate recall/service campaigns.
-- **Parts Supply Chain**
-  - Manage spare parts inventory.
-  - Allocate parts to service centers.
-  - Alert when parts are low in stock.
-- **Reporting & Analytics**
-  - Statistics of failures by model, part, region.
-  - AI analysis to identify common issues and forecast warranty costs.
+5. Chạy "npx shadcn@latest init" để thiết lập shadcnUI
+    (Which color would you like to use as base color? › Neutral)
+
+6. Chạy lệnh "npm install lucide-react"
+
+7. Vào file "index.html" xóa:
+     <!-- Google font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com/" />
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Icon fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <!-- Local CSS -->
+    <link rel="stylesheet" href="/src/styles/bootstrap.min.css" />
+    <link rel="stylesheet" href="/src/styles/style.css" />
