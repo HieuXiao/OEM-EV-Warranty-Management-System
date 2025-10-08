@@ -133,6 +133,44 @@ export const mockWarrantyClaims = [
   },
 ];
 
+export const mockCustomers = [
+  {
+    id: "1",
+    name: "Nguyen Thi H",
+    email: "nguyenthih@gmail.com",
+    phone: "0945678901",
+    address: "12 Tran Phu, Ba Dinh, Hanoi",
+  },
+  {
+    id: "2",
+    name: "Le Van K",
+    email: "levank@gmail.com",
+    phone: "0912345678",
+    address: "45 Nguyen Hue, District 1, Ho Chi Minh City",
+  },
+  {
+    id: "3",
+    name: "Tran Thi L",
+    email: "tranthil@gmail.com",
+    phone: "0938765432",
+    address: "89 Le Loi, Hai Chau, Da Nang",
+  },
+  {
+    id: "4",
+    name: "Pham Van M",
+    email: "phamvanm@gmail.com",
+    phone: "0902233445",
+    address: "23 Tran Hung Dao, Ninh Kieu, Can Tho",
+  },
+  {
+    id: "5",
+    name: "Do Thi N",
+    email: "dothin@gmail.com",
+    phone: "0977889900",
+    address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
+  },
+];
+
 export const mockParts = [
   {
     id: "1",
@@ -220,6 +258,29 @@ export const mockActivityLogs = [
     details: "JOB-001 status changed to in_progress",
     timestamp: "2024-10-03T09:05:00Z",
     type: "job",
+  },
+];
+
+export const mockWarehouses = [
+  {
+    id: "HN-05",
+    name: "Gear Hub",
+    location: "102C9 Nguyen Hong Street, Dong Da District, Hanoi",
+  },
+  {
+    id: "TG-30",
+    name: "Wheel Base",
+    location: " 545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
+  },
+  {
+    id: "HCM-03",
+    name: "Car Keep",
+    location: "42 Street 26, Ward 10, District 6, Ho Chi Minh City",
+  },
+  {
+    id: "BRVT-19",
+    name: "Box Garage",
+    location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
   },
 ];
 
