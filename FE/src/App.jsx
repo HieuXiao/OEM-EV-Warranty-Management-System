@@ -12,6 +12,11 @@ import SCStaffProfile from "./pages/SCStaffProfile";
 import SCStaffWarranty from "./pages/SCStaffWarrantyClaim";
 import SCStaffCampaign from "./pages/SCStaffCampaign";
 
+// IMPORT SCTECHNICIAN
+import SCTechnicianDashboard from "./pages/SCTechnicianDashBoard";
+import SCTechnicianCheck from "./pages/SCTechnicianCheck";
+import SCTechnicianRepair from "./pages/SCTechnicianRepair";
+
 function App() {
   return (
     <>
@@ -27,6 +32,10 @@ function App() {
         <Route path="/scstaff/profiles" element={<SCStaffProfile />} />
         <Route path="/scstaff/warranty" element={<SCStaffWarranty />} />
         <Route path="/scstaff/campaigns" element={<SCStaffCampaign />} />
+        {/* ScTechnician */}
+        <Route path="/sctechnician/dashboard" element={<SCTechnicianDashboard />} />
+        <Route path="/sctechnician/check" element={<SCTechnicianCheck />} />
+        <Route path="/sctechnician/repair" element={<SCTechnicianRepair />} />        
       </Routes>
     </>
   );

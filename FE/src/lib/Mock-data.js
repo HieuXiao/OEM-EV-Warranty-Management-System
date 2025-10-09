@@ -1,5 +1,6 @@
-// mockData.js
+// Mock-data.js
 
+// Users
 export const mockUsers = [
   {
     id: "1",
@@ -47,8 +48,81 @@ export const mockUsers = [
     status: "active",
     createdAt: "2024-02-15T00:00:00Z",
   },
-];
+  {
+    id: "4",
+    name: "Le Van C",
+    email: "levanc@sc.com",
+    password: "password",
+    role: "sc_technician",
+    serviceCenter: "SC Hanoi Central",
+    phone: "1900150xxx",
+    avatar: "/diverse-technician-team.png",
+    status: "active",
+    createdAt: "2024-02-15T00:00:00Z",
+  },
+  {
+    id: "5",
+    name: "Hoang Minh D",
+    email: "hoangminhd@sc.com",
+    password: "password",
+    role: "sc_technician",
+    serviceCenter: "SC HCMC District 1",
+    phone: "1900150xxx",
+    avatar: "/diverse-technician-team-2.png",
+    status: "active",
+    createdAt: "2024-03-01T00:00:00Z",
+  },
+  {
+    id: "6",
+    name: "Pham Thi E",
+    email: "phamtie@sc.com",
+    password: "password",
+    role: "sc_technician",
+    serviceCenter: "SC Da Nang",
+    phone: "1900150xxx",
+    avatar: "/diverse-technician-team-3.png",
+    status: "active",
+    createdAt: "2024-03-15T00:00:00Z",
+  },
+  {
+    id: "7",
+    name: "Vo Thanh F", 
+    email: "vothanhf@sc.com",
+    password: "password",
+    role: "sc_technician",
+    serviceCenter: "SC Hanoi Central",
+    phone: "1900150xxx",
+    avatar: "/diverse-technician-team-4.png",
+    status: "inactive",
+    createdAt: "2024-04-01T00:00:00Z",
+  },
+  {
+    id: "8",
+    name: "Doan Thi H",
+    email: "doanthih@sc.com",
+    password: "password",
+    role: "sc_staff",
+    serviceCenter: "SC Da Nang",
+    phone: "1900150xxx",
+    avatar: "/customer-service-interaction-3.png",
+    status: "active",
+    createdAt: "2024-05-10T00:00:00Z",
+  },
+  {
+    id: "9",
+    name: "Le Van G",
+    email: "levang@sc.com",
+    password: "password",
+    role: "sc_staff",
+    serviceCenter: "SC HCMC District 1",
+    phone: "1900150xxx",
+    avatar: "/customer-service-interaction-2.png",
+    status: "active",
+    createdAt: "2024-05-01T00:00:00Z",
+  },
+]
 
+// Warranty Claims
 export const mockWarrantyClaims = [
   {
     id: "1",
@@ -58,10 +132,11 @@ export const mockWarrantyClaims = [
     customerName: "Pham Van D",
     customerPhone: "0901234567",
     issueDescription: "Battery charging issue - not reaching full capacity",
-    status: "in_progress",
+    status: "in progress",
     priority: "high",
     serviceCenter: "SC Hanoi Central",
     assignedTo: "Tran Thi B",
+    assignedTechnician: "Le Van C",
     createdAt: "2024-10-01T08:00:00Z",
     updatedAt: "2024-10-03T14:30:00Z",
     kilometers: 15000,
@@ -79,9 +154,12 @@ export const mockWarrantyClaims = [
     status: "pending",
     priority: "medium",
     serviceCenter: "SC HCMC District 1",
+    assignedTo: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
     createdAt: "2024-10-02T10:15:00Z",
     updatedAt: "2024-10-02T10:15:00Z",
     kilometers: 8500,
+    estimatedCost: 3000000,
   },
   {
     id: "3",
@@ -91,9 +169,11 @@ export const mockWarrantyClaims = [
     customerName: "Le Thi F",
     customerPhone: "0923456789",
     issueDescription: "Air conditioning not cooling properly",
-    status: "approved",
+    status: "in progress",
     priority: "medium",
     serviceCenter: "SC Da Nang",
+    assignedTo: "Doan Thi H",
+    assignedTechnician: "Nguyen Van H",
     createdAt: "2024-10-03T14:20:00Z",
     updatedAt: "2024-10-03T16:45:00Z",
     kilometers: 12000,
@@ -111,6 +191,7 @@ export const mockWarrantyClaims = [
     priority: "high",
     serviceCenter: "SC Can Tho",
     assignedTo: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
     createdAt: "2024-09-28T09:00:00Z",
     updatedAt: "2024-10-01T17:30:00Z",
     kilometers: 18500,
@@ -125,14 +206,18 @@ export const mockWarrantyClaims = [
     customerPhone: "0945678901",
     issueDescription: "Steering wheel vibration at high speeds",
     status: "pending",
-    priority: "urgent",
+    priority: "high",
     serviceCenter: "SC Hanoi Central",
+    assignedTo: "Tran Thi B",
+    assignedTechnician: "Le Van C",
     createdAt: "2024-10-04T11:30:00Z",
     updatedAt: "2024-10-04T11:30:00Z",
     kilometers: 22000,
+    estimatedCost: 4000000,
   },
-];
+]
 
+// Customers
 export const mockCustomers = [
   {
     id: "1",
@@ -169,8 +254,9 @@ export const mockCustomers = [
     phone: "0977889900",
     address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
   },
-];
+]
 
+// Parts
 export const mockParts = [
   {
     id: "1",
@@ -194,8 +280,9 @@ export const mockParts = [
     stock: 3,
     status: "low_stock",
   },
-];
+]
 
+// Jobs - Enhanced for SC Technician
 export const mockJobs = [
   {
     id: "1",
@@ -204,11 +291,26 @@ export const mockJobs = [
     vehiclePlate: "30A-12345",
     vehicleModel: "VF 8",
     status: "in_progress",
+    priority: "urgent",
     assignedStaff: "Tran Thi B",
     assignedTechnician: "Le Van C",
     comment: "Battery module replacement required",
     createdAt: "2024-10-03T09:00:00Z",
     dueDate: "2024-10-05T17:00:00Z",
+    hasReport: true,
+    reportData: {
+      parts: {
+        Chassis: 2,
+        Motor: 1,
+        Battery: 2,
+        "Wheel/Rim": 1,
+        "Lock/Alarm": 2,
+        Controller: 1,
+        "Charger/Converter": 2,
+        Dashboard: 1,
+        Lighting: 1,
+      },
+    },
   },
   {
     id: "2",
@@ -216,13 +318,84 @@ export const mockJobs = [
     type: "check",
     vehiclePlate: "29B-67890",
     vehicleModel: "VF 9",
-    status: "to_do",
+    status: "in_progress",
+    priority: "urgent",
     assignedStaff: "Tran Thi B",
     assignedTechnician: "Le Van C",
     comment: "Diagnostic check for infotainment system",
     createdAt: "2024-10-04T08:30:00Z",
+    hasReport: false,
   },
-];
+  {
+    id: "3",
+    jobNumber: "JOB-003",
+    type: "repair",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "pending",
+    priority: "high",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning repair needed",
+    createdAt: "2024-10-09T14:00:00Z",
+    hasReport: true,
+    reportData: {
+      parts: {
+        "Shock Absorber": 1,
+        "Throttle/Brake": 1,
+        "Brake Caliper": 1,
+      },
+    },
+  },
+  {
+    id: "4",
+    jobNumber: "JOB-004",
+    type: "check",
+    vehiclePlate: "43C-33333",
+    vehicleModel: "VF 9",
+    status: "pending",
+    priority: "high",
+    assignedStaff: "Tran Thi B",
+    assignedTechnician: "Le Van C",
+    comment: "Steering wheel vibration inspection",
+    createdAt: "2024-10-09T10:00:00Z",
+    hasReport: false,
+  },
+  {
+    id: "5",
+    jobNumber: "JOB-005",
+    type: "repair",
+    vehiclePlate: "92A-22222",
+    vehicleModel: "VF 6",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Brake system repair",
+    createdAt: "2024-10-08T11:00:00Z",
+    hasReport: true,
+    reportData: {
+      parts: {
+        "Brake Caliper": 2,
+        "Throttle/Brake": 2,
+      },
+    },
+  },
+  {
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
+  },
+]
 
 // Data for campaign
 export const mockRecallCampaigns = [
@@ -230,8 +403,7 @@ export const mockRecallCampaigns = [
     id: "1",
     campaignNumber: "RC-2024-001",
     title: "Software Update - Battery Management System",
-    description:
-      "Critical software update for battery management system to improve charging efficiency",
+    description: "Critical software update for battery management system to improve charging efficiency",
     affectedModels: ["VF 8", "VF 9"],
     severity: "high",
     status: "active",
@@ -240,8 +412,9 @@ export const mockRecallCampaigns = [
     affectedVehicles: 1250,
     completedVehicles: 890,
   },
-];
+]
 
+// Activity Logs
 export const mockActivityLogs = [
   {
     id: "1",
@@ -261,8 +434,9 @@ export const mockActivityLogs = [
     timestamp: "2024-10-03T09:05:00Z",
     type: "job",
   },
-];
+]
 
+// Warehouses
 export const mockWarehouses = [
   {
     id: "HN-05",
@@ -272,7 +446,7 @@ export const mockWarehouses = [
   {
     id: "TG-30",
     name: "Wheel Base",
-    location: " 545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
+    location: "545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
   },
   {
     id: "HCM-03",
@@ -284,46 +458,43 @@ export const mockWarehouses = [
     name: "Box Garage",
     location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
   },
-];
+]
 
+// VIN Records
 export const mockVIN = [
   {
     vin: "VN-CAR-0001",
-    vehicleType: "Car",
     model: "VF 8",
     plate: "30A-12345",
     customerName: "Nguyen Thi H",
   },
   {
     vin: "VN-CAR-0002",
-    vehicleType: "Car",
     model: "VF 9",
     plate: "29B-67890",
     customerName: "Le Van K",
   },
   {
     vin: "VN-BIKE-0003",
-    vehicleType: "Bike",
     model: "Evo 150",
     plate: "59X1-11111",
     customerName: "Tran Thi L",
   },
   {
     vin: "VN-BIKE-0004",
-    vehicleType: "Bike",
     model: "Vento X",
     plate: "47D1-22222",
     customerName: "Pham Van M",
   },
   {
     vin: "VN-CAR-0005",
-    vehicleType: "Car",
     model: "VF 5",
     plate: "43C-33333",
     customerName: "Do Thi N",
   },
-];
+]
 
+// Attached Parts
 export const mockAttachParts = [
   {
     partSerial: "BAT-VF8-001",
@@ -370,8 +541,9 @@ export const mockAttachParts = [
     year: 2024,
     condition: "New",
   },
-];
+]
 
+// Vehicle Models
 export const vehicleModels = [
   "VF 3",
   "VF 5",
@@ -386,6 +558,23 @@ export const vehicleModels = [
   "Nerio Green",
   "Limo Green",
   "Minio Green",
+]
+
+// Parts List for Report Forms (12 parts)
+export const PARTS_LIST = [
+  "Chassis",
+  "Motor",
+  "Wheel/Rim",
+  "Battery",
+  "Shock Absorber",
+  "Throttle/Brake",
+  "Lock/Alarm",
+  "Brake Caliper",
+  "Controller",
+  "Charger/Converter",
+  "Dashboard",
+  "Lighting",
+]
 ];
 
 
