@@ -2,8 +2,15 @@ import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
 import Header from "@/components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CustomersTable from "@/components/scstaff/CustomersTable";
+import VINTable from "@/components/scstaff/VINTable";
+import PartAttachTable from "@/components/scstaff/PartAttachTable";
+import { useEffect } from "react";
 
 export default function SCStaffProfile() {
+  useEffect(() => {
+    document.title = `Profiles`;
+  }, []);
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar */}
@@ -34,6 +41,16 @@ export default function SCStaffProfile() {
               {/* Customer Tab */}
               <TabsContent value="customers" className="space-y-4">
                 <CustomersTable />
+              </TabsContent>
+
+              {/* Register VIN */}
+              <TabsContent value="register" className="space-y-4">
+                <VINTable />
+              </TabsContent>
+
+              {/* Attach Part */}
+              <TabsContent value="attach">
+                <PartAttachTable />
               </TabsContent>
             </Tabs>
           </div>

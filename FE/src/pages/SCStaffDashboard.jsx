@@ -26,6 +26,7 @@ import {
   mockUsers,
   mockActivityLogs,
 } from "@/lib/Mock-data";
+import { useEffect } from "react";
 
 export default function SCStaffDashboard() {
   const totalClaims = mockWarrantyClaims.length;
@@ -43,6 +44,10 @@ export default function SCStaffDashboard() {
     (p) => p.status === "low_stock"
   ).length;
   const activeUsers = mockUsers.filter((u) => u.status === "active").length;
+
+  useEffect(() => {
+    document.title = `Dashboard`;
+  }, []);
 
   function getStatusColor(status) {
     switch (status) {
