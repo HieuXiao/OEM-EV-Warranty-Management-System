@@ -1,3 +1,4 @@
+// FE/src/pages/SCStaffCampaign.jsx
 // IMPORT FROM COMPONENT
 import Header from "@/components/Header";
 import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";

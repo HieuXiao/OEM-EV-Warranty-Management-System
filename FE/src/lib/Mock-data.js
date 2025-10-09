@@ -474,3 +474,133 @@ export const existingAppointments = [
   { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
   { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
 ]
+
+// Mock data
+export const campaignsDetail = [
+  {
+    id: 1,
+    name: "Battery Recall 2024",
+    status: "active",
+    startDate: "2024-01-15",
+    endDate: "2024-06-30",
+    totalVehicles: 245,
+    contacted: 180,
+    scheduled: 120,
+  },
+  {
+    id: 2,
+    name: "Software Update Campaign",
+    status: "active",
+    startDate: "2024-02-01",
+    endDate: "2024-05-31",
+    totalVehicles: 156,
+    contacted: 98,
+    scheduled: 67,
+  },
+  {
+    id: 3,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
+]
+
+export const vehicles = [
+  {
+    id: 1,
+    campaignId: 1,
+    vin: "VF8A1234567890123",
+    licensePlate: "29A-12345",
+    owner: "Nguyen Van A",
+    phone: "0901234567",
+    model: "VF8",
+    year: 2023,
+    status: "pending",
+  },
+  {
+    id: 2,
+    campaignId: 1,
+    vin: "VF8B9876543210987",
+    licensePlate: "30B-67890",
+    owner: "Tran Thi B",
+    phone: "0912345678",
+    model: "VF8",
+    year: 2023,
+    status: "scheduled",
+  },
+  {
+    id: 3,
+    campaignId: 1,
+    vin: "VF9C1122334455667",
+    licensePlate: "51C-11223",
+    owner: "Le Van C",
+    phone: "0923456789",
+    model: "VF9",
+    year: 2024,
+    status: "contacted",
+  },
+]
+
+
+export const mockReports = [
+  {
+    id: 1,
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    reportType: "progress",
+    createdDate: "2024-01-15",
+    updatedDate: "2024-01-20",
+    status: "in-progress",
+    summary: "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
+    totalVehicles: 245,
+    completedServices: 120,
+    pendingServices: 125,
+    issues: "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
+    recommendations: "Consider extending service hours on weekends to accommodate more customers.",
+    createdBy: "Nam",
+  },
+  {
+    id: 2,
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    reportType: "progress",
+    createdDate: "2024-02-01",
+    updatedDate: "2024-02-10",
+    status: "in-progress",
+    summary: "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
+    totalVehicles: 156,
+    completedServices: 67,
+    pendingServices: 89,
+    issues: "Minor technical issues with update installation on older vehicle models.",
+    recommendations: "Provide additional training to technicians on handling legacy system updates.",
+    createdBy: "Nam",
+  },
+  {
+    id: 3,
+    campaignId: 3,
+    campaignName: "Brake System Inspection",
+    reportType: "completion",
+    createdDate: "2023-10-01",
+    updatedDate: "2024-01-05",
+    status: "completed",
+    summary: "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
+    totalVehicles: 312,
+    completedServices: 298,
+    pendingServices: 14,
+    issues: "14 customers did not respond to multiple contact attempts.",
+    recommendations:
+      "Implement SMS reminder system for future campaigns to improve customer engagement and reduce no-shows.",
+    createdBy: "Nam",
+  },
+]
+
+// const campaigns = [
+//   { id: 0, name: "All Campaigns" },
+//   { id: 1, name: "Battery Recall 2024" },
+//   { id: 2, name: "Software Update Campaign" },
+//   { id: 3, name: "Brake System Inspection" },
+// ]
