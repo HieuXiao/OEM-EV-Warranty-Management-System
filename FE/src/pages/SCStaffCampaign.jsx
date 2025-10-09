@@ -2,6 +2,7 @@
 import Header from "@/components/Header";
 import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
 import SCStaffSummary from "@/components/scstaff/SCStaffCampaignSummary";
+import SCStaffAppointments from "@/components/scstaff/SCStaffAppointmentsSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SCStaffProfile() {
@@ -22,16 +23,28 @@ export default function SCStaffProfile() {
               </h1>
             </div>
 
-            <Tabs defaultValue="overview" className="space-y-6">
+            <Tabs defaultValue="summary" className="space-y-6">
               <TabsList>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="list">Campaigns</TabsTrigger>
                 <TabsTrigger value="appointment">Appointments</TabsTrigger>
-                <TabsTrigger value="status">Statuses</TabsTrigger>
+                <TabsTrigger value="report">Reports</TabsTrigger>
               </TabsList>
 
               {/* Customer Tab */}
               <TabsContent value="summary" className="space-y-4">
+                <SCStaffSummary />
+              </TabsContent>
+              {/* Customer Tab */}
+              <TabsContent value="list" className="space-y-4">
+                <SCStaffSummary />
+              </TabsContent>
+              {/* Customer Tab */}
+              <TabsContent value="appointment" className="space-y-4">
+                <SCStaffAppointments />
+              </TabsContent>
+              {/* Customer Tab */}
+              <TabsContent value="report" className="space-y-4">
                 <SCStaffSummary />
               </TabsContent>
             </Tabs>
