@@ -224,6 +224,7 @@ export const mockJobs = [
   },
 ];
 
+// Data for campaign
 export const mockRecallCampaigns = [
   {
     id: "1",
@@ -235,6 +236,7 @@ export const mockRecallCampaigns = [
     severity: "high",
     status: "active",
     startDate: "2024-09-01T00:00:00Z",
+    endDate: "2024-12-01T00:00:00Z",
     affectedVehicles: 1250,
     completedVehicles: 890,
   },
@@ -385,3 +387,90 @@ export const vehicleModels = [
   "Limo Green",
   "Minio Green",
 ];
+
+
+// ===== DATA FOR CAMPAIGN =====
+// appointment section 
+export const mockAppointments = [
+  {
+    id: 1,
+    date: "2024-01-20",
+    time: "09:00",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Nguyen Van A",
+    phone: "0901234567",
+    vin: "VF8A1234567890123",
+    licensePlate: "29A-12345",
+    status: "scheduled",
+  },
+  {
+    id: 2,
+    date: "2024-01-20",
+    time: "10:30",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Tran Thi B",
+    phone: "0912345678",
+    vin: "VF8B9876543210987",
+    licensePlate: "30B-67890",
+    status: "scheduled",
+  },
+  {
+    id: 3,
+    date: "2024-01-20",
+    time: "14:00",
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    customer: "Le Van C",
+    phone: "0923456789",
+    vin: "VF9C1122334455667",
+    licensePlate: "51C-11223",
+    status: "completed",
+  },
+  {
+    id: 4,
+    date: "2024-01-21",
+    time: "09:00",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Pham Thi D",
+    phone: "0934567890",
+    vin: "VF8D9988776655443",
+    licensePlate: "59D-44556",
+    status: "scheduled",
+  },
+  {
+    id: 5,
+    date: "2024-01-21",
+    time: "11:00",
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    customer: "Hoang Van E",
+    phone: "0945678901",
+    vin: "VF9E5544332211009",
+    licensePlate: "60E-77889",
+    status: "no-show",
+    notes: "Customer did not show up, attempted to call",
+  },
+]
+
+export const campaigns = [
+  { id: 0, name: "All Campaigns" },
+  { id: 1, name: "Battery Recall 2024" },
+  { id: 2, name: "Software Update Campaign" },
+  { id: 3, name: "Brake System Inspection" },
+]
+
+export const statusOptions = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "no-show", label: "No Show" },
+  { value: "rescheduled", label: "Rescheduled" },
+]
+
+export const existingAppointments = [
+  { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
+  { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
+]
