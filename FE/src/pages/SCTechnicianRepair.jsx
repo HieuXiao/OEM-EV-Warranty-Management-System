@@ -1,24 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
 import Header from "@/components/Header";
 import ReportRepair from "@/components/sctechnician/ScTechnicianRepiarForm";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileText, CheckCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockJobs, mockUsers } from "@/lib/Mock-data";
 
 export default function SCTechnicianRepair() {
-  const [selectedJob, setSelectedJob] = useState(null)
-  const [jobs, setJobs] = useState(mockJobs.filter((job) => job.type === "repair"))
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobs, setJobs] = useState(
+    mockJobs.filter((job) => job.type === "repair")
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    document.title = `Repair`;
+  }, []);
 
   const formatDateTime = (isoString) => {
-    const date = new Date(isoString)
+    const date = new Date(isoString);
     return date
       .toLocaleString("en-GB", {
         year: "numeric",
@@ -27,58 +45,71 @@ export default function SCTechnicianRepair() {
         hour: "2-digit",
         minute: "2-digit",
       })
-      .replace(",", "")
-  }
+      .replace(",", "");
+  };
 
   function getStatusColor(status) {
     switch (status) {
       case "pending":
-        return "bg-yellow-500"
+        return "bg-yellow-500";
       case "in_progress":
-        return "bg-blue-500"
+        return "bg-blue-500";
       case "completed":
-        return "bg-green-500"
+        return "bg-green-500";
       default:
-        return "bg-gray-500"
+        return "bg-gray-500";
     }
   }
 
   function getPriorityColor(priority) {
     switch (priority) {
       case "low":
-        return "bg-gray-500"
+        return "bg-gray-500";
       case "medium":
-        return "bg-yellow-500"
+        return "bg-yellow-500";
       case "high":
-        return "bg-orange-500"
+        return "bg-orange-500";
       case "urgent":
-        return "bg-red-500"
+        return "bg-red-500";
       default:
-        return "bg-gray-500"
+        return "bg-gray-500";
     }
   }
 
   const handleOpenReport = (job) => {
-    setSelectedJob(job)
-  }
+    setSelectedJob(job);
+  };
 
   const handleCloseReport = () => {
-    setSelectedJob(null)
-  }
+    setSelectedJob(null);
+  };
 
   const handleCompleteRepair = () => {
-    // Update job status
-    setJobs((prevJobs) => prevJobs.map((job) => (job.id === selectedJob.id ? { ...job, status: "completed" } : job)))
-    setSelectedJob(null)
-  }
+    setJobs((prevJobs) => {
+      // Update the status
+      const updatedJobs = prevJobs.map((job) =>
+        job.id === selectedJob.id ? { ...job, status: "completed" } : job
+      );
+
+      // Move completed jobs to the end of the list
+      const sortedJobs = [
+        ...updatedJobs.filter((job) => job.status !== "completed"),
+        ...updatedJobs.filter((job) => job.status === "completed"),
+      ];
+
+      return sortedJobs;
+    });
+
+    setSelectedJob(null);
+  };
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -90,7 +121,9 @@ export default function SCTechnicianRepair() {
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold">Repair Jobs</h1>
-              <p className="text-muted-foreground mt-1">Active repair and maintenance tasks</p>
+              <p className="text-muted-foreground mt-1">
+                Active repair and maintenance tasks
+              </p>
             </div>
 
             {/* Filters */}
@@ -125,7 +158,9 @@ export default function SCTechnicianRepair() {
             <Card>
               <CardHeader>
                 <CardTitle>Repair Jobs List</CardTitle>
-                <CardDescription>{filteredJobs.length} job(s) found</CardDescription>
+                <CardDescription>
+                  {filteredJobs.length} job(s) found
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -138,12 +173,21 @@ export default function SCTechnicianRepair() {
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold">{job.jobNumber}</p>
-                            <Badge variant="outline" className={cn("text-xs capitalize", getStatusColor(job.status))}>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs capitalize",
+                                getStatusColor(job.status)
+                              )}
+                            >
                               {job.status.replace("_", " ")}
                             </Badge>
                             <Badge
                               variant="outline"
-                              className={cn("text-xs capitalize", getPriorityColor(job.priority))}
+                              className={cn(
+                                "text-xs capitalize",
+                                getPriorityColor(job.priority)
+                              )}
                             >
                               {job.priority}
                             </Badge>
@@ -153,27 +197,31 @@ export default function SCTechnicianRepair() {
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle:</span> {job.vehicleModel} - {job.vehiclePlate}
+                              <span className="font-medium">Vehicle:</span>{" "}
+                              {job.vehicleModel} - {job.vehiclePlate}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Date:</span> {formatDateTime(job.createdAt)}
+                              <span className="font-medium">Date:</span>{" "}
+                              {formatDateTime(job.createdAt)}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">SC Staff:</span> {job.assignedStaff}
+                              <span className="font-medium">SC Staff:</span>{" "}
+                              {job.assignedStaff}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Technician:</span> {job.assignedTechnician}
+                              <span className="font-medium">Technician:</span>{" "}
+                              {job.assignedTechnician}
                             </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleOpenReport(job)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReport(job)}
+                          >
                             <FileText className="h-4 w-4 mr-1" />
                             Report
-                          </Button>
-                          <Button size="sm" disabled={!job.hasReport} className="bg-cyan-500 hover:bg-cyan-600">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Complete
                           </Button>
                         </div>
                       </div>
@@ -187,7 +235,13 @@ export default function SCTechnicianRepair() {
       </div>
 
       {/* Report Modal */}
-      {selectedJob && <ReportRepair job={selectedJob} onClose={handleCloseReport} onComplete={handleCompleteRepair} />}
+      {selectedJob && (
+        <ReportRepair
+          job={selectedJob}
+          onClose={handleCloseReport}
+          onComplete={handleCompleteRepair}
+        />
+      )}
     </div>
-  )
+  );
 }
