@@ -49,18 +49,6 @@ export const mockUsers = [
     createdAt: "2024-02-15T00:00:00Z",
   },
   {
-    id: "4",
-    name: "Le Van C",
-    email: "levanc@sc.com",
-    password: "password",
-    role: "sc_technician",
-    serviceCenter: "SC Hanoi Central",
-    phone: "1900150xxx",
-    avatar: "/diverse-technician-team.png",
-    status: "active",
-    createdAt: "2024-02-15T00:00:00Z",
-  },
-  {
     id: "5",
     name: "Hoang Minh D",
     email: "hoangminhd@sc.com",
@@ -397,7 +385,7 @@ export const mockJobs = [
   },
 ]
 
-// Data for campaign
+// Recall Campaigns
 export const mockRecallCampaigns = [
   {
     id: "1",
@@ -408,7 +396,6 @@ export const mockRecallCampaigns = [
     severity: "high",
     status: "active",
     startDate: "2024-09-01T00:00:00Z",
-    endDate: "2024-12-01T00:00:00Z",
     affectedVehicles: 1250,
     completedVehicles: 890,
   },
@@ -575,7 +562,6 @@ export const PARTS_LIST = [
   "Dashboard",
   "Lighting",
 ]
-];
 
 
 // ===== DATA FOR CAMPAIGN =====
