@@ -1,4 +1,4 @@
-import SCStaffSibebar from "@/components/SCStaffSidebar";
+import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
 import Header from "@/components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CustomersTable from "@/components/scstaff/CustomersTable";

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Search, Filter, Eye, Plus } from "lucide-react"
-import SCStaffSidebar from "@/components/SCStaffSidebar"
+import SCStaffSidebar from "@/components/scstaff/SCStaffSidebar"
 import Header from "@/components/Header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
