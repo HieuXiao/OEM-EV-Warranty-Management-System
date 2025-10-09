@@ -575,7 +575,6 @@ export const PARTS_LIST = [
   "Dashboard",
   "Lighting",
 ]
-];
 
 
 // ===== DATA FOR CAMPAIGN =====
