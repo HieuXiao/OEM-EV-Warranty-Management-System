@@ -9,6 +9,7 @@ import AdminSetting from "./pages/AdminSetting";
 // IMPORT SCSTAFF
 import SCStaffDashboard from "./pages/SCStaffDashboard";
 import SCStaffProfile from "./pages/SCStaffProfile";
+import CustomerDetail from "./components/scstaff/CustomerDetail";
 import SCStaffWarranty from "./pages/SCStaffWarrantyClaim";
 import SCStaffCampaign from "./pages/SCStaffCampaign";
 
@@ -30,12 +31,16 @@ function App() {
         {/* ScStaff */}
         <Route path="/scstaff/dashboard" element={<SCStaffDashboard />} />
         <Route path="/scstaff/profiles" element={<SCStaffProfile />} />
+        <Route path="/scstaff/profiles/:id" element={<CustomerDetail />} />
         <Route path="/scstaff/warranty" element={<SCStaffWarranty />} />
         <Route path="/scstaff/campaigns" element={<SCStaffCampaign />} />
         {/* ScTechnician */}
-        <Route path="/sctechnician/dashboard" element={<SCTechnicianDashboard />} />
+        <Route
+          path="/sctechnician/dashboard"
+          element={<SCTechnicianDashboard />}
+        />
         <Route path="/sctechnician/check" element={<SCTechnicianCheck />} />
-        <Route path="/sctechnician/repair" element={<SCTechnicianRepair />} />        
+        <Route path="/sctechnician/repair" element={<SCTechnicianRepair />} />
       </Routes>
     </>
   );

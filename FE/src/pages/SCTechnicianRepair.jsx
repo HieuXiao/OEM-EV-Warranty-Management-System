@@ -108,7 +108,9 @@ export default function SCTechnicianRepair() {
       job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesTechnician =
+      job.assignedTechnician.toLowerCase() === mockUsers[5].name.toLowerCase();
+    return matchesSearch && matchesStatus && matchesTechnician;
   });
 
   return (
@@ -182,7 +184,7 @@ export default function SCTechnicianRepair() {
                             >
                               {job.status.replace("_", " ")}
                             </Badge>
-                            <Badge
+                            {/* <Badge
                               variant="outline"
                               className={cn(
                                 "text-xs capitalize",
@@ -193,7 +195,7 @@ export default function SCTechnicianRepair() {
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               {job.type}
-                            </Badge>
+                            </Badge> */}
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p className="text-muted-foreground">
