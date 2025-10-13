@@ -1,9 +1,6 @@
 import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
 import Header from "@/components/Header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CustomersTable from "@/components/scstaff/CustomersTable";
-import VINTable from "@/components/scstaff/VINTable";
-import PartAttachTable from "@/components/scstaff/PartAttachTable";
 import { useEffect } from "react";
 
 export default function SCStaffProfile() {
@@ -31,28 +28,8 @@ export default function SCStaffProfile() {
               </p>
             </div>
 
-            <Tabs defaultValue="customers" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="customers">Customers</TabsTrigger>
-                <TabsTrigger value="register">Vehicles</TabsTrigger>
-                <TabsTrigger value="attach">Attach Part</TabsTrigger>
-              </TabsList>
-
-              {/* Customer Tab */}
-              <TabsContent value="customers" className="space-y-4">
-                <CustomersTable />
-              </TabsContent>
-
-              {/* Register VIN */}
-              <TabsContent value="register" className="space-y-4">
-                <VINTable />
-              </TabsContent>
-
-              {/* Attach Part */}
-              <TabsContent value="attach">
-                <PartAttachTable />
-              </TabsContent>
-            </Tabs>
+            {/* Customer Tab */}
+            <CustomersTable />
           </div>
         </div>
       </div>
