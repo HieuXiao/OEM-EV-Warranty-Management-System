@@ -108,7 +108,7 @@ export const mockUsers = [
     status: "active",
     createdAt: "2024-05-01T00:00:00Z",
   },
-];
+]
 
 // Warranty Claims
 export const mockWarrantyClaims = [
@@ -203,7 +203,7 @@ export const mockWarrantyClaims = [
     kilometers: 22000,
     estimatedCost: 4000000,
   },
-];
+]
 
 // Customers
 export const mockCustomers = [
@@ -242,7 +242,7 @@ export const mockCustomers = [
     phone: "0977889900",
     address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
   },
-];
+]
 
 // Parts
 export const mockParts = [
@@ -268,7 +268,7 @@ export const mockParts = [
     stock: 3,
     status: "low_stock",
   },
-];
+]
 
 // Jobs - Enhanced for SC Technician
 export const mockJobs = [
@@ -383,7 +383,7 @@ export const mockJobs = [
     createdAt: "2024-10-09T13:00:00Z",
     hasReport: true,
   },
-];
+]
 
 // Recall Campaigns
 export const mockRecallCampaigns = [
@@ -391,8 +391,7 @@ export const mockRecallCampaigns = [
     id: "1",
     campaignNumber: "RC-2024-001",
     title: "Software Update - Battery Management System",
-    description:
-      "Critical software update for battery management system to improve charging efficiency",
+    description: "Critical software update for battery management system to improve charging efficiency",
     affectedModels: ["VF 8", "VF 9"],
     severity: "high",
     status: "active",
@@ -400,7 +399,7 @@ export const mockRecallCampaigns = [
     affectedVehicles: 1250,
     completedVehicles: 890,
   },
-];
+]
 
 // Activity Logs
 export const mockActivityLogs = [
@@ -422,7 +421,7 @@ export const mockActivityLogs = [
     timestamp: "2024-10-03T09:05:00Z",
     type: "job",
   },
-];
+]
 
 // Warehouses
 export const mockWarehouses = [
@@ -446,7 +445,7 @@ export const mockWarehouses = [
     name: "Box Garage",
     location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
   },
-];
+]
 
 // VIN Records
 export const mockVIN = [
@@ -485,7 +484,7 @@ export const mockVIN = [
     plate: "43C-33333",
     customerName: "Do Thi N",
   },
-];
+]
 
 // Attached Parts
 export const mockAttachParts = [
@@ -534,7 +533,7 @@ export const mockAttachParts = [
     year: 2024,
     condition: "New",
   },
-];
+]
 
 // Vehicle Models
 export const vehicleModels = [
@@ -551,7 +550,7 @@ export const vehicleModels = [
   "Nerio Green",
   "Limo Green",
   "Minio Green",
-];
+]
 
 // Parts List for Report Forms (12 parts)
 export const PARTS_LIST = [
@@ -567,7 +566,7 @@ export const PARTS_LIST = [
   "Charger/Converter",
   "Dashboard",
   "Lighting",
-];
+]
 
 // ===== DATA FOR CAMPAIGN =====
 // appointment section
@@ -633,14 +632,14 @@ export const mockAppointments = [
     status: "no-show",
     notes: "Customer did not show up, attempted to call",
   },
-];
+]
 
 export const campaigns = [
   { id: 0, name: "All Campaigns" },
   { id: 1, name: "Battery Recall 2024" },
   { id: 2, name: "Software Update Campaign" },
   { id: 3, name: "Brake System Inspection" },
-];
+]
 
 export const statusOptions = [
   { value: "scheduled", label: "Scheduled" },
@@ -648,12 +647,12 @@ export const statusOptions = [
   { value: "cancelled", label: "Cancelled" },
   { value: "no-show", label: "No Show" },
   { value: "rescheduled", label: "Rescheduled" },
-];
+]
 
 export const existingAppointments = [
   { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
   { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
-];
+]
 
 // Mock data
 export const campaignsDetail = [
@@ -687,7 +686,7 @@ export const campaignsDetail = [
     contacted: 312,
     scheduled: 298,
   },
-];
+]
 
 export const vehicles = [
   {
@@ -723,7 +722,7 @@ export const vehicles = [
     year: 2024,
     status: "contacted",
   },
-];
+]
 
 export const mockReports = [
   {
@@ -734,15 +733,12 @@ export const mockReports = [
     createdDate: "2024-01-15",
     updatedDate: "2024-01-20",
     status: "in-progress",
-    summary:
-      "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
+    summary: "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
     totalVehicles: 245,
     completedServices: 120,
     pendingServices: 125,
-    issues:
-      "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
-    recommendations:
-      "Consider extending service hours on weekends to accommodate more customers.",
+    issues: "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
+    recommendations: "Consider extending service hours on weekends to accommodate more customers.",
     createdBy: "Nam",
   },
   {
@@ -753,15 +749,12 @@ export const mockReports = [
     createdDate: "2024-02-01",
     updatedDate: "2024-02-10",
     status: "in-progress",
-    summary:
-      "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
+    summary: "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
     totalVehicles: 156,
     completedServices: 67,
     pendingServices: 89,
-    issues:
-      "Minor technical issues with update installation on older vehicle models.",
-    recommendations:
-      "Provide additional training to technicians on handling legacy system updates.",
+    issues: "Minor technical issues with update installation on older vehicle models.",
+    recommendations: "Provide additional training to technicians on handling legacy system updates.",
     createdBy: "Nam",
   },
   {
@@ -772,8 +765,7 @@ export const mockReports = [
     createdDate: "2023-10-01",
     updatedDate: "2024-01-05",
     status: "completed",
-    summary:
-      "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
+    summary: "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
     totalVehicles: 312,
     completedServices: 298,
     pendingServices: 14,
@@ -782,268 +774,92 @@ export const mockReports = [
       "Implement SMS reminder system for future campaigns to improve customer engagement and reduce no-shows.",
     createdBy: "Nam",
   },
-];
-
-// const campaigns = [
-//   { id: 0, name: "All Campaigns" },
-//   { id: 1, name: "Battery Recall 2024" },
-//   { id: 2, name: "Software Update Campaign" },
-//   { id: 3, name: "Brake System Inspection" },
-// ]
-
-// Parts Inventory for EVM Staff
-export const mockPartsInventory = [
-  {
-    id: "1",
-    serial: "BAT-VF8-001",
-    partName: "Battery Module 87.7kWh",
-    branch: "Hanoi Central",
-    description: "High capacity battery module for VF 8 and VF 9",
-    specifications: "87.7kWh, 400V, Lithium-ion",
-    price: 45000000,
-    stock: 12,
-    remain: 8,
-    location: "Warehouse A - Section B2",
-    vehicleModels: ["VF 8", "VF 9"],
-  },
-  {
-    id: "2",
-    serial: "INF-VF-001",
-    partName: 'Infotainment Display 15.6"',
-    branch: "HCMC District 1",
-    description: "Touchscreen display for infotainment system",
-    specifications: '15.6" LCD, 1920x1080, Multi-touch',
-    price: 8500000,
-    stock: 25,
-    remain: 3,
-    location: "Warehouse B - Section A1",
-    vehicleModels: ["VF 8", "VF 9", "VF 7"],
-  },
-  {
-    id: "3",
-    serial: "BRK-VF-002",
-    partName: "Brake Caliper Assembly",
-    branch: "Da Nang",
-    description: "Front brake caliper with pads",
-    specifications: "Hydraulic, 4-piston, Ceramic pads",
-    price: 3200000,
-    stock: 30,
-    remain: 18,
-    location: "Warehouse C - Section D3",
-    vehicleModels: ["VF 6", "VF 7", "VF 8"],
-  },
-  {
-    id: "4",
-    serial: "MOT-VF9-003",
-    partName: "Electric Motor Assembly",
-    branch: "Hanoi Central",
-    description: "Rear electric motor for VF 9",
-    specifications: "150kW, Permanent Magnet Synchronous",
-    price: 65000000,
-    stock: 5,
-    remain: 2,
-    location: "Warehouse A - Section C1",
-    vehicleModels: ["VF 9"],
-  },
-  {
-    id: "5",
-    serial: "CHA-VF-004",
-    partName: "Chassis Frame",
-    branch: "HCMC District 1",
-    description: "Main chassis frame structure",
-    specifications: "High-strength steel, Reinforced",
-    price: 28000000,
-    stock: 8,
-    remain: 5,
-    location: "Warehouse B - Section E2",
-    vehicleModels: ["VF 8"],
-  },
 ]
 
-// Warranty Claims for EVM Staff Management
+// EVM Staff - Warranty Claims
 export const mockEVMWarrantyClaims = [
   {
     id: "1",
     claimId: "WC-2024-001",
     vehicle: "VF 8",
-    model: "Plus Extended Range",
-    issueNumber: "ISS-001",
-    status: "approved",
-    customerName: "Nguyen Van A",
     vehiclePlate: "30A-12345",
-    parts: ["Battery Module", "Controller"],
-    totalCost: 48000000,
+    model: "VF 8 Plus",
+    issueNumber: "ISS-001",
+    customerName: "Nguyen Van A",
+    status: "done",
     submittedDate: "2024-10-01",
-    decision: "approved",
+    parts: ["Battery Module", "Controller Unit"],
   },
   {
     id: "2",
     claimId: "WC-2024-002",
     vehicle: "VF 9",
-    model: "Eco",
-    issueNumber: "ISS-002",
-    status: "pending",
-    customerName: "Tran Thi B",
     vehiclePlate: "29B-67890",
-    parts: ["Infotainment Display"],
-    totalCost: 8500000,
+    model: "VF 9 Eco",
+    issueNumber: "ISS-002",
+    customerName: "Tran Thi B",
+    status: "to do",
     submittedDate: "2024-10-05",
-    decision: "pending",
+    parts: ["Infotainment Display"],
   },
   {
     id: "3",
     claimId: "WC-2024-003",
     vehicle: "VF 7",
-    model: "Base",
-    issueNumber: "ISS-003",
-    status: "in_review",
-    customerName: "Le Van C",
     vehiclePlate: "51F-11111",
-    parts: ["Brake Caliper", "Dashboard"],
-    totalCost: 5200000,
+    model: "VF 7 Base",
+    issueNumber: "ISS-003",
+    customerName: "Le Van C",
+    status: "in progress",
     submittedDate: "2024-10-08",
-    decision: "pending",
+    parts: ["Air Conditioning Unit", "Compressor"],
   },
   {
     id: "4",
     claimId: "WC-2024-004",
     vehicle: "VF 6",
-    model: "Plus",
-    issueNumber: "ISS-004",
-    status: "rejected",
-    customerName: "Pham Van D",
     vehiclePlate: "92A-22222",
-    parts: ["Wheel/Rim"],
-    totalCost: 4000000,
+    model: "VF 6 Plus",
+    issueNumber: "ISS-004",
+    customerName: "Pham Thi D",
+    status: "done",
     submittedDate: "2024-09-28",
-    decision: "rejected",
-  },
-]
-
-// Warranty Policies for EVM Staff
-export const mockWarrantyPolicies = [
-  {
-    id: "1",
-    no: 1,
-    part: "Battery Module",
-    vin: "VF8A1234567890123",
-    model: "VF 8",
-    history: "2 replacements",
-    detail: "96 months / 160,000 km",
-    decision: "yes",
-    relative: "Controller, Charger",
-  },
-  {
-    id: "2",
-    no: 2,
-    part: "Electric Motor",
-    vin: "VF9B9876543210987",
-    model: "VF 9",
-    history: "0 replacements",
-    detail: "120 months / 200,000 km",
-    decision: "yes",
-    relative: "Controller, Transmission",
-  },
-  {
-    id: "3",
-    no: 3,
-    part: "Infotainment Display",
-    vin: "VF7C1122334455667",
-    model: "VF 7",
-    history: "1 replacement",
-    detail: "36 months / 60,000 km",
-    decision: "no",
-    relative: "Dashboard, Speakers",
-  },
-  {
-    id: "4",
-    no: 4,
-    part: "Brake System",
-    vin: "VF6D9988776655443",
-    model: "VF 6",
-    history: "0 replacements",
-    detail: "24 months / 40,000 km",
-    decision: "yes",
-    relative: "Brake Caliper, Brake Pads",
-  },
-]
-
-// Supply Chain Inventory
-export const mockSupplyChain = [
-  {
-    id: "1",
-    partName: "Battery Module 87.7kWh",
-    stock: 12,
-    remain: 8,
-    location: "Warehouse A - B2",
-    alert: "normal",
-  },
-  {
-    id: "2",
-    partName: 'Infotainment Display 15.6"',
-    stock: 25,
-    remain: 3,
-    location: "Warehouse B - A1",
-    alert: "low",
-  },
-  {
-    id: "3",
-    partName: "Brake Caliper Assembly",
-    stock: 30,
-    remain: 18,
-    location: "Warehouse C - D3",
-    alert: "normal",
-  },
-  {
-    id: "4",
-    partName: "Electric Motor Assembly",
-    stock: 5,
-    remain: 2,
-    location: "Warehouse A - C1",
-    alert: "critical",
+    parts: ["Brake Pads"],
   },
   {
     id: "5",
-    partName: "Chassis Frame",
-    stock: 8,
-    remain: 5,
-    location: "Warehouse B - E2",
-    alert: "normal",
+    claimId: "WC-2024-005",
+    vehicle: "VF 9",
+    vehiclePlate: "43C-33333",
+    model: "VF 9 Plus",
+    issueNumber: "ISS-005",
+    customerName: "Hoang Van E",
+    status: "in progress",
+    submittedDate: "2024-10-10",
+    parts: ["Steering Assembly", "Suspension"],
   },
   {
     id: "6",
-    partName: "Controller Unit",
-    stock: 20,
-    remain: 4,
-    location: "Warehouse A - B3",
-    alert: "low",
-  },
-  {
-    id: "7",
-    partName: "Charger/Converter",
-    stock: 15,
-    remain: 12,
-    location: "Warehouse C - A2",
-    alert: "normal",
-  },
-  {
-    id: "8",
-    partName: "Dashboard Assembly",
-    stock: 18,
-    remain: 1,
-    location: "Warehouse B - C1",
-    alert: "critical",
+    claimId: "WC-2024-006",
+    vehicle: "VF 8",
+    vehiclePlate: "88H-55555",
+    model: "VF 8 Eco",
+    issueNumber: "ISS-006",
+    customerName: "Vo Thi F",
+    status: "to do",
+    submittedDate: "2024-10-12",
+    parts: ["Dashboard Display"],
   },
 ]
 
-// EVM Staff Campaigns
+// EVM Staff - Campaigns
 export const mockEVMCampaigns = [
   {
     id: "1",
     campaignId: "CAMP-2024-001",
-    campaignName: "Battery Recall Q4 2024",
-    description: "Critical battery management system update for VF 8 and VF 9",
-    start: "2024-10-01",
+    campaignName: "Battery Recall 2024",
+    description: "Critical battery management system update for VF 8 and VF 9 models",
+    start: "2024-09-01",
     end: "2024-12-31",
     status: "process",
   },
@@ -1052,27 +868,163 @@ export const mockEVMCampaigns = [
     campaignId: "CAMP-2024-002",
     campaignName: "Software Update Campaign",
     description: "Infotainment system software update for all VF models",
-    start: "2024-09-15",
+    start: "2024-10-01",
     end: "2024-11-30",
-    status: "done",
+    status: "to_do",
   },
   {
     id: "3",
     campaignId: "CAMP-2024-003",
     campaignName: "Brake System Inspection",
-    description: "Mandatory brake system inspection for VF 6 and VF 7",
-    start: "2024-11-01",
-    end: "2025-01-31",
-    status: "to_do",
+    description: "Comprehensive brake system inspection and maintenance",
+    start: "2024-08-01",
+    end: "2024-09-30",
+    status: "done",
   },
   {
     id: "4",
     campaignId: "CAMP-2024-004",
-    campaignName: "Winter Maintenance Check",
-    description: "Comprehensive winter readiness check for all models",
-    start: "2024-10-15",
-    end: "2024-10-20",
+    campaignName: "Winter Maintenance",
+    description: "Pre-winter vehicle inspection and maintenance campaign",
+    start: "2024-11-01",
+    end: "2024-12-15",
     status: "cancel",
   },
 ]
 
+// EVM Staff - Parts Inventory
+export const mockPartsInventory = [
+  {
+    id: "1",
+    serial: "BAT-VF8-001",
+    partName: "Battery Module 87.7kWh",
+    branch: "Hanoi Central",
+    description: "High-capacity battery module for VF 8 and VF 9",
+    specifications: "87.7kWh, 400V, Lithium-ion",
+    price: 45000000,
+    vehicleModels: ["VF 8", "VF 9"],
+    stock: 12,
+    remain: 8,
+    location: "Warehouse A - Section B2",
+  },
+  {
+    id: "2",
+    serial: "INF-VF-001",
+    partName: 'Infotainment Display 15.6"',
+    branch: "HCMC District 1",
+    description: "Touchscreen infotainment display",
+    specifications: '15.6" LCD, 1920x1080, Capacitive touch',
+    price: 8500000,
+    vehicleModels: ["VF 8", "VF 9", "VF 7"],
+    stock: 25,
+    remain: 18,
+    location: "Warehouse B - Section A1",
+  },
+  {
+    id: "3",
+    serial: "BRK-VF-001",
+    partName: "Brake Caliper Assembly",
+    branch: "Da Nang",
+    description: "Front brake caliper assembly",
+    specifications: "Dual-piston, Aluminum alloy",
+    price: 3200000,
+    vehicleModels: ["VF 6", "VF 7"],
+    stock: 30,
+    remain: 22,
+    location: "Warehouse C - Section C3",
+  },
+  {
+    id: "4",
+    serial: "STR-VF9-001",
+    partName: "Steering Wheel Assembly",
+    branch: "Hanoi Central",
+    description: "Leather-wrapped steering wheel with controls",
+    specifications: "Heated, Multi-function buttons",
+    price: 6500000,
+    vehicleModels: ["VF 9"],
+    stock: 15,
+    remain: 3,
+    location: "Warehouse A - Section D1",
+  },
+  {
+    id: "5",
+    serial: "AC-VF-001",
+    partName: "Air Conditioning Compressor",
+    branch: "HCMC District 1",
+    description: "Electric AC compressor unit",
+    specifications: "Variable displacement, R-134a",
+    price: 12000000,
+    vehicleModels: ["VF 7", "VF 8", "VF 9"],
+    stock: 8,
+    remain: 2,
+    location: "Warehouse B - Section B4",
+  },
+]
+
+// EVM Staff - Supply Chain
+export const mockSupplyChain = [
+  {
+    id: "1",
+    partName: "Battery Module 87.7kWh",
+    stock: 12,
+    remain: 8,
+    location: "Warehouse A - Hanoi",
+    alert: "normal",
+  },
+  {
+    id: "2",
+    partName: 'Infotainment Display 15.6"',
+    stock: 25,
+    remain: 18,
+    location: "Warehouse B - HCMC",
+    alert: "normal",
+  },
+  {
+    id: "3",
+    partName: "Brake Caliper Assembly",
+    stock: 30,
+    remain: 22,
+    location: "Warehouse C - Da Nang",
+    alert: "normal",
+  },
+  {
+    id: "4",
+    partName: "Steering Wheel Assembly",
+    stock: 15,
+    remain: 3,
+    location: "Warehouse A - Hanoi",
+    alert: "low",
+  },
+  {
+    id: "5",
+    partName: "Air Conditioning Compressor",
+    stock: 8,
+    remain: 2,
+    location: "Warehouse B - HCMC",
+    alert: "critical",
+  },
+  {
+    id: "6",
+    partName: "Motor Controller Unit",
+    stock: 20,
+    remain: 1,
+    location: "Warehouse A - Hanoi",
+    alert: "critical",
+  },
+  {
+    id: "7",
+    partName: "Suspension Spring Set",
+    stock: 40,
+    remain: 5,
+    location: "Warehouse C - Da Nang",
+    alert: "low",
+  },
+  {
+    id: "8",
+    partName: "LED Headlight Assembly",
+    stock: 35,
+    remain: 28,
+    location: "Warehouse B - HCMC",
+    alert: "normal",
+  },
+]
