@@ -61,21 +61,6 @@ export default function SCTechnicianRepair() {
     }
   }
 
-  function getPriorityColor(priority) {
-    switch (priority) {
-      case "low":
-        return "bg-gray-500";
-      case "medium":
-        return "bg-yellow-500";
-      case "high":
-        return "bg-orange-500";
-      case "urgent":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  }
-
   const handleOpenReport = (job) => {
     setSelectedJob(job);
   };
@@ -184,18 +169,6 @@ export default function SCTechnicianRepair() {
                             >
                               {job.status.replace("_", " ")}
                             </Badge>
-                            {/* <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getPriorityColor(job.priority)
-                              )}
-                            >
-                              {job.priority}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {job.type}
-                            </Badge> */}
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p className="text-muted-foreground">
