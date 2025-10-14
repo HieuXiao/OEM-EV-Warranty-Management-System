@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Search, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, MoreVertical, Edit, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { mockCustomers } from "@/lib/Mock-data";
 import {
   Table,
@@ -28,18 +29,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customers, setCustomers] = useState(mockCustomers);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const navigate = useNavigate();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -102,10 +98,6 @@ export default function CustomersTable() {
       phone: customer.phone,
       address: customer.address,
     });
-  };
-
-  const handleDeleteCustomer = (customerId) => {
-    setCustomers(customers.filter((c) => c.id !== customerId));
   };
 
   const resetForm = () => {
@@ -238,7 +230,7 @@ export default function CustomersTable() {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Address</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -262,29 +254,17 @@ export default function CustomersTable() {
                       <p className="font-medium text-sm">{c.address}</p>
                     </TableCell>
 
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => openEditCustomerDialog(c)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteCustomer(c.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="text-middle">
+                      <div className="flex sm:flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/scstaff/profiles/${c.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          Detail
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -293,63 +273,6 @@ export default function CustomersTable() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <Dialog
-        open={!!editingCustomer}
-        onOpenChange={(open) => !open && setEditingCustomer(null)}
-      >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>Update customer information</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Customer Name</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="Email">Customer Email</Label>
-              <Input
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Customer Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCustomer(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditCustomer}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

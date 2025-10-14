@@ -74,7 +74,7 @@ export const mockUsers = [
   },
   {
     id: "7",
-    name: "Vo Thanh F", 
+    name: "Vo Thanh F",
     email: "vothanhf@sc.com",
     password: "password",
     role: "sc_technician",
@@ -108,7 +108,7 @@ export const mockUsers = [
     status: "active",
     createdAt: "2024-05-01T00:00:00Z",
   },
-]
+];
 
 // Warranty Claims
 export const mockWarrantyClaims = [
@@ -203,7 +203,7 @@ export const mockWarrantyClaims = [
     kilometers: 22000,
     estimatedCost: 4000000,
   },
-]
+];
 
 // Customers
 export const mockCustomers = [
@@ -242,7 +242,7 @@ export const mockCustomers = [
     phone: "0977889900",
     address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
   },
-]
+];
 
 // Parts
 export const mockParts = [
@@ -268,7 +268,7 @@ export const mockParts = [
     stock: 3,
     status: "low_stock",
   },
-]
+];
 
 // Jobs - Enhanced for SC Technician
 export const mockJobs = [
@@ -323,7 +323,7 @@ export const mockJobs = [
     status: "pending",
     priority: "high",
     assignedStaff: "Nguyen Van H",
-    assignedTechnician: "Le Van C",
+    assignedTechnician: "Pham Thi E",
     comment: "Air conditioning repair needed",
     createdAt: "2024-10-09T14:00:00Z",
     hasReport: true,
@@ -358,7 +358,7 @@ export const mockJobs = [
     status: "in_progress",
     priority: "medium",
     assignedStaff: "Nguyen Van H",
-    assignedTechnician: "Le Van C",
+    assignedTechnician: "Pham Thi E",
     comment: "Brake system repair",
     createdAt: "2024-10-08T11:00:00Z",
     hasReport: true,
@@ -461,7 +461,8 @@ export const mockRecallCampaigns = [
     id: "1",
     campaignNumber: "RC-2024-001",
     title: "Software Update - Battery Management System",
-    description: "Critical software update for battery management system to improve charging efficiency",
+    description:
+      "Critical software update for battery management system to improve charging efficiency",
     affectedModels: ["VF 8", "VF 9"],
     severity: "high",
     status: "active",
@@ -469,7 +470,7 @@ export const mockRecallCampaigns = [
     affectedVehicles: 1250,
     completedVehicles: 890,
   },
-]
+];
 
 // Activity Logs
 export const mockActivityLogs = [
@@ -491,7 +492,7 @@ export const mockActivityLogs = [
     timestamp: "2024-10-03T09:05:00Z",
     type: "job",
   },
-]
+];
 
 // Warehouses
 export const mockWarehouses = [
@@ -515,41 +516,46 @@ export const mockWarehouses = [
     name: "Box Garage",
     location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
   },
-]
+];
 
 // VIN Records
 export const mockVIN = [
   {
     vin: "VN-CAR-0001",
+    type: "Car",
     model: "VF 8",
     plate: "30A-12345",
     customerName: "Nguyen Thi H",
   },
   {
     vin: "VN-CAR-0002",
+    type: "Car",
     model: "VF 9",
     plate: "29B-67890",
     customerName: "Le Van K",
   },
   {
     vin: "VN-BIKE-0003",
+    type: "Bike",
     model: "Evo 150",
     plate: "59X1-11111",
     customerName: "Tran Thi L",
   },
   {
     vin: "VN-BIKE-0004",
+    type: "Bike",
     model: "Vento X",
     plate: "47D1-22222",
     customerName: "Pham Van M",
   },
   {
     vin: "VN-CAR-0005",
+    type: "Car",
     model: "VF 5",
     plate: "43C-33333",
     customerName: "Do Thi N",
   },
-]
+];
 
 // Attached Parts
 export const mockAttachParts = [
@@ -598,7 +604,7 @@ export const mockAttachParts = [
     year: 2024,
     condition: "New",
   },
-]
+];
 
 // Vehicle Models
 export const vehicleModels = [
@@ -615,7 +621,7 @@ export const vehicleModels = [
   "Nerio Green",
   "Limo Green",
   "Minio Green",
-]
+];
 
 // Parts List for Report Forms (12 parts)
 export const PARTS_LIST = [
@@ -631,11 +637,10 @@ export const PARTS_LIST = [
   "Charger/Converter",
   "Dashboard",
   "Lighting",
-]
-
+];
 
 // ===== DATA FOR CAMPAIGN =====
-// appointment section 
+// appointment section
 export const mockAppointments = [
   {
     id: 1,
@@ -698,14 +703,14 @@ export const mockAppointments = [
     status: "no-show",
     notes: "Customer did not show up, attempted to call",
   },
-]
+];
 
 export const campaigns = [
   { id: 0, name: "All Campaigns" },
   { id: 1, name: "Battery Recall 2024" },
   { id: 2, name: "Software Update Campaign" },
   { id: 3, name: "Brake System Inspection" },
-]
+];
 
 export const statusOptions = [
   { value: "scheduled", label: "Scheduled" },
@@ -713,12 +718,12 @@ export const statusOptions = [
   { value: "cancelled", label: "Cancelled" },
   { value: "no-show", label: "No Show" },
   { value: "rescheduled", label: "Rescheduled" },
-]
+];
 
 export const existingAppointments = [
   { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
   { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
-]
+];
 
 // Mock data
 export const campaignsDetail = [
@@ -752,7 +757,7 @@ export const campaignsDetail = [
     contacted: 312,
     scheduled: 298,
   },
-]
+];
 
 export const vehicles = [
   {
@@ -788,8 +793,7 @@ export const vehicles = [
     year: 2024,
     status: "contacted",
   },
-]
-
+];
 
 export const mockReports = [
   {
@@ -800,12 +804,15 @@ export const mockReports = [
     createdDate: "2024-01-15",
     updatedDate: "2024-01-20",
     status: "in-progress",
-    summary: "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
+    summary:
+      "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
     totalVehicles: 245,
     completedServices: 120,
     pendingServices: 125,
-    issues: "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
-    recommendations: "Consider extending service hours on weekends to accommodate more customers.",
+    issues:
+      "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
+    recommendations:
+      "Consider extending service hours on weekends to accommodate more customers.",
     createdBy: "Nam",
   },
   {
@@ -816,12 +823,15 @@ export const mockReports = [
     createdDate: "2024-02-01",
     updatedDate: "2024-02-10",
     status: "in-progress",
-    summary: "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
+    summary:
+      "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
     totalVehicles: 156,
     completedServices: 67,
     pendingServices: 89,
-    issues: "Minor technical issues with update installation on older vehicle models.",
-    recommendations: "Provide additional training to technicians on handling legacy system updates.",
+    issues:
+      "Minor technical issues with update installation on older vehicle models.",
+    recommendations:
+      "Provide additional training to technicians on handling legacy system updates.",
     createdBy: "Nam",
   },
   {
@@ -832,7 +842,8 @@ export const mockReports = [
     createdDate: "2023-10-01",
     updatedDate: "2024-01-05",
     status: "completed",
-    summary: "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
+    summary:
+      "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
     totalVehicles: 312,
     completedServices: 298,
     pendingServices: 14,
@@ -841,7 +852,7 @@ export const mockReports = [
       "Implement SMS reminder system for future campaigns to improve customer engagement and reduce no-shows.",
     createdBy: "Nam",
   },
-]
+];
 
 // const campaigns = [
 //   { id: 0, name: "All Campaigns" },
