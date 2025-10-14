@@ -1,17 +1,18 @@
+"use client"
 
 import { useState } from "react";
-import { Search, Filter, FileText, Plus, Edit } from "lucide-react";
-import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
-import Header from "../components/Header";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Badge } from "../components/ui/badge";
-import EVMStaffDetailWarranty from "../components/evmstaff/EVMStaffDetailWarranty";
-import EVMStaffFormCampaign from "../components/evmstaff/EVMStaffFormCampaign";
-import { mockEVMWarrantyClaims, mockEVMCampaigns } from "../lib/Mock-data";
+import { Search, Filter, FileText, Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
+import Header from "@/components/Header";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import EVMStaffDetailWarranty from "@/components/evmstaff/EVMStaffDetailWarranty";
+import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
+import { mockEVMWarrantyClaims, mockEVMCampaigns } from "@/lib/Mock-data";
 
 export default function EVMStaffManage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -21,6 +22,10 @@ export default function EVMStaffManage() {
   const [showCampaignDialog, setShowCampaignDialog] = useState(false)
   const [editingCampaign, setEditingCampaign] = useState(null)
   const [campaigns, setCampaigns] = useState(mockEVMCampaigns)
+
+  const [warrantyPage, setWarrantyPage] = useState(1)
+  const [campaignPage, setCampaignPage] = useState(1)
+  const itemsPerPage = 10
 
   const user = {
     name: "Mage Team",
@@ -38,12 +43,18 @@ export default function EVMStaffManage() {
     return matchesSearch && matchesStatus
   })
 
+  const totalWarrantyPages = Math.ceil(filteredWarranties.length / itemsPerPage)
+  const paginatedWarranties = filteredWarranties.slice((warrantyPage - 1) * itemsPerPage, warrantyPage * itemsPerPage)
+
   const filteredCampaigns = campaigns.filter((campaign) => {
     return (
       campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       campaign.campaignId.toLowerCase().includes(searchTerm.toLowerCase())
     )
   })
+
+  const totalCampaignPages = Math.ceil(filteredCampaigns.length / itemsPerPage)
+  const paginatedCampaigns = filteredCampaigns.slice((campaignPage - 1) * itemsPerPage, campaignPage * itemsPerPage)
 
   const handleViewWarranty = (warranty) => {
     setSelectedWarranty(warranty)
@@ -66,16 +77,15 @@ export default function EVMStaffManage() {
 
   const getStatusBadge = (status) => {
     const variants = {
-      approved: "bg-green-500",
-      pending: "bg-yellow-500",
-      in_review: "bg-blue-500",
-      rejected: "bg-red-500",
-      done: "bg-green-500",
+      done: "bg-green-500 min-w-[100px] justify-center",
+      "to do": "bg-blue-500 min-w-[100px] justify-center",
+      "in progress": "bg-yellow-500 min-w-[100px] justify-center",
+      // Campaign statuses
       cancel: "bg-red-500",
       to_do: "bg-blue-500",
       process: "bg-yellow-500",
     }
-    return <Badge className={variants[status]}>{status.replace("_", " ").toUpperCase()}</Badge>
+    return <Badge className={variants[status] || "bg-gray-500"}>{status.toUpperCase()}</Badge>
   }
 
   return (
@@ -112,10 +122,9 @@ export default function EVMStaffManage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_review">In Review</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                      <SelectItem value="to do">To Do</SelectItem>
+                      <SelectItem value="in progress">In Progress</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -128,40 +137,49 @@ export default function EVMStaffManage() {
                         <TableHead>Vehicle</TableHead>
                         <TableHead>Model</TableHead>
                         <TableHead>Issue number</TableHead>
+                        <TableHead>View</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Detail</TableHead>
-                        <TableHead>Decision</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredWarranties.map((claim) => (
+                      {paginatedWarranties.map((claim) => (
                         <TableRow key={claim.id}>
                           <TableCell className="font-medium">{claim.claimId}</TableCell>
                           <TableCell>{claim.vehicle}</TableCell>
                           <TableCell>{claim.model}</TableCell>
                           <TableCell>{claim.issueNumber}</TableCell>
-                          <TableCell>{getStatusBadge(claim.status)}</TableCell>
                           <TableCell>
                             <Button variant="ghost" size="sm" onClick={() => handleViewWarranty(claim)}>
                               <FileText className="h-4 w-4" />
                             </Button>
                           </TableCell>
-                          <TableCell>
-                            <Select defaultValue={claim.decision}>
-                              <SelectTrigger className="w-[120px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="approved">Approve</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="rejected">Reject</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
+                          <TableCell>{getStatusBadge(claim.status)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setWarrantyPage((p) => Math.max(1, p - 1))}
+                    disabled={warrantyPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm">
+                    Page {warrantyPage} of {totalWarrantyPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setWarrantyPage((p) => Math.min(totalWarrantyPages, p + 1))}
+                    disabled={warrantyPage === totalWarrantyPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </TabsContent>
 
@@ -202,7 +220,7 @@ export default function EVMStaffManage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCampaigns.map((campaign) => (
+                      {paginatedCampaigns.map((campaign) => (
                         <TableRow key={campaign.id}>
                           <TableCell className="font-medium">{campaign.campaignId}</TableCell>
                           <TableCell>{campaign.campaignName}</TableCell>
@@ -219,6 +237,28 @@ export default function EVMStaffManage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCampaignPage((p) => Math.max(1, p - 1))}
+                    disabled={campaignPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm">
+                    Page {campaignPage} of {totalCampaignPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCampaignPage((p) => Math.min(totalCampaignPages, p + 1))}
+                    disabled={campaignPage === totalCampaignPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </TabsContent>
             </Tabs>

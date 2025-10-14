@@ -12,7 +12,7 @@ export default function EVMStaffSideBar({ image, name, role }) {
         <UserInfo image={image} name={name} role={role} />
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <NavigationItem path={"/evmstaff/products"} icon={Car} funcName={"Products & Parts"} />
-          <NavigationItem path={"/evmstaff/manage"} icon={Wrench} funcName={"Warranty Claim"} />
+          <NavigationItem path={"/evmstaff/manage"} icon={Wrench} funcName={"Manage"} />
           <NavigationItem path={"/evmstaff/reports"} icon={BarChart3} funcName={"Reporting & Analysis"} />
           <NavigationItem path={"/evmstaff/supply-chain"} icon={Link2} funcName={"Supply chain"} />
         </nav>
