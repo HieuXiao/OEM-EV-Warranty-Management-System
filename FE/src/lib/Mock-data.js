@@ -1,6 +1,5 @@
-// Mock-data.js
-
-// Users
+// ======================================= ADMIN =========================================
+// AD ACCOUNT : List user account data 
 export const mockUsers = [
   {
     id: "1",
@@ -108,9 +107,138 @@ export const mockUsers = [
     status: "active",
     createdAt: "2024-05-01T00:00:00Z",
   },
-]
+];
+// AD VEHICLE-MODELS : List Vehicle Models
+export const vehicleModels = [
+  "VF 3",
+  "VF 5",
+  "VF 6",
+  "VF 7",
+  "VF 8",
+  "VF 9",
+  "FADIL",
+  "LUX A2.0",
+  "LUX SA2.0",
+  "Herio Green",
+  "Nerio Green",
+  "Limo Green",
+  "Minio Green",
+];
+// AD ATTACH-PARTS: List vehicle part
+export const mockParts = [
+  {
+    id: "1",
+    serialNumber: "BAT-VF8-001",
+    name: "Battery Module 87.7kWh",
+    vehicleModels: ["VF 8", "VF 9"],
+    cost: 45000000,
+    warranty: 96,
+    conditions: "Temperature controlled storage required",
+    stock: 12,
+    status: "available",
+  },
+  {
+    id: "2",
+    serialNumber: "INF-VF-001",
+    name: 'Infotainment Display 15.6"',
+    vehicleModels: ["VF 8", "VF 9", "VF 7"],
+    cost: 8500000,
+    warranty: 36,
+    conditions: "Handle with care - fragile",
+    stock: 3,
+    status: "low_stock",
+  },
+];
+// AD ATTACHED-PART : List attach parts (Attached Parts)
+export const mockAttachParts = [
+  {
+    partSerial: "BAT-VF8-001",
+    partName: "Battery Module 87.7kWh",
+    vin: "VN-CAR-0001",
+    model: "VF 8",
+    price: 45000000,
+    year: 2024,
+    condition: "Good",
+  },
+  {
+    partSerial: "INF-VF9-002",
+    partName: "Infotainment Display 15.6 inch",
+    vin: "VN-CAR-0002",
+    model: "VF 9",
+    price: 8500000,
+    year: 2024,
+    condition: "Excellent",
+  },
+  {
+    partSerial: "BRK-BK1-003",
+    partName: "Front Brake Disc",
+    vin: "VN-BIKE-0003",
+    model: "Evo 150",
+    price: 1200000,
+    year: 2023,
+    condition: "Used - Good",
+  },
+  {
+    partSerial: "ENG-BK2-004",
+    partName: "Engine Cooling Fan",
+    vin: "VN-BIKE-0004",
+    model: "Vento X",
+    price: 2500000,
+    year: 2023,
+    condition: "Fair",
+  },
+  {
+    partSerial: "STW-VF5-005",
+    partName: "Steering Wheel Assembly",
+    vin: "VN-CAR-0005",
+    model: "VF 5",
+    price: 6500000,
+    year: 2024,
+    condition: "New",
+  },
+];
 
-// Warranty Claims
+// AD WARRANTY-POLICY: Parts List for Report Forms (12 parts)
+export const PARTS_LIST = [
+  "Chassis",
+  "Motor",
+  "Wheel/Rim",
+  "Battery",
+  "Shock Absorber",
+  "Throttle/Brake",
+  "Lock/Alarm",
+  "Brake Caliper",
+  "Controller",
+  "Charger/Converter",
+  "Dashboard",
+  "Lighting",
+];
+// AD WAREHOUSE-AREA: List Warehouses Are 
+export const mockWarehouses = [
+  {
+    id: "HN-05",
+    name: "Gear Hub",
+    location: "102C9 Nguyen Hong Street, Dong Da District, Hanoi",
+  },
+  {
+    id: "TG-30",
+    name: "Wheel Base",
+    location: "545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
+  },
+  {
+    id: "HCM-03",
+    name: "Car Keep",
+    location: "42 Street 26, Ward 10, District 6, Ho Chi Minh City",
+  },
+  {
+    id: "BRVT-19",
+    name: "Box Garage",
+    location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
+  },
+];
+
+//===========================================  SC STAFF  =====================================
+// SCS WARRANTY CLAIM: List Warranty Request
 export const mockWarrantyClaims = [
   {
     id: "1",
@@ -203,9 +331,8 @@ export const mockWarrantyClaims = [
     kilometers: 22000,
     estimatedCost: 4000000,
   },
-]
-
-// Customers
+];
+// SCS PROFILE : List Customer Information
 export const mockCustomers = [
   {
     id: "1",
@@ -242,35 +369,268 @@ export const mockCustomers = [
     phone: "0977889900",
     address: "56 Nguyen Trai, Thanh Xuan, Hanoi",
   },
-]
-
-// Parts
-export const mockParts = [
+];
+// SCS PROFILE : List of cars owned by customers
+export const mockVIN = [
+  {
+    vin: "VN-CAR-0001",
+    type: "Car",
+    model: "VF 8",
+    plate: "30A-12345",
+    customerName: "Nguyen Thi H",
+  },
+  {
+    vin: "VN-CAR-0002",
+    type: "Car",
+    model: "VF 9",
+    plate: "29B-67890",
+    customerName: "Le Van K",
+  },
+  {
+    vin: "VN-BIKE-0003",
+    type: "Bike",
+    model: "Evo 150",
+    plate: "59X1-11111",
+    customerName: "Tran Thi L",
+  },
+  {
+    vin: "VN-BIKE-0004",
+    type: "Bike",
+    model: "Vento X",
+    plate: "47D1-22222",
+    customerName: "Pham Van M",
+  },
+  {
+    vin: "VN-CAR-0005",
+    type: "Car",
+    model: "VF 5",
+    plate: "43C-33333",
+    customerName: "Do Thi N",
+  },
+];
+// SCS CAMPAIGN : List Campaigns
+export const campaigns = [
+  { id: 0, name: "All Campaigns" },
+  { id: 1, name: "Battery Recall 2024" },
+  { id: 2, name: "Software Update Campaign" },
+  { id: 3, name: "Brake System Inspection" },
+];
+// SCS CAMPAIGN : List Campaigns / campaign details
+export const mockRecallCampaigns = [
   {
     id: "1",
-    serialNumber: "BAT-VF8-001",
-    name: "Battery Module 87.7kWh",
-    vehicleModels: ["VF 8", "VF 9"],
-    cost: 45000000,
-    warranty: 96,
-    conditions: "Temperature controlled storage required",
-    stock: 12,
-    status: "available",
+    campaignNumber: "RC-2024-001",
+    title: "Software Update - Battery Management System",
+    description: "Critical software update for battery management system to improve charging efficiency",
+    affectedModels: ["VF 8", "VF 9"],
+    severity: "high",
+    status: "active",
+    startDate: "2024-09-01T00:00:00Z",
+    affectedVehicles: 1250,
+    completedVehicles: 890,
+  },
+];
+// SCS CAMPAIGN : List Campaigns / list vehicles
+export const vehicles = [
+  {
+    id: 1,
+    campaignId: 1,
+    vin: "VF8A1234567890123",
+    licensePlate: "29A-12345",
+    owner: "Nguyen Van A",
+    phone: "0901234567",
+    model: "VF8",
+    year: 2023,
+    status: "pending",
   },
   {
-    id: "2",
-    serialNumber: "INF-VF-001",
-    name: 'Infotainment Display 15.6"',
-    vehicleModels: ["VF 8", "VF 9", "VF 7"],
-    cost: 8500000,
-    warranty: 36,
-    conditions: "Handle with care - fragile",
-    stock: 3,
-    status: "low_stock",
+    id: 2,
+    campaignId: 1,
+    vin: "VF8B9876543210987",
+    licensePlate: "30B-67890",
+    owner: "Tran Thi B",
+    phone: "0912345678",
+    model: "VF8",
+    year: 2023,
+    status: "scheduled",
   },
-]
+  {
+    id: 3,
+    campaignId: 1,
+    vin: "VF9C1122334455667",
+    licensePlate: "51C-11223",
+    owner: "Le Van C",
+    phone: "0923456789",
+    model: "VF9",
+    year: 2024,
+    status: "contacted",
+  },
+];
+// SCS CAMPAIGN : List Campaigns / campaign appoinments list
+export const mockAppointments = [
+  {
+    id: 1,
+    date: "2024-01-20",
+    time: "09:00",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Nguyen Van A",
+    phone: "0901234567",
+    vin: "VF8A1234567890123",
+    licensePlate: "29A-12345",
+    status: "scheduled",
+  },
+  {
+    id: 2,
+    date: "2024-01-20",
+    time: "10:30",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Tran Thi B",
+    phone: "0912345678",
+    vin: "VF8B9876543210987",
+    licensePlate: "30B-67890",
+    status: "scheduled",
+  },
+  {
+    id: 3,
+    date: "2024-01-20",
+    time: "14:00",
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    customer: "Le Van C",
+    phone: "0923456789",
+    vin: "VF9C1122334455667",
+    licensePlate: "51C-11223",
+    status: "completed",
+  },
+  {
+    id: 4,
+    date: "2024-01-21",
+    time: "09:00",
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    customer: "Pham Thi D",
+    phone: "0934567890",
+    vin: "VF8D9988776655443",
+    licensePlate: "59D-44556",
+    status: "scheduled",
+  },
+  {
+    id: 5,
+    date: "2024-01-21",
+    time: "11:00",
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    customer: "Hoang Van E",
+    phone: "0945678901",
+    vin: "VF9E5544332211009",
+    licensePlate: "60E-77889",
+    status: "no-show",
+    notes: "Customer did not show up, attempted to call",
+  },
+];
+// SCS CAMPAIGN : List Campaigns / campaign appoinments list / appointment status 
+export const statusOptions = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "no-show", label: "No Show" },
+  { value: "rescheduled", label: "Rescheduled" },
+];
+// SCS CAMPAIGN : List Campaigns / campaign appoinments list / appointment date 
+export const existingAppointments = [
+  { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
+  { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
+];
+// SCS CAMPAIGN : List Campaigns / campaign appoinments list / overview
+export const campaignsDetail = [
+  {
+    id: 1,
+    name: "Battery Recall 2024",
+    status: "active",
+    startDate: "2024-01-15",
+    endDate: "2024-06-30",
+    totalVehicles: 245,
+    contacted: 180,
+    scheduled: 120,
+  },
+  {
+    id: 2,
+    name: "Software Update Campaign",
+    status: "active",
+    startDate: "2024-02-01",
+    endDate: "2024-05-31",
+    totalVehicles: 156,
+    contacted: 98,
+    scheduled: 67,
+  },
+  {
+    id: 3,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
+];
+// SCS CAMPAIGN : List Campaigns / campaign reports
+export const mockReports = [
+  {
+    id: 1,
+    campaignId: 1,
+    campaignName: "Battery Recall 2024",
+    reportType: "progress",
+    createdDate: "2024-01-15",
+    updatedDate: "2024-01-20",
+    status: "in-progress",
+    summary: "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
+    totalVehicles: 245,
+    completedServices: 120,
+    pendingServices: 125,
+    issues: "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
+    recommendations: "Consider extending service hours on weekends to accommodate more customers.",
+    createdBy: "Nam",
+  },
+  {
+    id: 2,
+    campaignId: 2,
+    campaignName: "Software Update Campaign",
+    reportType: "progress",
+    createdDate: "2024-02-01",
+    updatedDate: "2024-02-10",
+    status: "in-progress",
+    summary: "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
+    totalVehicles: 156,
+    completedServices: 67,
+    pendingServices: 89,
+    issues: "Minor technical issues with update installation on older vehicle models.",
+    recommendations: "Provide additional training to technicians on handling legacy system updates.",
+    createdBy: "Nam",
+  },
+  {
+    id: 3,
+    campaignId: 3,
+    campaignName: "Brake System Inspection",
+    reportType: "completion",
+    createdDate: "2023-10-01",
+    updatedDate: "2024-01-05",
+    status: "completed",
+    summary: "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
+    totalVehicles: 312,
+    completedServices: 298,
+    pendingServices: 14,
+    issues: "14 customers did not respond to multiple contact attempts.",
+    recommendations:
+      "Implement SMS reminder system for future campaigns to improve customer engagement and reduce no-shows.",
+    createdBy: "Nam",
+  },
+];
 
-// Jobs - Enhanced for SC Technician
+// =========================================  SC TECNICIAN  ==================================
+// SCT CHECK & REPAIR : Technician Job List
 export const mockJobs = [
   {
     id: "1",
@@ -383,400 +743,80 @@ export const mockJobs = [
     createdAt: "2024-10-09T13:00:00Z",
     hasReport: true,
   },
-]
-
-// Recall Campaigns
-export const mockRecallCampaigns = [
   {
-    id: "1",
-    campaignNumber: "RC-2024-001",
-    title: "Software Update - Battery Management System",
-    description: "Critical software update for battery management system to improve charging efficiency",
-    affectedModels: ["VF 8", "VF 9"],
-    severity: "high",
-    status: "active",
-    startDate: "2024-09-01T00:00:00Z",
-    affectedVehicles: 1250,
-    completedVehicles: 890,
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
+  },
+  {
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
+  },
+  {
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
+  },
+  {
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
+  },
+  {
+    id: "6",
+    jobNumber: "JOB-006",
+    type: "check",
+    vehiclePlate: "51F-11111",
+    vehicleModel: "VF 7",
+    status: "in_progress",
+    priority: "medium",
+    assignedStaff: "Nguyen Van H",
+    assignedTechnician: "Le Van C",
+    comment: "Air conditioning system check",
+    createdAt: "2024-10-09T13:00:00Z",
+    hasReport: true,
   },
 ]
 
-// Activity Logs
-export const mockActivityLogs = [
-  {
-    id: "1",
-    userId: "2",
-    userName: "Nguyen Van A",
-    action: "Created warranty claim",
-    details: "WC-2024-002 for vehicle 29B-67890",
-    timestamp: "2024-10-02T10:15:00Z",
-    type: "claim",
-  },
-  {
-    id: "2",
-    userId: "3",
-    userName: "Tran Thi B",
-    action: "Updated job status",
-    details: "JOB-001 status changed to in_progress",
-    timestamp: "2024-10-03T09:05:00Z",
-    type: "job",
-  },
-]
-
-// Warehouses
-export const mockWarehouses = [
-  {
-    id: "HN-05",
-    name: "Gear Hub",
-    location: "102C9 Nguyen Hong Street, Dong Da District, Hanoi",
-  },
-  {
-    id: "TG-30",
-    name: "Wheel Base",
-    location: "545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
-  },
-  {
-    id: "HCM-03",
-    name: "Car Keep",
-    location: "42 Street 26, Ward 10, District 6, Ho Chi Minh City",
-  },
-  {
-    id: "BRVT-19",
-    name: "Box Garage",
-    location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
-  },
-]
-
-// VIN Records
-export const mockVIN = [
-  {
-    vin: "VN-CAR-0001",
-    type: "Car",
-    model: "VF 8",
-    plate: "30A-12345",
-    customerName: "Nguyen Thi H",
-  },
-  {
-    vin: "VN-CAR-0002",
-    type: "Car",
-    model: "VF 9",
-    plate: "29B-67890",
-    customerName: "Le Van K",
-  },
-  {
-    vin: "VN-BIKE-0003",
-    type: "Bike",
-    model: "Evo 150",
-    plate: "59X1-11111",
-    customerName: "Tran Thi L",
-  },
-  {
-    vin: "VN-BIKE-0004",
-    type: "Bike",
-    model: "Vento X",
-    plate: "47D1-22222",
-    customerName: "Pham Van M",
-  },
-  {
-    vin: "VN-CAR-0005",
-    type: "Car",
-    model: "VF 5",
-    plate: "43C-33333",
-    customerName: "Do Thi N",
-  },
-]
-
-// Attached Parts
-export const mockAttachParts = [
-  {
-    partSerial: "BAT-VF8-001",
-    partName: "Battery Module 87.7kWh",
-    vin: "VN-CAR-0001",
-    model: "VF 8",
-    price: 45000000,
-    year: 2024,
-    condition: "Good",
-  },
-  {
-    partSerial: "INF-VF9-002",
-    partName: "Infotainment Display 15.6 inch",
-    vin: "VN-CAR-0002",
-    model: "VF 9",
-    price: 8500000,
-    year: 2024,
-    condition: "Excellent",
-  },
-  {
-    partSerial: "BRK-BK1-003",
-    partName: "Front Brake Disc",
-    vin: "VN-BIKE-0003",
-    model: "Evo 150",
-    price: 1200000,
-    year: 2023,
-    condition: "Used - Good",
-  },
-  {
-    partSerial: "ENG-BK2-004",
-    partName: "Engine Cooling Fan",
-    vin: "VN-BIKE-0004",
-    model: "Vento X",
-    price: 2500000,
-    year: 2023,
-    condition: "Fair",
-  },
-  {
-    partSerial: "STW-VF5-005",
-    partName: "Steering Wheel Assembly",
-    vin: "VN-CAR-0005",
-    model: "VF 5",
-    price: 6500000,
-    year: 2024,
-    condition: "New",
-  },
-]
-
-// Vehicle Models
-export const vehicleModels = [
-  "VF 3",
-  "VF 5",
-  "VF 6",
-  "VF 7",
-  "VF 8",
-  "VF 9",
-  "FADIL",
-  "LUX A2.0",
-  "LUX SA2.0",
-  "Herio Green",
-  "Nerio Green",
-  "Limo Green",
-  "Minio Green",
-]
-
-// Parts List for Report Forms (12 parts)
-export const PARTS_LIST = [
-  "Chassis",
-  "Motor",
-  "Wheel/Rim",
-  "Battery",
-  "Shock Absorber",
-  "Throttle/Brake",
-  "Lock/Alarm",
-  "Brake Caliper",
-  "Controller",
-  "Charger/Converter",
-  "Dashboard",
-  "Lighting",
-]
-
-// ===== DATA FOR CAMPAIGN =====
-// appointment section
-export const mockAppointments = [
-  {
-    id: 1,
-    date: "2024-01-20",
-    time: "09:00",
-    campaignId: 1,
-    campaignName: "Battery Recall 2024",
-    customer: "Nguyen Van A",
-    phone: "0901234567",
-    vin: "VF8A1234567890123",
-    licensePlate: "29A-12345",
-    status: "scheduled",
-  },
-  {
-    id: 2,
-    date: "2024-01-20",
-    time: "10:30",
-    campaignId: 1,
-    campaignName: "Battery Recall 2024",
-    customer: "Tran Thi B",
-    phone: "0912345678",
-    vin: "VF8B9876543210987",
-    licensePlate: "30B-67890",
-    status: "scheduled",
-  },
-  {
-    id: 3,
-    date: "2024-01-20",
-    time: "14:00",
-    campaignId: 2,
-    campaignName: "Software Update Campaign",
-    customer: "Le Van C",
-    phone: "0923456789",
-    vin: "VF9C1122334455667",
-    licensePlate: "51C-11223",
-    status: "completed",
-  },
-  {
-    id: 4,
-    date: "2024-01-21",
-    time: "09:00",
-    campaignId: 1,
-    campaignName: "Battery Recall 2024",
-    customer: "Pham Thi D",
-    phone: "0934567890",
-    vin: "VF8D9988776655443",
-    licensePlate: "59D-44556",
-    status: "scheduled",
-  },
-  {
-    id: 5,
-    date: "2024-01-21",
-    time: "11:00",
-    campaignId: 2,
-    campaignName: "Software Update Campaign",
-    customer: "Hoang Van E",
-    phone: "0945678901",
-    vin: "VF9E5544332211009",
-    licensePlate: "60E-77889",
-    status: "no-show",
-    notes: "Customer did not show up, attempted to call",
-  },
-]
-
-export const campaigns = [
-  { id: 0, name: "All Campaigns" },
-  { id: 1, name: "Battery Recall 2024" },
-  { id: 2, name: "Software Update Campaign" },
-  { id: 3, name: "Brake System Inspection" },
-]
-
-export const statusOptions = [
-  { value: "scheduled", label: "Scheduled" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no-show", label: "No Show" },
-  { value: "rescheduled", label: "Rescheduled" },
-]
-
-export const existingAppointments = [
-  { date: "2024-01-20", time: "09:00", customer: "Nguyen Van A" },
-  { date: "2024-01-20", time: "14:00", customer: "Le Van C" },
-]
-
-// Mock data
-export const campaignsDetail = [
-  {
-    id: 1,
-    name: "Battery Recall 2024",
-    status: "active",
-    startDate: "2024-01-15",
-    endDate: "2024-06-30",
-    totalVehicles: 245,
-    contacted: 180,
-    scheduled: 120,
-  },
-  {
-    id: 2,
-    name: "Software Update Campaign",
-    status: "active",
-    startDate: "2024-02-01",
-    endDate: "2024-05-31",
-    totalVehicles: 156,
-    contacted: 98,
-    scheduled: 67,
-  },
-  {
-    id: 3,
-    name: "Brake System Inspection",
-    status: "completed",
-    startDate: "2023-10-01",
-    endDate: "2023-12-31",
-    totalVehicles: 312,
-    contacted: 312,
-    scheduled: 298,
-  },
-]
-
-export const vehicles = [
-  {
-    id: 1,
-    campaignId: 1,
-    vin: "VF8A1234567890123",
-    licensePlate: "29A-12345",
-    owner: "Nguyen Van A",
-    phone: "0901234567",
-    model: "VF8",
-    year: 2023,
-    status: "pending",
-  },
-  {
-    id: 2,
-    campaignId: 1,
-    vin: "VF8B9876543210987",
-    licensePlate: "30B-67890",
-    owner: "Tran Thi B",
-    phone: "0912345678",
-    model: "VF8",
-    year: 2023,
-    status: "scheduled",
-  },
-  {
-    id: 3,
-    campaignId: 1,
-    vin: "VF9C1122334455667",
-    licensePlate: "51C-11223",
-    owner: "Le Van C",
-    phone: "0923456789",
-    model: "VF9",
-    year: 2024,
-    status: "contacted",
-  },
-]
-
-export const mockReports = [
-  {
-    id: 1,
-    campaignId: 1,
-    campaignName: "Battery Recall 2024",
-    reportType: "progress",
-    createdDate: "2024-01-15",
-    updatedDate: "2024-01-20",
-    status: "in-progress",
-    summary: "Campaign is progressing well with 120 out of 245 vehicles serviced. Customer response rate is high.",
-    totalVehicles: 245,
-    completedServices: 120,
-    pendingServices: 125,
-    issues: "Some customers are experiencing scheduling conflicts due to limited service bay availability.",
-    recommendations: "Consider extending service hours on weekends to accommodate more customers.",
-    createdBy: "Nam",
-  },
-  {
-    id: 2,
-    campaignId: 2,
-    campaignName: "Software Update Campaign",
-    reportType: "progress",
-    createdDate: "2024-02-01",
-    updatedDate: "2024-02-10",
-    status: "in-progress",
-    summary: "Software update campaign showing steady progress. 67 out of 156 vehicles completed.",
-    totalVehicles: 156,
-    completedServices: 67,
-    pendingServices: 89,
-    issues: "Minor technical issues with update installation on older vehicle models.",
-    recommendations: "Provide additional training to technicians on handling legacy system updates.",
-    createdBy: "Nam",
-  },
-  {
-    id: 3,
-    campaignId: 3,
-    campaignName: "Brake System Inspection",
-    reportType: "completion",
-    createdDate: "2023-10-01",
-    updatedDate: "2024-01-05",
-    status: "completed",
-    summary: "Campaign successfully completed with 298 out of 312 vehicles serviced. High customer satisfaction rate.",
-    totalVehicles: 312,
-    completedServices: 298,
-    pendingServices: 14,
-    issues: "14 customers did not respond to multiple contact attempts.",
-    recommendations:
-      "Implement SMS reminder system for future campaigns to improve customer engagement and reduce no-shows.",
-    createdBy: "Nam",
-  },
-]
-
-// EVM Staff - Warranty Claims
+// ===========================================  EVM STAFF  ======================================
+// EVM WARRANTY-CLAIM:  List Claim (Warranty Claims for EVM Staff Management)
 export const mockEVMWarrantyClaims = [
   {
     id: "1",
@@ -851,49 +891,8 @@ export const mockEVMWarrantyClaims = [
     parts: ["Dashboard Display"],
   },
 ]
-
-// EVM Staff - Campaigns
-export const mockEVMCampaigns = [
-  {
-    id: "1",
-    campaignId: "CAMP-2024-001",
-    campaignName: "Battery Recall 2024",
-    description: "Critical battery management system update for VF 8 and VF 9 models",
-    start: "2024-09-01",
-    end: "2024-12-31",
-    status: "process",
-  },
-  {
-    id: "2",
-    campaignId: "CAMP-2024-002",
-    campaignName: "Software Update Campaign",
-    description: "Infotainment system software update for all VF models",
-    start: "2024-10-01",
-    end: "2024-11-30",
-    status: "to_do",
-  },
-  {
-    id: "3",
-    campaignId: "CAMP-2024-003",
-    campaignName: "Brake System Inspection",
-    description: "Comprehensive brake system inspection and maintenance",
-    start: "2024-08-01",
-    end: "2024-09-30",
-    status: "done",
-  },
-  {
-    id: "4",
-    campaignId: "CAMP-2024-004",
-    campaignName: "Winter Maintenance",
-    description: "Pre-winter vehicle inspection and maintenance campaign",
-    start: "2024-11-01",
-    end: "2024-12-15",
-    status: "cancel",
-  },
-]
-
-// EVM Staff - Parts Inventory
-export const mockPartsInventory = [
+// EVM SUPPLY-CHAIN : List Part / Details (Supply Chain Inventory)
+export const mockSupplyChain = [
   {
     id: "1",
     serial: "BAT-VF8-001",
@@ -995,6 +994,77 @@ export const mockSupplyChain = [
     location: "Warehouse A - Hanoi",
     alert: "low",
   },
+]
+// EVM SUPPLY-CHAIN : List Part / Details
+export const mockPartsInventory = [
+  {
+    id: "1",
+    serial: "BAT-VF8-001",
+    partName: "Battery Module 87.7kWh",
+    branch: "Hanoi Central",
+    description: "High capacity battery module for VF 8 and VF 9",
+    specifications: "87.7kWh, 400V, Lithium-ion",
+    price: 45000000,
+    stock: 12,
+    remain: 8,
+    location: "Warehouse A - Section B2",
+    vehicleModels: ["VF 8", "VF 9"],
+  },
+  {
+    id: "2",
+    serial: "INF-VF-001",
+    partName: 'Infotainment Display 15.6"',
+    branch: "HCMC District 1",
+    description: "Touchscreen display for infotainment system",
+    specifications: '15.6" LCD, 1920x1080, Multi-touch',
+    price: 8500000,
+    stock: 25,
+    remain: 3,
+    location: "Warehouse B - Section A1",
+    vehicleModels: ["VF 8", "VF 9", "VF 7"],
+  },
+  {
+    id: "3",
+    serial: "BRK-VF-002",
+    partName: "Brake Caliper Assembly",
+    branch: "Da Nang",
+    description: "Front brake caliper with pads",
+    specifications: "Hydraulic, 4-piston, Ceramic pads",
+    price: 3200000,
+    stock: 30,
+    remain: 18,
+    location: "Warehouse C - Section D3",
+    vehicleModels: ["VF 6", "VF 7", "VF 8"],
+  },
+  {
+    id: "4",
+    serial: "MOT-VF9-003",
+    partName: "Electric Motor Assembly",
+    branch: "Hanoi Central",
+    description: "Rear electric motor for VF 9",
+    specifications: "150kW, Permanent Magnet Synchronous",
+    price: 65000000,
+    stock: 5,
+    remain: 2,
+    location: "Warehouse A - Section C1",
+    vehicleModels: ["VF 9"],
+  },
+  {
+    id: "5",
+    serial: "CHA-VF-004",
+    partName: "Chassis Frame",
+    branch: "HCMC District 1",
+    description: "Main chassis frame structure",
+    specifications: "High-strength steel, Reinforced",
+    price: 28000000,
+    stock: 8,
+    remain: 5,
+    location: "Warehouse B - Section E2",
+    vehicleModels: ["VF 8"],
+  },
+]
+// EVM CAMPAIGN : Manage campaign (EVM Staff Campaigns)
+export const mockEVMCampaigns = [
   {
     id: "5",
     partName: "Air Conditioning Compressor",
@@ -1028,3 +1098,74 @@ export const mockSupplyChain = [
     alert: "normal",
   },
 ]
+// EVM HISTORY : Warranty History decision (Warranty Policies for EVM Staff)
+export const mockWarrantyPolicies = [
+  {
+    id: "1",
+    no: 1,
+    part: "Battery Module",
+    vin: "VF8A1234567890123",
+    model: "VF 8",
+    history: "2 replacements",
+    detail: "96 months / 160,000 km",
+    decision: "yes",
+    relative: "Controller, Charger",
+  },
+  {
+    id: "2",
+    no: 2,
+    part: "Electric Motor",
+    vin: "VF9B9876543210987",
+    model: "VF 9",
+    history: "0 replacements",
+    detail: "120 months / 200,000 km",
+    decision: "yes",
+    relative: "Controller, Transmission",
+  },
+  {
+    id: "3",
+    no: 3,
+    part: "Infotainment Display",
+    vin: "VF7C1122334455667",
+    model: "VF 7",
+    history: "1 replacement",
+    detail: "36 months / 60,000 km",
+    decision: "no",
+    relative: "Dashboard, Speakers",
+  },
+  {
+    id: "4",
+    no: 4,
+    part: "Brake System",
+    vin: "VF6D9988776655443",
+    model: "VF 6",
+    history: "0 replacements",
+    detail: "24 months / 40,000 km",
+    decision: "yes",
+    relative: "Brake Caliper, Brake Pads",
+  },
+]
+
+
+
+// Activity Logs?????????????????????????
+export const mockActivityLogs = [
+  {
+    id: "1",
+    userId: "2",
+    userName: "Nguyen Van A",
+    action: "Created warranty claim",
+    details: "WC-2024-002 for vehicle 29B-67890",
+    timestamp: "2024-10-02T10:15:00Z",
+    type: "claim",
+  },
+  {
+    id: "2",
+    userId: "3",
+    userName: "Tran Thi B",
+    action: "Updated job status",
+    details: "JOB-001 status changed to in_progress",
+    timestamp: "2024-10-03T09:05:00Z",
+    type: "job",
+  },
+];

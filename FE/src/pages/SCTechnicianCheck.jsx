@@ -90,10 +90,10 @@ export default function SCTechnicianCheck() {
         <Header name={mockUsers[5].name} email={mockUsers[5].email} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            <div>
+            {/* <div>
               <h1 className="text-3xl font-bold">Check Jobs</h1>
               <p className="text-muted-foreground mt-1">Diagnostic and inspection tasks</p>
-            </div>
+            </div> */}
 
             {/* Filters */}
             <Card>
@@ -114,9 +114,9 @@ export default function SCTechnicianCheck() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="to_do">To-Do</SelectItem>
+                      <SelectItem value="on_going">On-Going</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -143,15 +143,15 @@ export default function SCTechnicianCheck() {
                             <Badge variant="outline" className={cn("text-xs capitalize", getStatusColor(job.status))}>
                               {job.status.replace("_", " ")}
                             </Badge>
-                            <Badge
+                            {/* <Badge
                               variant="outline"
                               className={cn("text-xs capitalize", getPriorityColor(job.priority))}
                             >
                               {job.priority}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            </Badge> */}
+                            {/* <Badge variant="outline" className="text-xs">
                               {job.type}
-                            </Badge>
+                            </Badge> */}
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <p className="text-muted-foreground">
@@ -163,9 +163,9 @@ export default function SCTechnicianCheck() {
                             <p className="text-muted-foreground">
                               <span className="font-medium">SC Staff:</span> {job.assignedStaff}
                             </p>
-                            <p className="text-muted-foreground">
+                            {/* <p className="text-muted-foreground">
                               <span className="font-medium">Technician:</span> {job.assignedTechnician}
-                            </p>
+                            </p> */}
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -173,10 +173,10 @@ export default function SCTechnicianCheck() {
                             <FileText className="h-4 w-4 mr-1" />
                             Report
                           </Button>
-                          <Button size="sm" disabled={!job.hasReport} className="bg-cyan-500 hover:bg-cyan-600">
+                          {/* <Button size="sm" disabled={!job.hasReport} className="bg-cyan-500 hover:bg-cyan-600">
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Complete
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </div>
