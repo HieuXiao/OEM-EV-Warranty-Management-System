@@ -420,11 +420,25 @@ export default function SCStaffWarrantyClaim() {
                 <label className="text-sm font-medium">Created By (SC Staff)</label>
                 <Input value={currentUser.name} disabled className="bg-muted" />
               </div>
-
+ 
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Customer Phone</label>
+                <Input placeholder="e.g., 0901234567" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Customer Name</label>
+                <Input placeholder="Enter customer name" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Vehicle Plate</label>
+                <Input placeholder="e.g., 30A-12345" required />
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Vehicle Model</label>
                 <Select required>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md"
+                  >
                     <SelectValue placeholder="Select vehicle model" />
                   </SelectTrigger>
                   <SelectContent>
@@ -437,56 +451,25 @@ export default function SCStaffWarrantyClaim() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Vehicle Plate</label>
-                <Input placeholder="e.g., 30A-12345" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Name</label>
-                <Input placeholder="Enter customer name" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Phone</label>
-                <Input placeholder="e.g., 0901234567" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Service Center</label>
-                <Input value={currentUser.serviceCenter} disabled className="bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Kilometers</label>
-                <Input type="number" placeholder="e.g., 15000" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Priority</label>
-                <Select required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estimated Cost (VND)</label>
-                <Input type="number" placeholder="e.g., 5000000" required />
-              </div>
-              <div className="space-y-2 col-span-2">
                 <label className="text-sm font-medium">Assign to Technician</label>
                 <Select value={newClaimTechnician} onValueChange={setNewClaimTechnician} required>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md"
+                  >
                     <SelectValue placeholder="Select a technician" />
                   </SelectTrigger>
                   <SelectContent>
                     {scTechnicians.map((tech) => (
                       <SelectItem key={tech.id} value={tech.name}>
-                        {tech.name} - {tech.serviceCenter}
+                        {tech.name}
                       </SelectItem>
-                    ))}
+                    ))} 
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Previous Warranty Count</label>
+                <Input placeholder="e.g., 01;02;10,.." required/>
               </div>
             </div>
             <div className="space-y-2">
