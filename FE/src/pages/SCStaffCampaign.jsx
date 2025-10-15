@@ -1,11 +1,11 @@
 // FE/src/pages/SCStaffCampaign.jsx
 // IMPORT FROM COMPONENT
 import Header from "@/components/Header";
-import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
-import SCStaffSummary from "@/components/scstaff/SCStaffCampaignSummary";
-import SCStaffAppointments from "@/components/scstaff/SCStaffAppointmentsSection";
-import ScsCampaignSection from "@/components/scstaff/ScsCampaignSection";
-import ScsReportSection from "@/components/scstaff/ScsReportSection";
+import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
+import SCStaffSummary from "@/components/scstaff/ScsCampSummary";
+import SCStaffAppointments from "@/components/scstaff/ScsCampAppSection";
+import ScsCampaignSection from "@/components/scstaff/ScsCampSection";
+import ScsReportSection from "@/components/scstaff/ScsRepoSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SCStaffProfile() {

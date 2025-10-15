@@ -1,6 +1,6 @@
-import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
-import CustomerVinCard from "@/components/scstaff/CustomerVinCard";
+import CustomerVinCard from "@/components/scstaff/ScsProfCustCard";
 import { Label } from "@radix-ui/react-label";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
