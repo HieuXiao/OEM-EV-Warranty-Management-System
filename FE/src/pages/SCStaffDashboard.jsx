@@ -1,4 +1,4 @@
-import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   mockWarrantyClaims,
+  mockRecallCampaigns,
   mockParts,
   mockUsers,
   mockActivityLogs,
@@ -29,21 +30,37 @@ import {
 import { useEffect } from "react";
 
 export default function SCStaffDashboard() {
+  // Card information
   const totalClaims = mockWarrantyClaims.length;
-  const pendingClaims = mockWarrantyClaims.filter(
-    (c) => c.status === "pending"
+  //
+  const toDoClaims = mockWarrantyClaims.filter(
+    (c) => c.status === "to_do"
   ).length;
-  const inProgressClaims = mockWarrantyClaims.filter(
-    (c) => c.status === "in_progress"
+  //
+  const needHandOver = mockWarrantyClaims.filter(
+    (c) => c.status === "completed" || c.status === "rejected"
   ).length;
-  const completedClaims = mockWarrantyClaims.filter(
-    (c) => c.status === "completed"
+  //
+
+  //
+  const startedCampaigns = mockRecallCampaigns.filter(
+    (rc) => rc.status === "started"
   ).length;
-  const totalParts = mockParts.reduce((sum, p) => sum + p.stock, 0);
-  const lowStockParts = mockParts.filter(
-    (p) => p.status === "low_stock"
+  //
+  const endedCampaigns = mockRecallCampaigns.filter(
+    (rc) => rc.status === "ended"
   ).length;
-  const activeUsers = mockUsers.filter((u) => u.status === "active").length;
+  // const inProgressClaims = mockWarrantyClaims.filter(
+  //   (c) => c.status === "on_going"
+  // ).length;
+  // const completedClaims = mockWarrantyClaims.filter(
+  //   (c) => c.status === "completed"
+  // ).length;
+  // const totalParts = mockParts.reduce((sum, p) => sum + p.stock, 0);
+  // const lowStockParts = mockParts.filter(
+  //   (p) => p.status === "low_stock"
+  // ).length;
+  // const activeUsers = mockUsers.filter((u) => u.status === "completed").length;
 
   useEffect(() => {
     document.title = `Dashboard`;
@@ -51,15 +68,13 @@ export default function SCStaffDashboard() {
 
   function getStatusColor(status) {
     switch (status) {
-      case "pending":
+      case "on_going":
         return "bg-yellow-500";
-      case "approved":
-        return "bg-green-500";
+      case "completed":
+        return "bg-blue-500";
       case "rejected":
         return "bg-red-500";
-      case "in_progress":
-        return "bg-blue-500";
-      case "completed":
+      case "hand_overed":
         return "bg-green-500";
       default:
         return "bg-gray-500";
@@ -89,11 +104,13 @@ export default function SCStaffDashboard() {
         <Header name={"Pham Nhut Nam"} email={"nam.admin@gmail.com"} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
+            {/* DB (CARD) - 4 Main Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* CARD - Active Warranties */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Total Warranty Claims
+                    Active Warranties
                   </CardTitle>
                   <Shield className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -101,36 +118,68 @@ export default function SCStaffDashboard() {
                   <div className="text-2xl font-bold">{totalClaims}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     <span className="text-yellow-600">
-                      {pendingClaims} pending
+                      {needHandOver} Need Handover
                     </span>
                   </p>
                 </CardContent>
               </Card>
-
+              {/* CARD - Total Campaigns */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    In Progress
+                    Total Campaigns
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{inProgressClaims}</div>
+                  <div className="text-2xl font-bold">{startedCampaigns}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Active warranty claims
+                    {endedCampaigns} Need Report
+                  </p>
+                </CardContent>
+              </Card>
+              {/* CARD - Customer-Appoinments */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Appoinments
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{endedCampaigns}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {endedCampaigns} Appointments Today
+                  </p>
+                </CardContent>
+              </Card>
+              {/* CARD - Work-Targets */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    My Works
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{endedCampaigns}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {endedCampaigns} Work Left
                   </p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* DB (TABLE) - Table */}
             <Card>
+              {/* DB (TABLE) - Table / Header */}
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Recent Warranty Claims</CardTitle>
-                    <CardDescription>
+                    <CardTitle>List Warranty Claims</CardTitle>
+                    {/* <CardDescription>
                       Latest claims requiring attention
-                    </CardDescription>
+                    </CardDescription> */}
                   </div>
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/scstaff/warranty">
@@ -140,32 +189,44 @@ export default function SCStaffDashboard() {
                   </Button>
                 </div>
               </CardHeader>
+              {/* DB (TABLE) - Table / Lists Warranties */}
               <CardContent>
-                <div className="space-y-4">
-                  {mockWarrantyClaims.slice(0, 3).map((claim) => (
-                    <div
-                      key={claim.id}
-                      className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-sm">
-                            {claim.claimNumber}
-                          </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {[...mockWarrantyClaims]
+                    .sort((a, b) => {
+                      const order = {
+                        completed: 1,
+                        rejected: 2,
+                        on_going: 3,
+                        to_do: 4,
+                        hand_overed: 5,
+                      };
+                      return order[a.status] - order[b.status];
+                    })
+                    .slice(0, 6)
+                    .map((claim) => (
+                      <div
+                        key={claim.id}
+                        className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium text-sm">
+                              {claim.claimNumber}
+                            </p>
 
-                          {/* Status Badge */}
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs capitalize",
-                              getStatusColor(claim.status)
-                            )}
-                          >
-                            {claim.status.replace("_", " ")}
-                          </Badge>
-
-                          {/* Priority Badge */}
-                          <Badge
+                            {/* Status Badge */}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs capitalize text-white",
+                                getStatusColor(claim.status)
+                              )}
+                            >
+                              {claim.status.replace("_", " ")}
+                            </Badge>
+                            {/* Priority Badge */}
+                            {/* <Badge
                             variant="outline"
                             className={cn(
                               "text-xs capitalize",
@@ -173,19 +234,19 @@ export default function SCStaffDashboard() {
                             )}
                           >
                             {claim.priority}
-                          </Badge>
+                          </Badge> */}
+                          </div>
+
+                          <p className="text-sm text-muted-foreground truncate">
+                            {claim.vehicleModel} - {claim.vehiclePlate}
+                          </p>
+
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            {claim.issueDescription}
+                          </p>
                         </div>
-
-                        <p className="text-sm text-muted-foreground truncate">
-                          {claim.vehicleModel} – {claim.vehiclePlate}
-                        </p>
-
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {claim.issueDescription}
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>

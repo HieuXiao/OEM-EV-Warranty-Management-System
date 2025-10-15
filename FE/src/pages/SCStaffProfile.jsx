@@ -1,6 +1,6 @@
-import SCStaffSibebar from "@/components/scstaff/SCStaffSidebar";
+import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
-import CustomersTable from "@/components/scstaff/CustomersTable";
+import CustomersTable from "@/components/scstaff/ScsProfCustTable";
 import { useEffect } from "react";
 
 export default function SCStaffProfile() {
