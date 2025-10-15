@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +5,18 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
   const [comment, setComment] = useState("")
   const [isFormValid, setIsFormValid] = useState(false)
   const [partApprovals, setPartApprovals] = useState({})
+  const [approveAllActive, setApproveAllActive] = useState(false)
+  const [rejectAllActive, setRejectAllActive] = useState(false)
+
+  const partCosts = [
+    { name: "Battery Module", quantity: 1, cost: 45000000 },
+    { name: "Controller Unit", quantity: 1, cost: 3000000 },
+  ]
 
   useEffect(() => {
     if (warranty && comment.trim().length > 0) {
@@ -26,6 +30,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     if (!open) {
       setComment("")
       setPartApprovals({})
+      setApproveAllActive(false)
+      setRejectAllActive(false)
     }
   }, [open])
 
@@ -41,11 +47,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
   if (!warranty) return null
 
-  const partCosts = [
-    { name: "Battery Module", quantity: 1, cost: 45000000 },
-    { name: "Controller Unit", quantity: 1, cost: 3000000 },
-  ]
-
   const handleApprovalChange = (index, type) => {
     setPartApprovals((prev) => ({
       ...prev,
@@ -56,6 +57,30 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     }))
   }
 
+  const handleApproveAll = () => {
+    const newState = !approveAllActive
+    setApproveAllActive(newState)
+    setRejectAllActive(false)
+
+    const updated = {}
+    partCosts.forEach((_, i) => {
+      updated[i] = { approved: newState, rejected: false }
+    })
+    setPartApprovals(updated)
+  }
+
+  const handleRejectAll = () => {
+    const newState = !rejectAllActive
+    setRejectAllActive(newState)
+    setApproveAllActive(false)
+
+    const updated = {}
+    partCosts.forEach((_, i) => {
+      updated[i] = { approved: false, rejected: newState }
+    })
+    setPartApprovals(updated)
+  }
+
   const totalCost = partCosts.reduce((sum, part, index) => {
     if (partApprovals[index]?.approved) {
       return sum + part.cost * part.quantity
@@ -63,12 +88,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     return sum
   }, 0)
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount)
-  }
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount)
 
   const getStatusColor = (status) => {
     const colors = {
@@ -81,11 +102,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
   const handleCancel = () => {
     console.log("Warranty cancelled:", warranty.claimId)
-    onOpenChange(false)
-  }
-
-  const handlePending = () => {
-    console.log("Warranty set to pending:", warranty.claimId, "Comment:", comment)
     onOpenChange(false)
   }
 
@@ -102,7 +118,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
+          {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Claim ID</p>
@@ -110,7 +126,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <Badge className={getStatusColor(warranty.status)}>{warranty.status.toUpperCase()}</Badge>
+              <Badge className={getStatusColor(warranty.decision)}>
+                {warranty.decision.toUpperCase()}
+              </Badge>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Vehicle</p>
@@ -140,63 +158,106 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
           <Separator />
 
+          {/* Cost Breakdown */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
-            <div className="space-y-3">
-              {/* Table Header */}
-              {partCosts.map((part, index) => (
-              <div
-                key={index}
-                className="flex justify-between items-start border-b pb-3 gap-8"
-              >
-                {/* Left column */}
-                <div className="flex-1 space-y-1">
-                  <p className="font-semibold text-base">{part.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Quantity:{" "}
-                    <span className="font-medium text-foreground">{part.quantity}</span>
-                  </p>
-                  <p className="text-base font-semibold text-primary">
-                    {formatCurrency(part.cost)}
-                  </p>
+
+            <div className="border rounded-md">
+              {/* Header */}
+              <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2">
+                <div>Part Information</div>
+                <div className="flex justify-center">
+                  <Button
+                    variant={approveAllActive ? "default" : "outline"}
+                    size="sm"
+                    className={`transition-all ${
+                      approveAllActive
+                        ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
+                        : "text-green-700 border-green-600 hover:bg-green-100"
+                    }`}
+                    onClick={handleApproveAll}
+                  >
+                    Approve All
+                  </Button>
                 </div>
-
-                {/* Right column - improved checkbox alignment */}
-                <div className="flex flex-col items-end justify-start w-[140px] shrink-0 space-y-1">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <span>Approve</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-green-600"
-                      checked={partApprovals[index]?.approved || false}
-                      onChange={() => handleApprovalChange(index, "approved")}
-                    />
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <span>Reject</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-red-600"
-                      checked={partApprovals[index]?.rejected || false}
-                      onChange={() => handleApprovalChange(index, "rejected")}
-                    />
-                  </label>
+                <div className="flex justify-center">
+                  <Button
+                    variant={rejectAllActive ? "default" : "outline"}
+                    size="sm"
+                    className={`transition-all ${
+                      rejectAllActive
+                        ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
+                        : "text-red-700 border-red-600 hover:bg-red-100"
+                    }`}
+                    onClick={handleRejectAll}
+                  >
+                    Reject All
+                  </Button>
                 </div>
               </div>
-            ))}
 
+              {/* Rows */}
+              {partCosts.map((part, index) => {
+                const approved = partApprovals[index]?.approved || false
+                const rejected = partApprovals[index]?.rejected || false
+                return (
+                  <div
+                    key={index}
+                    className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${
+                      approved
+                        ? "bg-green-50"
+                        : rejected
+                        ? "bg-red-50"
+                        : "bg-transparent"
+                    }`}
+                  >
+                    {/* Column 1 */}
+                    <div className="space-y-1 text-left">
+                      <p className="font-semibold text-base">{part.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Qty: {part.quantity}
+                      </p>
+                      <p className="text-base font-semibold text-primary">
+                        {formatCurrency(part.cost)}
+                      </p>
+                    </div>
 
-              {/* Total Cost */}
-              <div className="flex justify-between items-center text-lg pt-4">
-                <p className="font-bold">Total Cost</p>
-                <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
-              </div>
+                    {/* Approve */}
+                    <div className="flex justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 accent-green-600 cursor-pointer"
+                        checked={approved}
+                        onChange={() => handleApprovalChange(index, "approved")}
+                      />
+                    </div>
+
+                    {/* Reject */}
+                    <div className="flex justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 accent-red-600 cursor-pointer"
+                        checked={rejected}
+                        onChange={() => handleApprovalChange(index, "rejected")}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Total Cost */}
+            <div className="flex justify-between items-center text-lg pt-4">
+              <p className="font-bold">Total Cost</p>
+              <p className="font-bold text-primary text-xl">
+                {formatCurrency(totalCost)}
+              </p>
             </div>
           </div>
 
           <Separator />
 
+          {/* Comment */}
           <div className="space-y-2">
             <Label htmlFor="comment">Comment</Label>
             <Textarea
@@ -209,12 +270,10 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             />
           </div>
 
+          {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="destructive" onClick={handleCancel} disabled={!isFormValid}>
+            <Button variant="destructive" onClick={handleCancel}>
               Cancel
-            </Button>
-            <Button variant="outline" onClick={handlePending} disabled={!isFormValid}>
-              Pending
             </Button>
             <Button onClick={handleDone} disabled={!isFormValid}>
               Done

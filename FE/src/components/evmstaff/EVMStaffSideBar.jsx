@@ -1,4 +1,4 @@
-import { Car, Wrench, BarChart3, Link2, BookOpen, Phone } from "lucide-react";
+import { Car, BarChart3, Link2, BookOpen, Phone, Shield, TriangleAlert } from "lucide-react";
 import { Button } from "../ui/button";
 import UserInfo from "../UserInfo";
 import NavigationItem from "../NavigationItem";
@@ -12,9 +12,10 @@ export default function EVMStaffSideBar({ image, name, role }) {
         <UserInfo image={image} name={name} role={role} />
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <NavigationItem path={"/evmstaff/products"} icon={Car} funcName={"Products & Parts"} />
-          <NavigationItem path={"/evmstaff/manage"} icon={Wrench} funcName={"Manage"} />
+          <NavigationItem path={"/evmstaff/warranty"} icon={Shield} funcName={"Warranty Claim"} />
           <NavigationItem path={"/evmstaff/reports"} icon={BarChart3} funcName={"Reporting & Analysis"} />
           <NavigationItem path={"/evmstaff/supply-chain"} icon={Link2} funcName={"Supply chain"} />
+          <NavigationItem path={"/evmstaff/campaign"} icon={TriangleAlert} funcName={"Campaign"} />
         </nav>
         <div className="p-4 border-t border-border space-y-2">
           <Button variant="outline" size="sm" className="w-full justify-start gap-2 bg-transparent">

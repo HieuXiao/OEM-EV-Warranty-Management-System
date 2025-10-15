@@ -1110,7 +1110,7 @@ export const mockEVMWarrantyClaims = [
     parts: ["Battery Module", "Controller"],
     totalCost: 48000000,
     submittedDate: "2024-10-01",
-    decision: "approved",
+    decision: "done",
   },
   {
     id: "2",
@@ -1124,7 +1124,7 @@ export const mockEVMWarrantyClaims = [
     parts: ["Infotainment Display"],
     totalCost: 8500000,
     submittedDate: "2024-10-05",
-    decision: "pending",
+    decision: "to do",
   },
   {
     id: "3",
@@ -1138,7 +1138,7 @@ export const mockEVMWarrantyClaims = [
     parts: ["Brake Caliper", "Dashboard"],
     totalCost: 5200000,
     submittedDate: "2024-10-08",
-    decision: "pending",
+    decision: "on going",
   },
   {
     id: "4",
@@ -1152,7 +1152,7 @@ export const mockEVMWarrantyClaims = [
     parts: ["Wheel/Rim"],
     totalCost: 4000000,
     submittedDate: "2024-09-28",
-    decision: "rejected",
+    decision: "done",
   },
 ]
 // EVM SUPPLY-CHAIN : List Part / Details (Supply Chain Inventory)
