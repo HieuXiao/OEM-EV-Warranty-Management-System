@@ -24,7 +24,7 @@ import EVMStaffSupplyChain from "./pages/EVMStaffSupplyChain";
 import EVMStaffReportAnalysis from "./pages/EVMStaffReport&Analysis";
 import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
-
+import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 
 function App() {
   return (
@@ -32,31 +32,37 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Login />} />
-        
+
         {/* Admin */}
         <Route path="/admin/setting" element={<AdminSetting />} />
         <Route path="/admin/users" element={<AdminUserManagement />} />
         <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
-        
+
         {/* ScStaff */}
         <Route path="/scstaff/dashboard" element={<SCStaffDashboard />} />
         <Route path="/scstaff/profiles" element={<SCStaffProfile />} />
         <Route path="/scstaff/profiles/:id" element={<CustomerDetail />} />
         <Route path="/scstaff/warranty" element={<SCStaffWarranty />} />
         <Route path="/scstaff/campaigns" element={<SCStaffCampaign />} />
-        
+
         {/* ScTechnician */}
-        <Route path="/sctechnician/dashboard" element={<SCTechnicianDashboard />}/>
+        <Route
+          path="/sctechnician/dashboard"
+          element={<SCTechnicianDashboard />}
+        />
         <Route path="/sctechnician/check" element={<SCTechnicianCheck />} />
         <Route path="/sctechnician/repair" element={<SCTechnicianRepair />} />
-        
+
         {/* EVMStaff */}
         <Route path="/evmstaff/products" element={<EVMStaffProductPart />} />
+        <Route path="/evmstaff/products/:id" element={<EVMStaffDetailPart />} />
         <Route path="/evmstaff/warranty" element={<EVMStaffWarrantyClaim />} />
         <Route path="/evmstaff/reports" element={<EVMStaffReportAnalysis />} />
-        <Route path="/evmstaff/supply-chain" element={<EVMStaffSupplyChain />} />
+        <Route
+          path="/evmstaff/supply-chain"
+          element={<EVMStaffSupplyChain />}
+        />
         <Route path="/evmstaff/campaign" element={<EVMStaffCampaign />} />
-        
       </Routes>
     </>
   );
