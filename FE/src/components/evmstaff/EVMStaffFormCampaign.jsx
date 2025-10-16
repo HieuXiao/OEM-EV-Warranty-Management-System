@@ -1,17 +1,18 @@
-"use client"
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import { vehicleModels, mockParts } from "@/lib/Mock-data";
 
 export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campaign }) {
   const [formData, setFormData] = useState(
     campaign || {
       campaignId: "",
       campaignName: "",
+      vehicleModels:"",
+      parts: "",
       description: "",
       start: "",
       end: "",
@@ -29,9 +30,13 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{campaign ? "Edit Campaign" : "Create New Campaign"}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {campaign ? "Edit Campaign" : "Create New Campaign"}
+          </DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Campaign ID & Name */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="campaignId">Campaign ID</Label>
@@ -53,6 +58,30 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
               />
             </div>
           </div>
+
+          {/* Vehicle Model & Part (text input) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vehicleModel">Vehicle Model</Label>
+              <Input
+                id="vehicleModel"
+                value={formData.vehicleModel}
+                onChange={(e) => setFormData({ ...formData, vehicleModel: e.target.value })}
+                placeholder="Enter vehicle model"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="part">Part</Label>
+              <Input
+                id="part"
+                value={formData.part}
+                onChange={(e) => setFormData({ ...formData, part: e.target.value })}
+                placeholder="Enter related part"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -63,6 +92,8 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
               required
             />
           </div>
+
+          {/* Start / End */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start">Start Date</Label>
@@ -85,6 +116,8 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
               />
             </div>
           </div>
+
+          {/* Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
