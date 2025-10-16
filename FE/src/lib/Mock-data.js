@@ -1503,7 +1503,7 @@ export const mockActivityLogs = [
     type: "job",
   },
 ];
-
+// EVM REPORT
 export const mockBranchStats = [
   {
     id: "001",
@@ -1703,6 +1703,325 @@ export const mockBranchStats = [
       { partName: "Charger/Converter", total: 65, unitPrice: 5500000 },
       { partName: "Dashboard", total: 64, unitPrice: 8500000 },
       { partName: "Lighting", total: 65, unitPrice: 1200000 },
+    ],
+  },
+];
+// EVM WAREHOUSE
+export const mockWarehousesInventory = [
+  {
+    id: "001",
+    name: "Gear Hub",
+    location: "102C9 Nguyen Hong Street, Dong Da District, Hanoi",
+    parts: [
+      {
+        partName: "Chassis",
+        total: 30,
+        unitPrice: 28000000,
+        lastUpdate: "2025-10-11 14:22",
+      },
+      {
+        partName: "Motor",
+        total: 12,
+        unitPrice: 65000000,
+        lastUpdate: "2025-10-10 09:45",
+      },
+      {
+        partName: "Wheel/Rim",
+        total: 13,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-12 17:10",
+      },
+      {
+        partName: "Battery",
+        total: 14,
+        unitPrice: 45000000,
+        lastUpdate: "2025-10-08 11:34",
+      },
+      {
+        partName: "Shock Absorber",
+        total: 16,
+        unitPrice: 5000000,
+        lastUpdate: "2025-10-13 15:27",
+      },
+      {
+        partName: "Throttle/Brake",
+        total: 16,
+        unitPrice: 1800000,
+        lastUpdate: "2025-10-07 08:55",
+      },
+      {
+        partName: "Lock/Alarm",
+        total: 20,
+        unitPrice: 950000,
+        lastUpdate: "2025-10-09 10:13",
+      },
+      {
+        partName: "Brake Caliper",
+        total: 14,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-06 16:18",
+      },
+      {
+        partName: "Controller",
+        total: 21,
+        unitPrice: 7200000,
+        lastUpdate: "2025-10-11 13:49",
+      },
+      {
+        partName: "Charger/Converter",
+        total: 13,
+        unitPrice: 5500000,
+        lastUpdate: "2025-10-10 19:02",
+      },
+      {
+        partName: "Dashboard",
+        total: 15,
+        unitPrice: 8500000,
+        lastUpdate: "2025-10-09 09:55",
+      },
+      {
+        partName: "Lighting",
+        total: 14,
+        unitPrice: 1200000,
+        lastUpdate: "2025-10-12 18:40",
+      },
+    ],
+  },
+  {
+    id: "002",
+    name: "Wheel Base",
+    location: "545 Ly Thuong Kiet Street, Ward 5, My Tho City, Tien Giang",
+    parts: [
+      {
+        partName: "Chassis",
+        total: 22,
+        unitPrice: 28000000,
+        lastUpdate: "2025-10-09 11:18",
+      },
+      {
+        partName: "Motor",
+        total: 3,
+        unitPrice: 65000000,
+        lastUpdate: "2025-10-11 08:42",
+      },
+      {
+        partName: "Wheel/Rim",
+        total: 20,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-07 16:37",
+      },
+      {
+        partName: "Battery",
+        total: 18,
+        unitPrice: 45000000,
+        lastUpdate: "2025-10-13 20:10",
+      },
+      {
+        partName: "Shock Absorber",
+        total: 17,
+        unitPrice: 5000000,
+        lastUpdate: "2025-10-10 12:54",
+      },
+      {
+        partName: "Throttle/Brake",
+        total: 2,
+        unitPrice: 1800000,
+        lastUpdate: "2025-10-08 09:31",
+      },
+      {
+        partName: "Lock/Alarm",
+        total: 15,
+        unitPrice: 950000,
+        lastUpdate: "2025-10-06 07:14",
+      },
+      {
+        partName: "Brake Caliper",
+        total: 19,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-12 19:43",
+      },
+      {
+        partName: "Controller",
+        total: 6,
+        unitPrice: 7200000,
+        lastUpdate: "2025-10-10 21:08",
+      },
+      {
+        partName: "Charger/Converter",
+        total: 21,
+        unitPrice: 5500000,
+        lastUpdate: "2025-10-09 10:59",
+      },
+      {
+        partName: "Dashboard",
+        total: 30,
+        unitPrice: 8500000,
+        lastUpdate: "2025-10-13 14:26",
+      },
+      {
+        partName: "Lighting",
+        total: 31,
+        unitPrice: 1200000,
+        lastUpdate: "2025-10-07 15:15",
+      },
+    ],
+  },
+  {
+    id: "003",
+    name: "Car Keep",
+    location: "42 Street 26, Ward 10, District 6, Ho Chi Minh City",
+    parts: [
+      {
+        partName: "Chassis",
+        total: 23,
+        unitPrice: 28000000,
+        lastUpdate: "2025-10-08 10:45",
+      },
+      {
+        partName: "Motor",
+        total: 14,
+        unitPrice: 65000000,
+        lastUpdate: "2025-10-11 13:12",
+      },
+      {
+        partName: "Wheel/Rim",
+        total: 26,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-09 18:57",
+      },
+      {
+        partName: "Battery",
+        total: 5,
+        unitPrice: 45000000,
+        lastUpdate: "2025-10-12 09:25",
+      },
+      {
+        partName: "Shock Absorber",
+        total: 21,
+        unitPrice: 5000000,
+        lastUpdate: "2025-10-07 08:42",
+      },
+      {
+        partName: "Throttle/Brake",
+        total: 16,
+        unitPrice: 1800000,
+        lastUpdate: "2025-10-13 15:21",
+      },
+      {
+        partName: "Lock/Alarm",
+        total: 17,
+        unitPrice: 950000,
+        lastUpdate: "2025-10-11 11:58",
+      },
+      {
+        partName: "Brake Caliper",
+        total: 16,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-10 20:36",
+      },
+      {
+        partName: "Controller",
+        total: 32,
+        unitPrice: 7200000,
+        lastUpdate: "2025-10-09 17:42",
+      },
+      {
+        partName: "Charger/Converter",
+        total: 23,
+        unitPrice: 5500000,
+        lastUpdate: "2025-10-08 19:30",
+      },
+      {
+        partName: "Dashboard",
+        total: 3,
+        unitPrice: 8500000,
+        lastUpdate: "2025-10-06 07:50",
+      },
+      {
+        partName: "Lighting",
+        total: 13,
+        unitPrice: 1200000,
+        lastUpdate: "2025-10-13 16:15",
+      },
+    ],
+  },
+  {
+    id: "004",
+    name: "Box Garage",
+    location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
+    parts: [
+      {
+        partName: "Chassis",
+        total: 25,
+        unitPrice: 28000000,
+        lastUpdate: "2025-10-11 14:32",
+      },
+      {
+        partName: "Motor",
+        total: 28,
+        unitPrice: 65000000,
+        lastUpdate: "2025-10-08 09:11",
+      },
+      {
+        partName: "Wheel/Rim",
+        total: 14,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-10 15:08",
+      },
+      {
+        partName: "Battery",
+        total: 16,
+        unitPrice: 45000000,
+        lastUpdate: "2025-10-07 07:46",
+      },
+      {
+        partName: "Shock Absorber",
+        total: 23,
+        unitPrice: 5000000,
+        lastUpdate: "2025-10-09 16:52",
+      },
+      {
+        partName: "Throttle/Brake",
+        total: 10,
+        unitPrice: 1800000,
+        lastUpdate: "2025-10-13 20:19",
+      },
+      {
+        partName: "Lock/Alarm",
+        total: 22,
+        unitPrice: 950000,
+        lastUpdate: "2025-10-10 18:40",
+      },
+      {
+        partName: "Brake Caliper",
+        total: 23,
+        unitPrice: 3200000,
+        lastUpdate: "2025-10-12 09:38",
+      },
+      {
+        partName: "Controller",
+        total: 7,
+        unitPrice: 7200000,
+        lastUpdate: "2025-10-11 08:23",
+      },
+      {
+        partName: "Charger/Converter",
+        total: 4,
+        unitPrice: 5500000,
+        lastUpdate: "2025-10-09 13:44",
+      },
+      {
+        partName: "Dashboard",
+        total: 31,
+        unitPrice: 8500000,
+        lastUpdate: "2025-10-08 10:12",
+      },
+      {
+        partName: "Lighting",
+        total: 16,
+        unitPrice: 1200000,
+        lastUpdate: "2025-10-13 12:55",
+      },
     ],
   },
 ];

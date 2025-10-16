@@ -20,7 +20,7 @@ import SCTechnicianRepair from "./pages/SCTechnicianRepair";
 
 // IMPORT EVMSTAFF
 import EVMStaffProductPart from "./pages/EVMStaffProduct&Part";
-import EVMStaffSupplyChain from "./pages/EVMStaffSupplyChain";
+import EVMStaffWarehouse from "./pages/EVMStaffWarehouse";
 import EVMStaffReportAnalysis from "./pages/EVMStaffReport&Analysis";
 import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
@@ -63,10 +63,7 @@ function App() {
           path="/evmstaff/reports/:id"
           element={<EVMStaffReportDetail />}
         />
-        <Route
-          path="/evmstaff/supply-chain"
-          element={<EVMStaffSupplyChain />}
-        />
+        <Route path="/evmstaff/warehouse" element={<EVMStaffWarehouse />} />
         <Route path="/evmstaff/campaign" element={<EVMStaffCampaign />} />
       </Routes>
     </>
