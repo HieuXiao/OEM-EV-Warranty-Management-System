@@ -667,8 +667,6 @@ export const mockReports = [
   },
 ];
 
-
-
 // =========================================  SC TECNICIAN  ==================================
 // SCT CHECK & REPAIR : Technician Job List
 export const mockJobs = [
@@ -959,9 +957,6 @@ export const mockJobs = [
   },
 ];
 
-
-
-
 // ===========================================  EVM STAFF  ======================================
 // EVM WARRANTY-CLAIM:  List Claim (Warranty Claims for EVM Staff Management)
 export const mockEVMWarrantyClaims = [
@@ -1245,8 +1240,6 @@ export const mockWarrantyPolicies = [
   },
 ];
 
-
-
 // ======================================= ADMIN =========================================
 // AD ACCOUNT : List user account data
 export const mockUsers = [
@@ -1489,8 +1482,6 @@ export const mockWarehouses = [
   },
 ];
 
-
-
 // Activity Logs?????????????????????????
 export const mockActivityLogs = [
   {
@@ -1510,5 +1501,208 @@ export const mockActivityLogs = [
     details: "JOB-001 status changed to in_progress",
     timestamp: "2024-10-03T09:05:00Z",
     type: "job",
+  },
+];
+
+export const mockBranchStats = [
+  {
+    id: "001",
+    branch: "Ha Noi",
+    totalWarranty: 412,
+    totalPart: 1280,
+    parts: [
+      { partName: "Chassis", total: 104, unitPrice: 28000000 },
+      { partName: "Motor", total: 110, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 90, unitPrice: 3200000 },
+      { partName: "Battery", total: 120, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 102, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 115, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 88, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 96, unitPrice: 3200000 },
+      { partName: "Controller", total: 104, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 94, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 83, unitPrice: 8500000 },
+      { partName: "Lighting", total: 74, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "002",
+    branch: "Ho Chi Minh",
+    totalWarranty: 480,
+    totalPart: 1650,
+    parts: [
+      { partName: "Chassis", total: 142, unitPrice: 28000000 },
+      { partName: "Motor", total: 165, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 132, unitPrice: 3200000 },
+      { partName: "Battery", total: 150, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 148, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 142, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 128, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 134, unitPrice: 3200000 },
+      { partName: "Controller", total: 128, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 136, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 122, unitPrice: 8500000 },
+      { partName: "Lighting", total: 123, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "003",
+    branch: "Da Nang",
+    totalWarranty: 290,
+    totalPart: 1040,
+    parts: [
+      { partName: "Chassis", total: 85, unitPrice: 28000000 },
+      { partName: "Motor", total: 98, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 84, unitPrice: 3200000 },
+      { partName: "Battery", total: 94, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 90, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 84, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 79, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 88, unitPrice: 3200000 },
+      { partName: "Controller", total: 87, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 83, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 79, unitPrice: 8500000 },
+      { partName: "Lighting", total: 89, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "004",
+    branch: "Hai Phong",
+    totalWarranty: 320,
+    totalPart: 1120,
+    parts: [
+      { partName: "Chassis", total: 90, unitPrice: 28000000 },
+      { partName: "Motor", total: 102, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 88, unitPrice: 3200000 },
+      { partName: "Battery", total: 95, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 90, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 94, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 91, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 85, unitPrice: 3200000 },
+      { partName: "Controller", total: 93, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 93, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 87, unitPrice: 8500000 },
+      { partName: "Lighting", total: 82, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "005",
+    branch: "Can Tho",
+    totalWarranty: 245,
+    totalPart: 920,
+    parts: [
+      { partName: "Chassis", total: 75, unitPrice: 28000000 },
+      { partName: "Motor", total: 80, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 72, unitPrice: 3200000 },
+      { partName: "Battery", total: 85, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 80, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 79, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 70, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 78, unitPrice: 3200000 },
+      { partName: "Controller", total: 74, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 73, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 67, unitPrice: 8500000 },
+      { partName: "Lighting", total: 67, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "006",
+    branch: "Bac Ninh",
+    totalWarranty: 233,
+    totalPart: 870,
+    parts: [
+      { partName: "Chassis", total: 70, unitPrice: 28000000 },
+      { partName: "Motor", total: 81, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 74, unitPrice: 3200000 },
+      { partName: "Battery", total: 78, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 72, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 70, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 67, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 68, unitPrice: 3200000 },
+      { partName: "Controller", total: 68, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 69, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 66, unitPrice: 8500000 },
+      { partName: "Lighting", total: 67, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "007",
+    branch: "Hung Yen",
+    totalWarranty: 268,
+    totalPart: 990,
+    parts: [
+      { partName: "Chassis", total: 82, unitPrice: 28000000 },
+      { partName: "Motor", total: 90, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 78, unitPrice: 3200000 },
+      { partName: "Battery", total: 88, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 83, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 82, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 80, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 82, unitPrice: 3200000 },
+      { partName: "Controller", total: 82, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 83, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 70, unitPrice: 8500000 },
+      { partName: "Lighting", total: 70, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "008",
+    branch: "Hai Duong",
+    totalWarranty: 294,
+    totalPart: 1050,
+    parts: [
+      { partName: "Chassis", total: 88, unitPrice: 28000000 },
+      { partName: "Motor", total: 95, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 86, unitPrice: 3200000 },
+      { partName: "Battery", total: 90, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 84, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 87, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 83, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 85, unitPrice: 3200000 },
+      { partName: "Controller", total: 86, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 85, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 81, unitPrice: 8500000 },
+      { partName: "Lighting", total: 75, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "009",
+    branch: "Nam Dinh",
+    totalWarranty: 220,
+    totalPart: 860,
+    parts: [
+      { partName: "Chassis", total: 70, unitPrice: 28000000 },
+      { partName: "Motor", total: 78, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 69, unitPrice: 3200000 },
+      { partName: "Battery", total: 77, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 73, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 70, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 69, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 73, unitPrice: 3200000 },
+      { partName: "Controller", total: 70, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 69, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 67, unitPrice: 8500000 },
+      { partName: "Lighting", total: 65, unitPrice: 1200000 },
+    ],
+  },
+  {
+    id: "010",
+    branch: "Thai Binh",
+    totalWarranty: 214,
+    totalPart: 810,
+    parts: [
+      { partName: "Chassis", total: 68, unitPrice: 28000000 },
+      { partName: "Motor", total: 72, unitPrice: 65000000 },
+      { partName: "Wheel/Rim", total: 69, unitPrice: 3200000 },
+      { partName: "Battery", total: 73, unitPrice: 45000000 },
+      { partName: "Shock Absorber", total: 68, unitPrice: 5000000 },
+      { partName: "Throttle/Brake", total: 67, unitPrice: 1800000 },
+      { partName: "Lock/Alarm", total: 66, unitPrice: 950000 },
+      { partName: "Brake Caliper", total: 67, unitPrice: 3200000 },
+      { partName: "Controller", total: 66, unitPrice: 7200000 },
+      { partName: "Charger/Converter", total: 65, unitPrice: 5500000 },
+      { partName: "Dashboard", total: 64, unitPrice: 8500000 },
+      { partName: "Lighting", total: 65, unitPrice: 1200000 },
+    ],
   },
 ];

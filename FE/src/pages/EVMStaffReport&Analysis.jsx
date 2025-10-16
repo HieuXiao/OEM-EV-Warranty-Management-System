@@ -1,39 +1,131 @@
-
 import { useState } from "react";
-import { Search, BarChart3, TrendingUp, Package, DollarSign } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Search,
+  BarChart3,
+  TrendingUp,
+  Package,
+  DollarSign,
+  Eye,
+} from "lucide-react";
 import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
 import Header from "../components/Header";
 import { Input } from "../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 import { mockPartsInventory } from "../lib/Mock-data";
 
 export default function EVMStaffReportAnalysis() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const mockBranchStats = [
+    { id: "001", branch: "Ha Noi", totalWarranty: 427, totalPart: 1574 },
+    { id: "002", branch: "Ho Chi Minh", totalWarranty: 392, totalPart: 1890 },
+    { id: "003", branch: "Da Nang", totalWarranty: 284, totalPart: 972 },
+    { id: "004", branch: "Hai Phong", totalWarranty: 319, totalPart: 1341 },
+    { id: "005", branch: "Can Tho", totalWarranty: 188, totalPart: 1102 },
+    { id: "006", branch: "Bac Ninh", totalWarranty: 256, totalPart: 987 },
+    { id: "007", branch: "Hung Yen", totalWarranty: 361, totalPart: 1460 },
+    { id: "008", branch: "Hai Duong", totalWarranty: 274, totalPart: 1211 },
+    { id: "009", branch: "Nam Dinh", totalWarranty: 146, totalPart: 1165 },
+    { id: "010", branch: "Thai Binh", totalWarranty: 198, totalPart: 1040 },
+    { id: "011", branch: "Thanh Hoa", totalWarranty: 342, totalPart: 1389 },
+    { id: "012", branch: "Nghe An", totalWarranty: 376, totalPart: 1288 },
+    { id: "013", branch: "Ha Tinh", totalWarranty: 203, totalPart: 935 },
+    { id: "014", branch: "Quang Binh", totalWarranty: 118, totalPart: 845 },
+    { id: "015", branch: "Quang Tri", totalWarranty: 97, totalPart: 670 },
+    { id: "016", branch: "Hue", totalWarranty: 211, totalPart: 1132 },
+    { id: "017", branch: "Quang Nam", totalWarranty: 178, totalPart: 1254 },
+    { id: "018", branch: "Quang Ngai", totalWarranty: 204, totalPart: 952 },
+    { id: "019", branch: "Binh Dinh", totalWarranty: 275, totalPart: 1173 },
+    { id: "020", branch: "Phu Yen", totalWarranty: 169, totalPart: 821 },
+    { id: "021", branch: "Khanh Hoa", totalWarranty: 334, totalPart: 1467 },
+    { id: "022", branch: "Ninh Thuan", totalWarranty: 112, totalPart: 743 },
+    { id: "023", branch: "Binh Thuan", totalWarranty: 184, totalPart: 890 },
+    { id: "024", branch: "Lam Dong", totalWarranty: 246, totalPart: 1021 },
+    { id: "025", branch: "Dak Lak", totalWarranty: 215, totalPart: 934 },
+    { id: "026", branch: "Gia Lai", totalWarranty: 144, totalPart: 774 },
+    { id: "027", branch: "Kon Tum", totalWarranty: 85, totalPart: 602 },
+    { id: "028", branch: "Binh Duong", totalWarranty: 402, totalPart: 1759 },
+    { id: "029", branch: "Dong Nai", totalWarranty: 355, totalPart: 1684 },
+    {
+      id: "030",
+      branch: "Ba Ria - Vung Tau",
+      totalWarranty: 229,
+      totalPart: 1078,
+    },
+    { id: "031", branch: "Long An", totalWarranty: 183, totalPart: 955 },
+    { id: "032", branch: "Tien Giang", totalWarranty: 166, totalPart: 812 },
+    { id: "033", branch: "An Giang", totalWarranty: 132, totalPart: 765 },
+    { id: "034", branch: "Kien Giang", totalWarranty: 191, totalPart: 980 },
+  ];
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const user = {
     name: "Mage Team",
     email: "evmstaff@evwarranty.com",
     role: "EVM Staff",
     image: "/diverse-professional-team.png",
-  }
+  };
 
-  const filteredParts = mockPartsInventory.filter((part) =>
-    part.partName.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredBranchs = mockBranchStats.filter((branch) =>
+    branch.branch.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const totalParts = mockPartsInventory.length
-  const totalStock = mockPartsInventory.reduce((sum, part) => sum + part.stock, 0)
-  const totalValue = mockPartsInventory.reduce((sum, part) => sum + part.price * part.stock, 0)
-  const lowStockItems = mockPartsInventory.filter((part) => part.remain < 5).length
+  const totalParts = mockPartsInventory.length;
+  const totalStock = mockPartsInventory.reduce(
+    (sum, part) => sum + part.stock,
+    0
+  );
+  const totalValue = mockPartsInventory.reduce(
+    (sum, part) => sum + part.price * part.stock,
+    0
+  );
+  const lowStockItems = mockPartsInventory.filter(
+    (part) => part.remain < 5
+  ).length;
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount)
-  }
+    }).format(amount);
+  };
+
+  // Tính toán dữ liệu hiển thị theo trang
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBranchs.slice(indexOfFirstItem, indexOfLastItem);
+
+  const totalPages = Math.ceil(filteredBranchs.length / itemsPerPage);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -56,45 +148,65 @@ export default function EVMStaffReportAnalysis() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Total Parts</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Total Parts
+                      </CardTitle>
                       <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{totalParts}</div>
-                      <p className="text-xs text-muted-foreground">Active inventory items</p>
+                      <p className="text-xs text-muted-foreground">
+                        Active inventory items
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Total Stock</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Total Stock
+                      </CardTitle>
                       <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{totalStock}</div>
-                      <p className="text-xs text-muted-foreground">Units in stock</p>
+                      <p className="text-xs text-muted-foreground">
+                        Units in stock
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Total Value
+                      </CardTitle>
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
-                      <p className="text-xs text-muted-foreground">Inventory value</p>
+                      <div className="text-2xl font-bold">
+                        {formatCurrency(totalValue)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Inventory value
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Low Stock Alert</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Low Stock Alert
+                      </CardTitle>
                       <TrendingUp className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-destructive">{lowStockItems}</div>
-                      <p className="text-xs text-muted-foreground">Items need restock</p>
+                      <div className="text-2xl font-bold text-destructive">
+                        {lowStockItems}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Items need restock
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -115,37 +227,56 @@ export default function EVMStaffReportAnalysis() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Part Name</TableHead>
+                        <TableHead>No.</TableHead>
                         <TableHead>Branch</TableHead>
-                        <TableHead>Part Specifications</TableHead>
-                        <TableHead>Price</TableHead>
+                        <TableHead>Total Warranty</TableHead>
+                        <TableHead>Total Part</TableHead>
                         <TableHead>Detail</TableHead>
-                        <TableHead>Update</TableHead>
-                        <TableHead>Delete</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredParts.map((part) => (
-                        <TableRow key={part.id}>
-                          <TableCell className="font-medium">{part.serial}</TableCell>
-                          <TableCell>{part.partName}</TableCell>
-                          <TableCell>{part.branch}</TableCell>
-                          <TableCell className="max-w-xs truncate">{part.specifications}</TableCell>
-                          <TableCell>{formatCurrency(part.price)}</TableCell>
+                      {currentItems.map((item, i) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{i + 1}</TableCell>
+                          <TableCell>{item.branch}</TableCell>
+                          <TableCell>{item.totalWarranty}</TableCell>
+                          <TableCell>{item.totalPart}</TableCell>
                           <TableCell>
-                            <button className="text-blue-500 hover:underline">View</button>
-                          </TableCell>
-                          <TableCell>
-                            <button className="text-blue-500 hover:underline">Edit</button>
-                          </TableCell>
-                          <TableCell>
-                            <button className="text-red-500 hover:underline">Delete</button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`${item.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+                {/* Pagination */}
+
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
                 </div>
               </TabsContent>
 
@@ -160,7 +291,9 @@ export default function EVMStaffReportAnalysis() {
                       <div className="text-center space-y-2">
                         <BarChart3 className="h-12 w-12 mx-auto" />
                         <p>AI Analytics Coming Soon</p>
-                        <p className="text-sm">Advanced predictive analytics and insights</p>
+                        <p className="text-sm">
+                          Advanced predictive analytics and insights
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -171,5 +304,5 @@ export default function EVMStaffReportAnalysis() {
         </main>
       </div>
     </div>
-  )
+  );
 }
