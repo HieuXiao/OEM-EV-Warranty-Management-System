@@ -50,17 +50,6 @@ export default function SCStaffDashboard() {
   const endedCampaigns = mockRecallCampaigns.filter(
     (rc) => rc.status === "ended"
   ).length;
-  // const inProgressClaims = mockWarrantyClaims.filter(
-  //   (c) => c.status === "on_going"
-  // ).length;
-  // const completedClaims = mockWarrantyClaims.filter(
-  //   (c) => c.status === "completed"
-  // ).length;
-  // const totalParts = mockParts.reduce((sum, p) => sum + p.stock, 0);
-  // const lowStockParts = mockParts.filter(
-  //   (p) => p.status === "low_stock"
-  // ).length;
-  // const activeUsers = mockUsers.filter((u) => u.status === "completed").length;
 
   useEffect(() => {
     document.title = `Dashboard`;
@@ -106,11 +95,11 @@ export default function SCStaffDashboard() {
           <div className="space-y-6">
             {/* DB (CARD) - 4 Main Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {/* CARD - Active Warranties */}
+              {/* CARD-01 - Active Warranties */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Active Warranties
+                    Active Claims
                   </CardTitle>
                   <Shield className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -123,48 +112,48 @@ export default function SCStaffDashboard() {
                   </p>
                 </CardContent>
               </Card>
-              {/* CARD - Total Campaigns */}
+              {/* CARD-02 - Completed This Month */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Total Campaigns
+                    Completed This Month
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{startedCampaigns}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {endedCampaigns} Need Report
+                    {endedCampaigns} monthly target
                   </p>
                 </CardContent>
               </Card>
-              {/* CARD - Customer-Appoinments */}
+              {/* CARD-03 - Active Campaigns */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Appoinments
+                    Active Campaigns
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{endedCampaigns}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {endedCampaigns} Appointments Today
+                    {endedCampaigns} need report
                   </p>
                 </CardContent>
               </Card>
-              {/* CARD - Work-Targets */}
+              {/* CARD-04 - Today’s Appointments */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    My Works
+                    Today’s Appointments
                   </CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{endedCampaigns}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {endedCampaigns} Work Left
+                    {endedCampaigns} completed
                   </p>
                 </CardContent>
               </Card>
