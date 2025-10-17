@@ -30,7 +30,7 @@ export default function EVMStaffProductPart() {
   const [parts, setParts] = useState(mockPartsInventory);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   const user = {
     name: "Mage Team",
