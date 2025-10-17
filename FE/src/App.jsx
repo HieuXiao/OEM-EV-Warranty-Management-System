@@ -26,6 +26,7 @@ import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
 import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 import EVMStaffReportDetail from "./components/evmstaff/EVMStaffReportDetail";
+import EVMStaffWarehouseDetail from "./components/evmstaff/EVMStaffWarehouseDetail";
 
 function App() {
   return (
@@ -64,6 +65,10 @@ function App() {
           element={<EVMStaffReportDetail />}
         />
         <Route path="/evmstaff/warehouse" element={<EVMStaffWarehouse />} />
+        <Route
+          path="/evmstaff/warehouse/:id"
+          element={<EVMStaffWarehouseDetail />}
+        />
         <Route path="/evmstaff/campaign" element={<EVMStaffCampaign />} />
       </Routes>
     </>
