@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Filter, Plus, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
 import Header from "../components/Header";
 import { mockWarehousesInventory } from "../lib/Mock-data";
@@ -17,6 +18,7 @@ import { Badge } from "../components/ui/badge";
 
 export default function EVMStaffSupplyChain() {
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -52,20 +54,6 @@ export default function EVMStaffSupplyChain() {
 
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
-
-  const getAlertBadge = (alert) => {
-    const variants = {
-      normal: "bg-green-500",
-      low: "bg-yellow-500",
-      critical: "bg-red-500",
-    };
-    return (
-      <Badge className={variants[alert]}>
-        {alert === "critical" && <AlertTriangle className="h-3 w-3 mr-1" />}
-        {alert.toUpperCase()}
-      </Badge>
-    );
   };
 
   // Check Last Update
@@ -124,29 +112,31 @@ export default function EVMStaffSupplyChain() {
               </Button>
             </div>
 
-            {/* Supply Chain Table */}
+            {/* Warehouse Table */}
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>No.</TableHead>
                     <TableHead>Warehouse</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Price</TableHead>
+                    <TableHead className="text-center">Location</TableHead>
+                    <TableHead className="text-center">Date</TableHead>
+                    <TableHead className="text-center">Price</TableHead>
                     <TableHead>Low Stock</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((item, i) => (
-                    <TableRow key={i}>
+                    <TableRow key={i} onClick={() => navigate(`${item.id}`)}>
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.location}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
+                        {item.location}
+                      </TableCell>
+                      <TableCell className="text-center">
                         {getLatestUpdate(item).toLocaleString("vi-VN")}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         {formatCurrency(calculateWarehouseValue(item.parts))}
                       </TableCell>
                       <TableCell
