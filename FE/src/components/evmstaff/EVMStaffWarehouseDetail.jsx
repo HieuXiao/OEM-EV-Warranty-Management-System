@@ -36,7 +36,7 @@ export default function EVMStaffWarehouseDetail() {
   });
 
   const getLowStockAlert = (part) => {
-    return part.total <= 10 ? "Low" : "Normal";
+    return part.total <= 10 ? "low" : "normal";
   };
 
   const getStatusBadge = (status) => {
