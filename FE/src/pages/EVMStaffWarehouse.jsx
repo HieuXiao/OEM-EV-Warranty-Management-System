@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Search, Filter, Plus, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Plus,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
 import Header from "../components/Header";
@@ -163,7 +170,7 @@ export default function EVMStaffSupplyChain() {
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
               >
-                Previous
+                <ChevronLeft className="h-4 w-5" />
               </Button>
               <span className="text-sm">
                 Page {currentPage} of {totalPages}
@@ -174,7 +181,7 @@ export default function EVMStaffSupplyChain() {
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
               >
-                Next
+                <ChevronRight className="h-4 w-5" />
               </Button>
             </div>
           </div>
