@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,13 +90,20 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount)
 
-  const getStatusColor = (status) => {
-    const colors = {
-      done: "bg-green-500",
-      "to do": "bg-blue-500",
-      "in progress": "bg-yellow-500",
-    }
-    return colors[status] || "bg-gray-500"
+  const getStatusBadge = (decision) => {
+    const s = String(decision || "").toLowerCase();
+    const map = {
+      done: "text-green-700 border-green-400",
+      cancel: "text-red-700 border-red-400",
+      'on going': "text-yellow-700 border-yellow-400",
+      'to do': "text-blue-700 border-blue-400",
+    };
+    const cls = map[s] || "text-gray-700 border-gray-300";
+    return (
+      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}>
+        {decision}
+      </span>
+    )
   }
 
   const handleCancel = () => {
@@ -126,17 +132,15 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <Badge className={getStatusColor(warranty.decision)}>
-                {warranty.decision.toUpperCase()}
-              </Badge>
+              {getStatusBadge(warranty.decision)}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Vehicle</p>
-              <p className="font-semibold">{warranty.vehicle}</p>
+              <p className="font-semibold">{""}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Model</p>
-              <p className="font-semibold">{warranty.model}</p>
+              <p className="font-semibold">{warranty.vehicle}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Vehicle Plate</p>

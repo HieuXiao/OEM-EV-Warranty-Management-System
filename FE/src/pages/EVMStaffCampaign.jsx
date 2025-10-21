@@ -52,21 +52,19 @@ export default function EVMStaffCampaign() {
     setEditingCampaign(null)
   }
 
-  // border-only pill; preserve original casing and keep consistent sizing with warranty page
-  const getStatusBadge = (status) => {
-    const s = String(status || "").toLowerCase();
+  // border-only pill; keep original casing (do not uppercase)
+  const getStatusBadge = (decision) => {
+    const s = String(decision || "").toLowerCase();
     const map = {
       done: "text-green-700 border-green-400",
       cancel: "text-red-700 border-red-400",
-      process: "text-yellow-700 border-yellow-400",
-      to_do: "text-blue-700 border-blue-400",
-      'to do': "text-blue-700 border-blue-400",
       'on going': "text-yellow-700 border-yellow-400",
+      'to do': "text-blue-700 border-blue-400",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
       <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}>
-        {String(status || '').replace(/_/g, ' ')}
+        {decision}
       </span>
     )
   }
@@ -111,13 +109,12 @@ export default function EVMStaffCampaign() {
                     <TableHead className="max-w-[360px] text-left">Short Description</TableHead>
                     <TableHead className="w-40 text-left">Collected</TableHead>
                     <TableHead className="w-32 text-left">Due</TableHead>
-                    <TableHead className="w-20 text-center">View</TableHead>
                     <TableHead className="w-32 text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
+                    <TableRow key={campaign.id} onClick={() => setViewCampaign(campaign)} className="cursor-pointer hover:bg-muted/50">
                       <TableCell className="font-medium text-left">{campaign.campaignId}</TableCell>
                       <TableCell className="text-left">{campaign.campaignName}</TableCell>
                       <TableCell className="max-w-[360px] whitespace-normal break-words text-left">{(campaign.description || "").slice(0, 60)}</TableCell>
@@ -140,11 +137,6 @@ export default function EVMStaffCampaign() {
                         )}
                       </TableCell>
                       <TableCell className="text-left">{campaign.end}</TableCell>
-                      <TableCell className="text-center">
-                        <Button variant="ghost" size="sm" onClick={() => setViewCampaign(campaign)}>
-                          View
-                        </Button>
-                      </TableCell>
                       <TableCell className="text-center align-middle">
                         {getStatusBadge(campaign.status)}
                       </TableCell>

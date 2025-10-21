@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,11 @@ export default function EVMStaffWarrantyClaim() {
   const filteredWarranties = mockEVMWarrantyClaims.filter((claim) => {
     const matchesSearch =
       claim.claimId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (claim.vehicle && claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (claim.model && claim.model.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (claim.vehicle && claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       claim.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === "all" || claim.decision === filterStatus
-    const matchesVehicleModel = filterVehicleModel === "all" || claim.vehicle === filterVehicleModel
+    const matchesVehicleModel = filterVehicleModel === "all" || claim.model === filterVehicleModel
     return matchesSearch && matchesStatus && matchesVehicleModel
   })
 
@@ -87,7 +87,7 @@ export default function EVMStaffWarrantyClaim() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Vehicle Models</SelectItem>
-                  {Array.from(new Set(mockEVMWarrantyClaims.map((c) => c.vehicle))).map((v) => (
+                  {Array.from(new Set(mockEVMWarrantyClaims.map((c) => c.model))).map((v) => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
                   ))}
                 </SelectContent>
@@ -116,30 +116,22 @@ export default function EVMStaffWarrantyClaim() {
                     <TableHead className="w-[160px]">Vehicle Type</TableHead>
                     <TableHead className="w-[160px]">Vehicle Model</TableHead>
                     <TableHead className="w-[160px]">Issue number</TableHead>
-                    <TableHead className="w-[80px] text-center">View</TableHead>
                     <TableHead className="w-[120px] text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedWarranties.map((claim) => (
-                    <TableRow key={`claim-${claim.id}`}>
+                    <TableRow
+                      key={`claim-${claim.id}`}
+                      onClick={() => handleViewWarranty(claim)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                       <TableCell className="font-medium align-middle">{claim.claimId}</TableCell>
                       {/* Vehicle Type (may be empty) - use claim.model when available */}
-                      {/*type here*/}
                       <TableCell className="align-middle">{""}</TableCell>
                       {/* Vehicle Model - show claim.vehicle */}
                       <TableCell className="align-middle">{claim.vehicle}</TableCell>
                       <TableCell className="align-middle">{claim.issueNumber}</TableCell>
-                      <TableCell className="align-middle text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 flex items-center justify-center mx-auto"
-                          onClick={() => handleViewWarranty(claim)}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
                       <TableCell className="align-middle text-center">
                         {getStatusBadge(claim.decision)}
                       </TableCell>
