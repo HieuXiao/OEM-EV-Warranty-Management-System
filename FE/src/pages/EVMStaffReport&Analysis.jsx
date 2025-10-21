@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Package,
   DollarSign,
-  Eye,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -229,29 +228,19 @@ export default function EVMStaffReportAnalysis() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>No.</TableHead>
-                        <TableHead>Branch</TableHead>
-                        <TableHead>Total Warranty</TableHead>
-                        <TableHead>Total Part</TableHead>
-                        <TableHead>Detail</TableHead>
+              <TableHead>No.</TableHead>
+                <TableHead>Branch</TableHead>
+                <TableHead>Total Warranty</TableHead>
+                <TableHead>Total Part</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentItems.map((item, i) => (
-                        <TableRow key={item.id}>
+                        <TableRow key={item.id} onClick={() => navigate(`${item.id}`)} className="cursor-pointer hover:bg-muted/50">
                           <TableCell>{i + 1}</TableCell>
                           <TableCell>{item.branch}</TableCell>
                           <TableCell>{item.totalWarranty}</TableCell>
                           <TableCell>{item.totalPart}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`${item.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
