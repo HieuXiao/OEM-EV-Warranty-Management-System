@@ -125,8 +125,8 @@ export default function EVMStaffProductPart() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((part) => (
-                    <TableRow key={part.id} onClick={() => navigate(`${part.id}`)} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">
+                    <TableRow key={part.id} onClick={() => navigate(`${part.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                      <TableCell className="font-medium bg-transparent group-hover:bg-transparent group-active:bg-transparent">
                         {part.serial}
                       </TableCell>
                       <TableCell>{part.partName}</TableCell>

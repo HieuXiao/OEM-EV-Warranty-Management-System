@@ -114,8 +114,8 @@ export default function EVMStaffCampaign() {
                 </TableHeader>
                 <TableBody>
                   {paginatedCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id} onClick={() => setViewCampaign(campaign)} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium text-left">{campaign.campaignId}</TableCell>
+                    <TableRow key={campaign.id} onClick={() => setViewCampaign(campaign)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                      <TableCell className="font-medium text-left bg-transparent group-hover:bg-transparent group-active:bg-transparent">{campaign.campaignId}</TableCell>
                       <TableCell className="text-left">{campaign.campaignName}</TableCell>
                       <TableCell className="max-w-[360px] whitespace-normal break-words text-left">{(campaign.description || "").slice(0, 60)}</TableCell>
                       <TableCell className="w-40 text-left align-top">
