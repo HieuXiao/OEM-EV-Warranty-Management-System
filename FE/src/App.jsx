@@ -9,7 +9,7 @@ import AdminSetting from "./pages/AdminSetting";
 // IMPORT SCSTAFF
 import SCStaffDashboard from "./pages/SCStaffDashboard";
 import SCStaffProfile from "./pages/SCStaffProfile";
-import CustomerDetail from "./components/scstaff/ScsProfCustDetail";
+import CustomerDetail from "./components/scstaff/ScsProfDetail";
 import SCStaffWarranty from "./pages/SCStaffWarrantyClaim";
 import SCStaffCampaign from "./pages/SCStaffCampaign";
 
