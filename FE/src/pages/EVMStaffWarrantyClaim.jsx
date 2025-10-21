@@ -124,9 +124,9 @@ export default function EVMStaffWarrantyClaim() {
                     <TableRow
                       key={`claim-${claim.id}`}
                       onClick={() => handleViewWarranty(claim)}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100"
                     >
-                      <TableCell className="font-medium align-middle">{claim.claimId}</TableCell>
+                      <TableCell className="font-medium align-middle bg-transparent group-hover:bg-transparent group-active:bg-transparent">{claim.claimId}</TableCell>
                       {/* Vehicle Type (may be empty) - use claim.model when available */}
                       <TableCell className="align-middle">{""}</TableCell>
                       {/* Vehicle Model - show claim.vehicle */}

@@ -12,10 +12,21 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [approveAllActive, setApproveAllActive] = useState(false)
   const [rejectAllActive, setRejectAllActive] = useState(false)
 
-  const partCosts = [
-    { name: "Battery Module", quantity: 1, cost: 45000000 },
-    { name: "Controller Unit", quantity: 1, cost: 3000000 },
-  ]
+  // derive parts for the current warranty; support legacy string entries
+  const normalizeParts = (parts) => {
+    if (!parts) return []
+    return parts.map((p) => {
+      if (typeof p === "string") return { name: p, quantity: 1, cost: 0 }
+      // assume object with { name, quantity, cost }
+      return {
+        name: p.name || p.partName || "Part",
+        quantity: typeof p.quantity === "number" ? p.quantity : p.qty || 1,
+        cost: typeof p.cost === "number" ? p.cost : p.unitPrice || 0,
+      }
+    })
+  }
+
+  const partCosts = normalizeParts(warranty?.parts)
 
   useEffect(() => {
     if (warranty && comment.trim().length > 0) {
@@ -106,19 +117,21 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     )
   }
 
-  const handleCancel = () => {
-    console.log("Warranty cancelled:", warranty.claimId)
-    onOpenChange(false)
-  }
-
   const handleDone = () => {
     console.log("Warranty completed:", warranty.claimId, "Comment:", comment)
     onOpenChange(false)
   }
 
+  const handleCancel = () => {
+    // Close the dialog without submitting
+    onOpenChange(false)
+  }
+
   return (
+    // Disable the close icon and overlay click-to-close by hiding the close button
+    // The Dialog primitive still closes via the controlled `open` and `onOpenChange` props.
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
         </DialogHeader>
@@ -168,9 +181,10 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
             <div className="border rounded-md">
               {/* Header */}
-              <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2">
-                <div>Part Information</div>
-                <div className="flex justify-center">
+              {/* add same horizontal padding as rows (px-4) so columns align */}
+              <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2 px-4">
+                <div className="text-left">Part Information</div>
+                <div className="flex justify-center items-center">
                   <Button
                     variant={approveAllActive ? "default" : "outline"}
                     size="sm"
@@ -181,10 +195,10 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     }`}
                     onClick={handleApproveAll}
                   >
-                    Approve All
+                    Approve
                   </Button>
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center items-center">
                   <Button
                     variant={rejectAllActive ? "default" : "outline"}
                     size="sm"
@@ -195,7 +209,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     }`}
                     onClick={handleRejectAll}
                   >
-                    Reject All
+                    Reject
                   </Button>
                 </div>
               </div>
@@ -227,20 +241,20 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     </div>
 
                     {/* Approve */}
-                    <div className="flex justify-center">
+                    <div className="flex justify-center items-center">
                       <input
                         type="checkbox"
-                        className="h-5 w-5 accent-green-600 cursor-pointer"
+                        className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
                         checked={approved}
                         onChange={() => handleApprovalChange(index, "approved")}
                       />
                     </div>
 
                     {/* Reject */}
-                    <div className="flex justify-center">
+                    <div className="flex justify-center items-center">
                       <input
                         type="checkbox"
-                        className="h-5 w-5 accent-red-600 cursor-pointer"
+                        className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
                         checked={rejected}
                         onChange={() => handleApprovalChange(index, "rejected")}
                       />

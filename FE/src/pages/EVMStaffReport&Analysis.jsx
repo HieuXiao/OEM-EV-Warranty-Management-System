@@ -236,8 +236,8 @@ export default function EVMStaffReportAnalysis() {
                     </TableHeader>
                     <TableBody>
                       {currentItems.map((item, i) => (
-                        <TableRow key={item.id} onClick={() => navigate(`${item.id}`)} className="cursor-pointer hover:bg-muted/50">
-                          <TableCell>{i + 1}</TableCell>
+                        <TableRow key={item.id} onClick={() => navigate(`${item.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                          <TableCell className="bg-transparent group-hover:bg-transparent group-active:bg-transparent">{i + 1}</TableCell>
                           <TableCell>{item.branch}</TableCell>
                           <TableCell>{item.totalWarranty}</TableCell>
                           <TableCell>{item.totalPart}</TableCell>

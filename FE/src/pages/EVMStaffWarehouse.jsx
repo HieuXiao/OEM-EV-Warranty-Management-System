@@ -134,8 +134,8 @@ export default function EVMStaffSupplyChain() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((item, i) => (
-                    <TableRow key={i} onClick={() => navigate(`${item.id}`)}>
-                      <TableCell>{i + 1}</TableCell>
+                    <TableRow key={i} onClick={() => navigate(`${item.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                      <TableCell className="bg-transparent group-hover:bg-transparent group-active:bg-transparent">{i + 1}</TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell className="text-center">
                         {item.location}
