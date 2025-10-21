@@ -8,6 +8,8 @@ import {
   Package,
   DollarSign,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
 import Header from "../components/Header";
@@ -264,7 +266,7 @@ export default function EVMStaffReportAnalysis() {
                     onClick={handlePrevPage}
                     disabled={currentPage === 1}
                   >
-                    Previous
+                    <ChevronLeft className="h-4 w-5" />
                   </Button>
                   <span className="text-sm">
                     Page {currentPage} of {totalPages}
@@ -275,7 +277,7 @@ export default function EVMStaffReportAnalysis() {
                     onClick={handleNextPage}
                     disabled={currentPage === totalPages}
                   >
-                    Next
+                    <ChevronRight className="h-4 w-5" />
                   </Button>
                 </div>
               </TabsContent>
