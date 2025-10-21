@@ -1613,7 +1613,7 @@ export const mockEVMCampaigns = [
     description: "Critical battery management system update for VF 8 and VF 9",
     start: "2024-10-01",
     end: "2024-12-31",
-    status: "process",
+    status: "on going",
   },
   {
     id: "2",
@@ -1631,7 +1631,7 @@ export const mockEVMCampaigns = [
     description: "Mandatory brake system inspection for VF 6 and VF 7",
     start: "2024-11-01",
     end: "2025-01-31",
-    status: "to_do",
+    status: "to do",
   },
   {
     id: "4",
