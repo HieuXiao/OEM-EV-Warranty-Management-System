@@ -1,28 +1,36 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar"
-import Header from "@/components/Header"
-import ReportCheck from "@/components/sctechnician/ScTechnicianCheckForm"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, ChevronLeft, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { mockJobs, mockUsers } from "@/lib/Mock-data"
+import { useState } from "react";
+import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
+import Header from "@/components/Header";
+import ReportCheck from "@/components/sctechnician/ScTechnicianCheckForm";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { mockJobs, mockUsers } from "@/lib/Mock-data";
 
 export default function SCTechnicianCheck() {
-  const [selectedJob, setSelectedJob] = useState(null)
-  const [jobs, setJobs] = useState(mockJobs.filter((job) => job.type === "check"))
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 4
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobs, setJobs] = useState(
+    mockJobs.filter((job) => job.type === "check")
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
   const formatDateTime = (isoString) => {
-    const date = new Date(isoString)
+    const date = new Date(isoString);
     return date
       .toLocaleString("en-GB", {
         year: "numeric",
@@ -31,76 +39,84 @@ export default function SCTechnicianCheck() {
         hour: "2-digit",
         minute: "2-digit",
       })
-      .replace(",", "")
-  }
+      .replace(",", "");
+  };
 
   function getTypeColor(type) {
     switch (type) {
       case "check":
-        return "bg-blue-500 text-white"
+        return "bg-blue-500 text-white";
       default:
-        return
+        return;
     }
   }
 
   const handleCardClick = (job) => {
-    setSelectedJob(job)
-  }
+    setSelectedJob(job);
+  };
 
   const handleCloseReport = () => {
-    setSelectedJob(null)
-  }
+    setSelectedJob(null);
+  };
 
   const handleCompleteCheck = () => {
     setJobs((prevJobs) =>
-      prevJobs.map((job) => (job.id === selectedJob.id ? { ...job, status: "completed", hasReport: true } : job)),
-    )
-    setSelectedJob(null)
-  }
+      prevJobs.map((job) =>
+        job.id === selectedJob.id
+          ? { ...job, status: "completed", hasReport: true }
+          : job
+      )
+    );
+    setSelectedJob(null);
+  };
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentJobs = filteredJobs.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentJobs = filteredJobs.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1))
-  }
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
 
   const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-  }
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
 
   const handleSearchChange = (value) => {
-    setSearchTerm(value)
-    setCurrentPage(1)
-  }
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   const handleStatusChange = (value) => {
-    setStatusFilter(value)
-    setCurrentPage(1)
-  }
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar name={mockUsers[5].name} role={mockUsers[5].role} />
+      <SCTechnicianSidebar />
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header name={mockUsers[5].name} email={mockUsers[5].email} />
+        <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div className="space-y-4">
               <div>
-                <h1 className="text-4xl font-bold tracking-tight">Check Jobs</h1>
-                <p className="text-muted-foreground mt-2 text-lg">Diagnostic and inspection tasks</p>
+                <h1 className="text-4xl font-bold tracking-tight">
+                  Check Jobs
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg">
+                  Diagnostic and inspection tasks
+                </p>
               </div>
 
               {/* Search and Filter */}
@@ -134,10 +150,17 @@ export default function SCTechnicianCheck() {
                   {/* Pagination info */}
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                      Showing {startIndex + 1}-{Math.min(endIndex, filteredJobs.length)} of {filteredJobs.length} job(s)
+                      Showing {startIndex + 1}-
+                      {Math.min(endIndex, filteredJobs.length)} of{" "}
+                      {filteredJobs.length} job(s)
                     </p>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={handlePreviousPage} disabled={currentPage === 1}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                      >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
                       </Button>
@@ -148,7 +171,9 @@ export default function SCTechnicianCheck() {
                         variant="outline"
                         size="sm"
                         onClick={handleNextPage}
-                        disabled={currentPage === totalPages || totalPages === 0}
+                        disabled={
+                          currentPage === totalPages || totalPages === 0
+                        }
                       >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -166,20 +191,31 @@ export default function SCTechnicianCheck() {
                         >
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-lg">{job.jobNumber}</p>
-                              <Badge variant="outline" className={cn("text-xs capitalize", getTypeColor(job.type))}>
+                              <p className="font-semibold text-lg">
+                                {job.jobNumber}
+                              </p>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs capitalize",
+                                  getTypeColor(job.type)
+                                )}
+                              >
                                 {job.type.replace("_", " ")}
                               </Badge>
                             </div>
                             <div className="space-y-1.5 text-sm">
                               <p className="text-muted-foreground">
-                                <span className="font-medium">Vehicle:</span> {job.vehicleModel} - {job.vehiclePlate}
+                                <span className="font-medium">Vehicle:</span>{" "}
+                                {job.vehicleModel} - {job.vehiclePlate}
                               </p>
                               <p className="text-muted-foreground">
-                                <span className="font-medium">Date:</span> {formatDateTime(job.createdAt)}
+                                <span className="font-medium">Date:</span>{" "}
+                                {formatDateTime(job.createdAt)}
                               </p>
                               <p className="text-muted-foreground">
-                                <span className="font-medium">SC Staff:</span> {job.assignedStaff}
+                                <span className="font-medium">SC Staff:</span>{" "}
+                                {job.assignedStaff}
                               </p>
                             </div>
                           </div>
@@ -199,7 +235,13 @@ export default function SCTechnicianCheck() {
       </div>
 
       {/* Report Modal */}
-      {selectedJob && <ReportCheck job={selectedJob} onClose={handleCloseReport} onComplete={handleCompleteCheck} />}
+      {selectedJob && (
+        <ReportCheck
+          job={selectedJob}
+          onClose={handleCloseReport}
+          onComplete={handleCompleteCheck}
+        />
+      )}
     </div>
-  )
+  );
 }

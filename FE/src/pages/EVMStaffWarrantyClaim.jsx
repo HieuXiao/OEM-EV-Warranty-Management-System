@@ -1,33 +1,62 @@
 import { useState } from "react";
+<<<<<<< HEAD
+import {
+  Search,
+  Filter,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+=======
 import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import EVMStaffDetailWarranty from "@/components/evmstaff/EVMStaffDetailWarranty";
 import { mockEVMWarrantyClaims } from "@/lib/Mock-data";
 
 export default function EVMStaffWarrantyClaim() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [filterVehicleModel, setFilterVehicleModel] = useState("all")
-  const [selectedWarranty, setSelectedWarranty] = useState(null)
-  const [showWarrantyDetail, setShowWarrantyDetail] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-
-  const user = {
-    name: "Mage Team",
-    email: "evmstaff@evwarranty.com",
-    role: "EVM Staff",
-    image: "/diverse-professional-team.png",
-  }
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterVehicleModel, setFilterVehicleModel] = useState("all");
+  const [selectedWarranty, setSelectedWarranty] = useState(null);
+  const [showWarrantyDetail, setShowWarrantyDetail] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredWarranties = mockEVMWarrantyClaims.filter((claim) => {
     const matchesSearch =
       claim.claimId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+<<<<<<< HEAD
+      (claim.vehicle &&
+        claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (claim.model &&
+        claim.model.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      claim.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all" || claim.decision === filterStatus;
+    const matchesVehicleModel =
+      filterVehicleModel === "all" || claim.vehicle === filterVehicleModel;
+    return matchesSearch && matchesStatus && matchesVehicleModel;
+  });
+=======
       (claim.model && claim.model.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (claim.vehicle && claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       claim.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase())
@@ -35,37 +64,43 @@ export default function EVMStaffWarrantyClaim() {
     const matchesVehicleModel = filterVehicleModel === "all" || claim.model === filterVehicleModel
     return matchesSearch && matchesStatus && matchesVehicleModel
   })
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
 
-  const totalPages = Math.ceil(filteredWarranties.length / itemsPerPage)
-  const paginatedWarranties = filteredWarranties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(filteredWarranties.length / itemsPerPage);
+  const paginatedWarranties = filteredWarranties.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleViewWarranty = (warranty) => {
-    setSelectedWarranty(warranty)
-    setShowWarrantyDetail(true)
-  }
+    setSelectedWarranty(warranty);
+    setShowWarrantyDetail(true);
+  };
 
   const getStatusBadge = (decision) => {
-      // border-only pill; keep original casing (do not uppercase)
-      const s = String(decision || "").toLowerCase();
-      const map = {
-        done: "text-green-700 border-green-400",
-        cancel: "text-red-700 border-red-400",
-        'on going': "text-yellow-700 border-yellow-400",
-        'to do': "text-blue-700 border-blue-400",
-      };
-      const cls = map[s] || "text-gray-700 border-gray-300";
-      return (
-        <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}>
-          {decision}
-        </span>
-      )
-  }
+    // border-only pill; keep original casing (do not uppercase)
+    const s = String(decision || "").toLowerCase();
+    const map = {
+      done: "text-green-700 border-green-400",
+      cancel: "text-red-700 border-red-400",
+      "on going": "text-yellow-700 border-yellow-400",
+      "to do": "text-blue-700 border-blue-400",
+    };
+    const cls = map[s] || "text-gray-700 border-gray-300";
+    return (
+      <span
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+      >
+        {decision}
+      </span>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      <EVMStaffSideBar image={user.image} name={user.name} role={user.role} />
+      <EVMStaffSideBar />
       <div className="flex-1 flex flex-col ml-64">
-        <Header name={user.name} email={user.email} image={user.image} />
+        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Warranty Claim Management</h1>
@@ -81,14 +116,26 @@ export default function EVMStaffWarrantyClaim() {
                 />
               </div>
               {/* Vehicle Model filter (shows vehicle type values) */}
-              <Select value={filterVehicleModel} onValueChange={setFilterVehicleModel}>
+              <Select
+                value={filterVehicleModel}
+                onValueChange={setFilterVehicleModel}
+              >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Vehicle Model" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Vehicle Models</SelectItem>
+<<<<<<< HEAD
+                  {Array.from(
+                    new Set(mockEVMWarrantyClaims.map((c) => c.vehicle))
+                  ).map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {v}
+                    </SelectItem>
+=======
                   {Array.from(new Set(mockEVMWarrantyClaims.map((c) => c.model))).map((v) => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                   ))}
                 </SelectContent>
               </Select>
@@ -116,22 +163,40 @@ export default function EVMStaffWarrantyClaim() {
                     <TableHead className="w-[160px]">Vehicle Type</TableHead>
                     <TableHead className="w-[160px]">Vehicle Model</TableHead>
                     <TableHead className="w-[160px]">Issue number</TableHead>
+<<<<<<< HEAD
+                    <TableHead className="w-[80px] text-center">View</TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Status
+                    </TableHead>
+=======
                     <TableHead className="w-[120px] text-center">Status</TableHead>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedWarranties.map((claim) => (
+<<<<<<< HEAD
+                    <TableRow key={`claim-${claim.id}`}>
+                      <TableCell className="font-medium align-middle">
+                        {claim.claimId}
+                      </TableCell>
+=======
                     <TableRow
                       key={`claim-${claim.id}`}
                       onClick={() => handleViewWarranty(claim)}
                       className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100"
                     >
                       <TableCell className="font-medium align-middle bg-transparent group-hover:bg-transparent group-active:bg-transparent">{claim.claimId}</TableCell>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                       {/* Vehicle Type (may be empty) - use claim.model when available */}
                       <TableCell className="align-middle">{""}</TableCell>
                       {/* Vehicle Model - show claim.vehicle */}
-                      <TableCell className="align-middle">{claim.vehicle}</TableCell>
-                      <TableCell className="align-middle">{claim.issueNumber}</TableCell>
+                      <TableCell className="align-middle">
+                        {claim.vehicle}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {claim.issueNumber}
+                      </TableCell>
                       <TableCell className="align-middle text-center">
                         {getStatusBadge(claim.decision)}
                       </TableCell>
@@ -156,7 +221,9 @@ export default function EVMStaffWarrantyClaim() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -172,5 +239,5 @@ export default function EVMStaffWarrantyClaim() {
         warranty={selectedWarranty}
       />
     </div>
-  )
+  );
 }

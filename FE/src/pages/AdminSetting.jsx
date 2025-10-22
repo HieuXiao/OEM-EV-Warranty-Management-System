@@ -30,20 +30,12 @@ export default function AdminSetting() {
     autoApproval: false,
   });
 
-  useEffect(() => {
-    document.title = "Setting";
-  }, []);
-
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar name={"Pham Nhut Nam"} image={profile} role={"Admin"} />
+      <Sidebar />
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header
-          name={"Pham Nhut Nam"}
-          image={profile}
-          email={"nam.admin@gmail.com"}
-        />
+        <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             {/* Header */}
