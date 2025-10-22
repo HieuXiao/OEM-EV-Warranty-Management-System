@@ -13,6 +13,7 @@ import Header from "../components/Header";
 import { mockWarehousesInventory } from "../lib/Mock-data";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import EVMStaffFormWarehouse from "../components/evmstaff/EVMStaffFormWarehouse";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ export default function EVMStaffSupplyChain() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [showCreate, setShowCreate] = useState(false);
 
   const user = {
     name: "Mage Team",
@@ -113,10 +115,18 @@ export default function EVMStaffSupplyChain() {
                   className="pl-10"
                 />
               </div>
-              <Button>
+              <Button onClick={() => setShowCreate(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
+              <EVMStaffFormWarehouse
+                open={showCreate}
+                onOpenChange={setShowCreate}
+                onCreate={(payload) => {
+                  console.log("Warehouse create payload:", payload);
+                  setShowCreate(false);
+                }}
+              />
             </div>
 
             {/* Warehouse Table */}
