@@ -53,31 +53,16 @@ export default function SCStaffDashboard() {
 
   function getStatusColor(status) {
     switch (status) {
-      case "on_going":
-        return "bg-yellow-500";
-      case "completed":
-        return "bg-blue-500";
-      case "rejected":
-        return "bg-red-500";
+      case "required": 
+        return "bg-red-600 text-white";
+      case "on_going": 
+        return "bg-amber-500 text-white";
+      case "completed": 
+        return "bg-blue-600 text-white";
       case "hand_overed":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
-    }
-  }
-
-  function getPriorityColor(priority) {
-    switch (priority) {
-      case "low":
-        return "bg-gray-500";
-      case "medium":
-        return "bg-yellow-500";
-      case "high":
-        return "bg-orange-500";
-      case "urgent":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
+        return "bg-emerald-600 text-white";
+      default: 
+        return "bg-gray-500 text-white";
     }
   }
 
@@ -133,7 +118,7 @@ export default function SCStaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{endedCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 text-yellow-600">
                     {endedCampaigns} need report
                   </p>
                 </CardContent>
@@ -162,13 +147,10 @@ export default function SCStaffDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>List Warranty Claims</CardTitle>
-                    {/* <CardDescription>
-                      Latest claims requiring attention
-                    </CardDescription> */}
                   </div>
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/scstaff/warranty">
-                      View all
+                      Warranty Claim
                       <ArrowUpRight className="ml-1 h-4 w-4" />
                     </Link>
                   </Button>
@@ -181,10 +163,9 @@ export default function SCStaffDashboard() {
                     .sort((a, b) => {
                       const order = {
                         completed: 1,
-                        rejected: 2,
-                        on_going: 3,
-                        to_do: 4,
-                        hand_overed: 5,
+                        on_going: 2,
+                        to_do: 3,
+                        hand_overed: 4,
                       };
                       return order[a.status] - order[b.status];
                     })
@@ -210,16 +191,6 @@ export default function SCStaffDashboard() {
                             >
                               {claim.status.replace("_", " ")}
                             </Badge>
-                            {/* Priority Badge */}
-                            {/* <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs capitalize",
-                              getPriorityColor(claim.priority)
-                            )}
-                          >
-                            {claim.priority}
-                          </Badge> */}
                           </div>
 
                           <p className="text-sm text-muted-foreground truncate">

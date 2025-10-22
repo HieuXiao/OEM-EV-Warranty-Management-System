@@ -1,4 +1,5 @@
 import { useState } from "react";
+<<<<<<< HEAD
 import {
   Search,
   Filter,
@@ -6,6 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+=======
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
@@ -40,6 +44,7 @@ export default function EVMStaffWarrantyClaim() {
   const filteredWarranties = mockEVMWarrantyClaims.filter((claim) => {
     const matchesSearch =
       claim.claimId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+<<<<<<< HEAD
       (claim.vehicle &&
         claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (claim.model &&
@@ -51,6 +56,15 @@ export default function EVMStaffWarrantyClaim() {
       filterVehicleModel === "all" || claim.vehicle === filterVehicleModel;
     return matchesSearch && matchesStatus && matchesVehicleModel;
   });
+=======
+      (claim.model && claim.model.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (claim.vehicle && claim.vehicle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      claim.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = filterStatus === "all" || claim.decision === filterStatus
+    const matchesVehicleModel = filterVehicleModel === "all" || claim.model === filterVehicleModel
+    return matchesSearch && matchesStatus && matchesVehicleModel
+  })
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
 
   const totalPages = Math.ceil(filteredWarranties.length / itemsPerPage);
   const paginatedWarranties = filteredWarranties.slice(
@@ -111,12 +125,17 @@ export default function EVMStaffWarrantyClaim() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Vehicle Models</SelectItem>
+<<<<<<< HEAD
                   {Array.from(
                     new Set(mockEVMWarrantyClaims.map((c) => c.vehicle))
                   ).map((v) => (
                     <SelectItem key={v} value={v}>
                       {v}
                     </SelectItem>
+=======
+                  {Array.from(new Set(mockEVMWarrantyClaims.map((c) => c.model))).map((v) => (
+                    <SelectItem key={v} value={v}>{v}</SelectItem>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                   ))}
                 </SelectContent>
               </Select>
@@ -144,20 +163,32 @@ export default function EVMStaffWarrantyClaim() {
                     <TableHead className="w-[160px]">Vehicle Type</TableHead>
                     <TableHead className="w-[160px]">Vehicle Model</TableHead>
                     <TableHead className="w-[160px]">Issue number</TableHead>
+<<<<<<< HEAD
                     <TableHead className="w-[80px] text-center">View</TableHead>
                     <TableHead className="w-[120px] text-center">
                       Status
                     </TableHead>
+=======
+                    <TableHead className="w-[120px] text-center">Status</TableHead>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedWarranties.map((claim) => (
+<<<<<<< HEAD
                     <TableRow key={`claim-${claim.id}`}>
                       <TableCell className="font-medium align-middle">
                         {claim.claimId}
                       </TableCell>
+=======
+                    <TableRow
+                      key={`claim-${claim.id}`}
+                      onClick={() => handleViewWarranty(claim)}
+                      className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100"
+                    >
+                      <TableCell className="font-medium align-middle bg-transparent group-hover:bg-transparent group-active:bg-transparent">{claim.claimId}</TableCell>
+>>>>>>> 982460173c845cefe0106f206ce80b2138f1052c
                       {/* Vehicle Type (may be empty) - use claim.model when available */}
-                      {/*type here*/}
                       <TableCell className="align-middle">{""}</TableCell>
                       {/* Vehicle Model - show claim.vehicle */}
                       <TableCell className="align-middle">
@@ -165,16 +196,6 @@ export default function EVMStaffWarrantyClaim() {
                       </TableCell>
                       <TableCell className="align-middle">
                         {claim.issueNumber}
-                      </TableCell>
-                      <TableCell className="align-middle text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 flex items-center justify-center mx-auto"
-                          onClick={() => handleViewWarranty(claim)}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                       <TableCell className="align-middle text-center">
                         {getStatusBadge(claim.decision)}

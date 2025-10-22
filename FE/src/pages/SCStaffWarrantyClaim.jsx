@@ -176,6 +176,7 @@ export default function SCStaffWarrantyClaim() {
     <div className="min-h-screen bg-muted/30">
       <SCStaffSidebar />
 
+      {/* Main Content */}
       <div className="lg:pl-64">
         <Header />
 

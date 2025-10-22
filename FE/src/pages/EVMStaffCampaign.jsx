@@ -62,9 +62,9 @@ export default function EVMStaffCampaign() {
     setEditingCampaign(null);
   };
 
-  // border-only pill; preserve original casing and keep consistent sizing with warranty page
-  const getStatusBadge = (status) => {
-    const s = String(status || "").toLowerCase();
+  // border-only pill; keep original casing (do not uppercase)
+  const getStatusBadge = (decision) => {
+    const s = String(decision || "").toLowerCase();
     const map = {
       done: "text-green-700 border-green-400",
       cancel: "text-red-700 border-red-400",

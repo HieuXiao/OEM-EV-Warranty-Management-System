@@ -13,6 +13,7 @@ import Header from "../components/Header";
 import { mockWarehousesInventory } from "../lib/Mock-data";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import EVMStaffFormWarehouse from "../components/evmstaff/EVMStaffFormWarehouse";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ export default function EVMStaffSupplyChain() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [showCreate, setShowCreate] = useState(false);
 
   const filteredWarehouseInventory = mockWarehousesInventory.filter((item) => {
     const matchesSearch =
@@ -106,10 +108,18 @@ export default function EVMStaffSupplyChain() {
                   className="pl-10"
                 />
               </div>
-              <Button>
+              <Button onClick={() => setShowCreate(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
+              <EVMStaffFormWarehouse
+                open={showCreate}
+                onOpenChange={setShowCreate}
+                onCreate={(payload) => {
+                  console.log("Warehouse create payload:", payload);
+                  setShowCreate(false);
+                }}
+              />
             </div>
 
             {/* Warehouse Table */}
@@ -127,8 +137,8 @@ export default function EVMStaffSupplyChain() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((item, i) => (
-                    <TableRow key={i} onClick={() => navigate(`${item.id}`)}>
-                      <TableCell>{i + 1}</TableCell>
+                    <TableRow key={i} onClick={() => navigate(`${item.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                      <TableCell className="bg-transparent group-hover:bg-transparent group-active:bg-transparent">{i + 1}</TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell className="text-center">
                         {item.location}

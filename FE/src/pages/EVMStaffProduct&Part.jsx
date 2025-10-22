@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, Plus, Eye } from "lucide-react";
+import { Search, Filter, Plus } from "lucide-react";
 import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
 import Header from "../components/Header";
 import { Input } from "../components/ui/input";
@@ -114,13 +114,12 @@ export default function EVMStaffProductPart() {
                     <TableHead>Part Name</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Attach</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((part) => (
-                    <TableRow key={part.id}>
-                      <TableCell className="font-medium">
+                    <TableRow key={part.id} onClick={() => navigate(`${part.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                      <TableCell className="font-medium bg-transparent group-hover:bg-transparent group-active:bg-transparent">
                         {part.serial}
                       </TableCell>
                       <TableCell>{part.partName}</TableCell>
@@ -128,15 +127,6 @@ export default function EVMStaffProductPart() {
                         {part.description}
                       </TableCell>
                       <TableCell>{formatCurrency(part.price)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`${part.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
