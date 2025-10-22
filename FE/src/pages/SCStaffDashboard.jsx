@@ -76,8 +76,8 @@ export default function SCStaffDashboard() {
       {/* Main Content */}
       <div className="lg:pl-64">
         <Header name={"Pham Nhut Nam"} email={"nam.admin@gmail.com"} />
-        <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
+        <div className="p-4 md:p-4 lg:p-4">
+          <div className="space-y-4">
             {/* DB (CARD) - 4 Main Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {/* CARD-01 - Active Warranties */}

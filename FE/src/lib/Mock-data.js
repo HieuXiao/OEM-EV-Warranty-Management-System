@@ -1035,6 +1035,7 @@ export const mockJobs = [
     comment: "Initial vehicle inspection",
     createdAt: "2025-10-11T08:00:00Z",
     hasReport: false,
+    priority: "urgent",
   },
   {
     id: "WC-NA001-2025-10-11-002",
@@ -1049,6 +1050,7 @@ export const mockJobs = [
     comment: "Engine oil leakage repair",
     createdAt: "2025-10-11T08:30:00Z",
     hasReport: false,
+    priority: "urgent",
   },
   {
     id: "WC-NA001-2025-10-11-003",
