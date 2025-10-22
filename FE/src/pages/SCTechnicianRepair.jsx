@@ -31,10 +31,6 @@ export default function SCTechnicianRepair() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    document.title = `Repair`;
-  }, []);
-
   const formatDateTime = (isoString) => {
     const date = new Date(isoString);
     return date
@@ -100,10 +96,10 @@ export default function SCTechnicianRepair() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar name={mockUsers[5].name} role={mockUsers[5].role} />
+      <SCTechnicianSidebar />
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header name={mockUsers[5].name} email={mockUsers[5].email} />
+        <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div>

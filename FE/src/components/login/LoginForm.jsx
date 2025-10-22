@@ -1,32 +1,75 @@
 import { useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
-import axios from "../../api/axios";
+import useAuth from "@/hook/useAuth";
+import axiosPrivate from "@/api/axios";
 import { Button } from "../ui/button";
 import { CardContent } from "../ui/card";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
 
-export default function LoginForm({ email, setEmail, password, setPassword }) {
+const LOGIN_URL = "/api/auth/login";
+
+export default function LoginForm({
+  accountId,
+  setAccountId,
+  password,
+  setPassword,
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { setAuth } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
+    try {
+      const response = await axiosPrivate.post(
+        LOGIN_URL,
+        JSON.stringify({ accountId, password }),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const token = response?.data?.token;
+      const role = response?.data?.roleName;
+      const fullName = response?.data?.fullName;
+      const email = response?.data?.email;
+
+      setAuth({ accountId, fullName, email, role, token });
+      setAccountId("");
+      setPassword("");
+      if (role === "ADMIN") navigate("/admin/users");
+      if (role === "SC_STAFF") navigate("/scstaff/dashboard");
+      if (role === "SC_TECHNICIAN") navigate("/sctechnician/dashboard");
+      if (role === "EVM_STAFF") navigate("/evmstaff/products");
+    } catch (err) {
+      if (!err?.response) {
+        setError("No Server Response");
+      } else if (err.response?.status === 400) {
+        setError("Missing Username or Password");
+      } else if (err.response?.status === 401) {
+        setError("Unauthorized");
+      } else {
+        setError("Login Failed");
+      }
+    }
+    setIsLoading(false);
   };
 
   return (
     <CardContent>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Account ID</Label>
           <Input
             id="email"
-            type="email"
-            placeholder="your.email@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder="Account ID"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
             required
           />
         </div>

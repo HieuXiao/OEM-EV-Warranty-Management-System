@@ -12,11 +12,11 @@ export default function SCStaffProfile() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar */}
-      <SCStaffSibebar name={"Nam"} role={"SC Staff"} />
+      <SCStaffSibebar />
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header name={"Pham Nhut Nam"} email={"nam.admin@gmail.com"} />
+        <Header />
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
