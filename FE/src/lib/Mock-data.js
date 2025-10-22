@@ -4,7 +4,7 @@ export const mock_warranty_data = [
   {
     // ID
     warrantyId: "WC-NA001-2025-10-11-001",
-    // 
+    //
     status: "requested",
     type: "check",
     vehiclePlate: "43A-12345",
@@ -15,11 +15,11 @@ export const mock_warranty_data = [
     comment: "Initial vehicle inspection",
     createdAt: "2025-10-11T08:00:00Z",
     hasReport: false,
-    decision: null // null / reject / accept
+    decision: null, // null / reject / accept
   },
   {
     warrantyId: "WC-NA001-2025-10-11-002",
-    // 
+    //
     jobNumber: "JOB-002",
     status: "on_going",
     type: "repair",
@@ -34,7 +34,7 @@ export const mock_warranty_data = [
   },
   {
     warrantyId: "WC-NA001-2025-10-11-003",
-    // 
+    //
     jobNumber: "JOB-003",
     status: "completed",
     type: "check",
@@ -49,7 +49,7 @@ export const mock_warranty_data = [
   },
   {
     warrantyId: "WC-NA001-2025-10-11-004",
-    // 
+    //
     jobNumber: "JOB-004",
     status: "requested",
     type: "reject",
@@ -64,7 +64,7 @@ export const mock_warranty_data = [
   },
   {
     warrantyId: "WC-NA001-2025-10-11-005",
-    // 
+    //
     jobNumber: "JOB-005",
     status: "on_going",
     type: "repair",
@@ -292,8 +292,6 @@ export const mock_warranty_data = [
     hasReport: true,
   },
 ];
-
-
 
 //===========================================  SC STAFF  =====================================
 // SCS WARRANTY CLAIM: List Warranty Request
@@ -1254,8 +1252,6 @@ export const mockJobs = [
   },
 ];
 
-
-
 // ===========================================  EVM STAFF  ======================================
 // EVM WARRANTY-CLAIM:  List Claim (Warranty Claims for EVM Staff Management)
 export const mockEVMWarrantyClaims = [
@@ -1780,8 +1776,6 @@ export const mockWarehouses = [
     location: "Phuoc Dien Hamlet, Phuoc Hai Ward, Ba Ria-Vung Tau",
   },
 ];
-
-
 
 // ????????????????????Activity Logs?????????????????????????
 export const mockActivityLogs = [
