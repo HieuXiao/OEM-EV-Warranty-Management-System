@@ -4,7 +4,7 @@ import LoginHeader from "../components/login/LoginHeader";
 import LoginForm from "../components/login/LoginForm";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
@@ -16,8 +16,8 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <LoginHeader />
         <LoginForm
-          email={email}
-          setEmail={setEmail}
+          accountId={accountId}
+          setAccountId={setAccountId}
           password={password}
           setPassword={setPassword}
         />

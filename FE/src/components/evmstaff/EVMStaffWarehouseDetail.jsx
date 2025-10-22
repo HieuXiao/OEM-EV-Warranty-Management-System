@@ -39,21 +39,27 @@ export default function EVMStaffWarehouseDetail() {
     return part.total <= 10 ? "low" : "normal";
   };
 
-  const getStatusBadge = (status) => {
-    const s = String(status || "").toLowerCase();
-    const map = {
-      normal: "text-green-400 border-green-400",
-      low: "text-red-800 border-red-700",
+  const getStatusBadge = (decision) =>
+    // border-only pill; keep original casing (do not uppercase)
+    {
+      const s = String(decision || "").toLowerCase();
+      const map = {
+        done: "text-green-700 border-green-400",
+        cancel: "text-red-700 border-red-400",
+        'on going': "text-yellow-700 border-yellow-400",
+        'to do': "text-blue-700 border-blue-400",
+        normal: "text-green-700 border-green-400",
+        low: "text-red-700 border-red-400",
+      };
+      const cls = map[s] || "text-gray-700 border-gray-300";
+      return (
+        <span
+          className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+        >
+          {decision}
+        </span>
+      );
     };
-    const cls = map[s] || "text-gray-700 border-gray-300";
-    return (
-      <span
-        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
-      >
-        {String(status || "").replace(/_/g, " ")}
-      </span>
-    );
-  };
 
   // Set format
   const formatCurrency = (amount) => {

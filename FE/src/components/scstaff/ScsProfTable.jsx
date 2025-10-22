@@ -123,9 +123,9 @@ export default function CustomersTable() {
               </CardDescription>
             </div>
 
-            {/* Search bar + Add Button */}
+            {/* Search box + Add Button */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              {/* Search bar */}
+              {/* Search box */}
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -144,6 +144,7 @@ export default function CustomersTable() {
                     Add Customer
                   </Button>
                 </DialogTrigger>
+
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Add New Customer</DialogTitle>
@@ -162,6 +163,7 @@ export default function CustomersTable() {
                         placeholder=""
                       />
                     </div>
+                    
                     <div className="grid gap-2">
                       <Label htmlFor="name">Customer Name</Label>
                       <Input

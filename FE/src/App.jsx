@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 // IMPORT PUBLIC
 import Login from "./pages/LoginPage";
@@ -9,7 +9,7 @@ import AdminSetting from "./pages/AdminSetting";
 // IMPORT SCSTAFF
 import SCStaffDashboard from "./pages/SCStaffDashboard";
 import SCStaffProfile from "./pages/SCStaffProfile";
-import CustomerDetail from "./components/scstaff/ScsProfCustDetail";
+import CustomerDetail from "./components/scstaff/ScsProfDetail";
 import SCStaffWarranty from "./pages/SCStaffWarrantyClaim";
 import SCStaffCampaign from "./pages/SCStaffCampaign";
 
@@ -27,18 +27,22 @@ import EVMStaffCampaign from "./pages/EVMStaffCampaign";
 import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 import EVMStaffReportDetail from "./components/evmstaff/EVMStaffReportDetail";
 import EVMStaffWarehouseDetail from "./components/evmstaff/EVMStaffWarehouseDetail";
+import RequireAuth from "./components/RequireAuth";
 
 function App() {
   return (
     <>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
 
         {/* Admin */}
-        <Route path="/admin/setting" element={<AdminSetting />} />
-        <Route path="/admin/users" element={<AdminUserManagement />} />
-        <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
+        <Route element={<RequireAuth allowedRoles={["ADMIN"]} />}>
+          <Route path="/admin/setting" element={<AdminSetting />} />
+          <Route path="/admin/users" element={<AdminUserManagement />} />
+          <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
+        </Route>
 
         {/* ScStaff */}
         <Route path="/scstaff/dashboard" element={<SCStaffDashboard />} />
