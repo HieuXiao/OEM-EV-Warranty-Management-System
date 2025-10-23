@@ -959,6 +959,26 @@ export const campaignsDetail = [
     contacted: 312,
     scheduled: 298,
   },
+  {
+    id: 4,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
+  {
+    id: 5,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
 ];
 // SCS CAMPAIGN : List Campaigns / campaign reports
 export const mockReports = [

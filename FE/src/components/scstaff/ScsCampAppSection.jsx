@@ -1,5 +1,4 @@
-"use client"
-
+//FE/src/components/scstaff/ScsCampAppSection.jsx
 import { useState } from "react"
 import {
   CalendarIcon,

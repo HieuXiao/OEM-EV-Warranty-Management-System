@@ -1,6 +1,4 @@
 //FE/src/components/scstaff/ScsCampAppSchedule.jsx
-"use client"
-
 import { useState } from "react"
 import { AlertTriangle, Calendar } from "lucide-react"
 import {
