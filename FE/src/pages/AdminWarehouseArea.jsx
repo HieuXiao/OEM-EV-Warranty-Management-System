@@ -80,20 +80,12 @@ export default function AdminWarehouseArea() {
     });
   }
 
-  useEffect(() => {
-    document.title = "Warehouse";
-  }, []);
-
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar name={"Pham Nhut Nam"} image={profile} role={"Admin"} />
+      <Sidebar />
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header
-          name={"Pham Nhut Nam"}
-          image={profile}
-          email={"nam.admin@gmail.com"}
-        />
+        <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

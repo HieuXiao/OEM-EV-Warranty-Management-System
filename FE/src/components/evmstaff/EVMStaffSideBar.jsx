@@ -11,13 +11,18 @@ import { Button } from "../ui/button";
 import UserInfo from "../UserInfo";
 import NavigationItem from "../NavigationItem";
 import Logo from "../Logo";
+import { useEffect } from "react";
 
-export default function EVMStaffSideBar({ image, name, role }) {
+export default function EVMStaffSideBar() {
+  useEffect(() => {
+    document.title = "EVM Staff Page";
+  }, []);
+
   return (
     <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 -translate-x-full">
       <div className="flex flex-col h-full">
         <Logo />
-        <UserInfo image={image} name={name} role={role} />
+        <UserInfo />
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <NavigationItem
             path={"/evmstaff/products"}

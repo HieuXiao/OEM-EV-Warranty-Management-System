@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Search, Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react";
@@ -6,51 +6,61 @@ import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 // import Badge removed; using inline border-only pill for status consistency
 import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
 import { mockEVMCampaigns } from "@/lib/Mock-data";
 
 export default function EVMStaffCampaign() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showCampaignDialog, setShowCampaignDialog] = useState(false)
-  const [editingCampaign, setEditingCampaign] = useState(null)
-  const [viewCampaign, setViewCampaign] = useState(null)
-  const [campaigns, setCampaigns] = useState(mockEVMCampaigns)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-
-  const user = {
-    name: "Mage Team",
-    email: "evmstaff@evwarranty.com",
-    role: "EVM Staff",
-    image: "/diverse-professional-team.png",
-  }
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCampaignDialog, setShowCampaignDialog] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState(null);
+  const [viewCampaign, setViewCampaign] = useState(null);
+  const [campaigns, setCampaigns] = useState(mockEVMCampaigns);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredCampaigns = campaigns.filter((campaign) => {
     return (
       campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       campaign.campaignId.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })
+    );
+  });
 
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage)
-  const paginatedCampaigns = filteredCampaigns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const paginatedCampaigns = filteredCampaigns.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleEditCampaign = (campaign) => {
-    setEditingCampaign(campaign)
-    setShowCampaignDialog(true)
-  }
+    setEditingCampaign(campaign);
+    setShowCampaignDialog(true);
+  };
 
   const handleSaveCampaign = (campaignData) => {
     if (editingCampaign) {
-      setCampaigns(campaigns.map((c) => (c.id === editingCampaign.id ? { ...c, ...campaignData } : c)))
+      setCampaigns(
+        campaigns.map((c) =>
+          c.id === editingCampaign.id ? { ...c, ...campaignData } : c
+        )
+      );
     } else {
-      setCampaigns([...campaigns, { id: String(campaigns.length + 1), ...campaignData }])
+      setCampaigns([
+        ...campaigns,
+        { id: String(campaigns.length + 1), ...campaignData },
+      ]);
     }
-    setEditingCampaign(null)
-  }
+    setEditingCampaign(null);
+  };
 
   // border-only pill; keep original casing (do not uppercase)
   const getStatusBadge = (decision) => {
@@ -58,22 +68,26 @@ export default function EVMStaffCampaign() {
     const map = {
       done: "text-green-700 border-green-400",
       cancel: "text-red-700 border-red-400",
-      'on going': "text-yellow-700 border-yellow-400",
-      'to do': "text-blue-700 border-blue-400",
+      process: "text-yellow-700 border-yellow-400",
+      to_do: "text-blue-700 border-blue-400",
+      "to do": "text-blue-700 border-blue-400",
+      "on going": "text-yellow-700 border-yellow-400",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
-      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}>
-        {decision}
+      <span
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+      >
+        {String(status || "").replace(/_/g, " ")}
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      <EVMStaffSideBar image={user.image} name={user.name} role={user.role} />
+      <EVMStaffSideBar />
       <div className="flex-1 flex flex-col ml-64">
-        <Header name={user.name} email={user.email} image={user.image} />
+        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Campaign Management</h1>
@@ -90,8 +104,8 @@ export default function EVMStaffCampaign() {
               </div>
               <Button
                 onClick={() => {
-                  setEditingCampaign(null)
-                  setShowCampaignDialog(true)
+                  setEditingCampaign(null);
+                  setShowCampaignDialog(true);
                 }}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -102,47 +116,94 @@ export default function EVMStaffCampaign() {
             <div className="border rounded-lg">
               <div className="w-full overflow-x-auto">
                 <Table className="table-auto w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-28 text-left">Campaign ID</TableHead>
-                    <TableHead className="w-48 text-left">Campaign Name</TableHead>
-                    <TableHead className="max-w-[360px] text-left">Short Description</TableHead>
-                    <TableHead className="w-40 text-left">Collected</TableHead>
-                    <TableHead className="w-32 text-left">Due</TableHead>
-                    <TableHead className="w-32 text-center">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id} onClick={() => setViewCampaign(campaign)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
-                      <TableCell className="font-medium text-left bg-transparent group-hover:bg-transparent group-active:bg-transparent">{campaign.campaignId}</TableCell>
-                      <TableCell className="text-left">{campaign.campaignName}</TableCell>
-                      <TableCell className="max-w-[360px] whitespace-normal break-words text-left">{(campaign.description || "").slice(0, 60)}</TableCell>
-                      <TableCell className="w-40 text-left align-top">
-                        {/* show percentage bar if data available */}
-                        {campaign.completedVehicles && campaign.affectedVehicles ? (
-                          (() => {
-                            const pct = Math.round((campaign.completedVehicles / campaign.affectedVehicles) * 100);
-                            return (
-                              <div>
-                                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                  <div className="h-2 bg-primary" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
-                                </div>
-                                <div className="text-sm text-muted-foreground mt-1">{pct}%</div>
-                              </div>
-                            )
-                          })()
-                        ) : (
-                          <div className="text-sm text-muted-foreground">-</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-left">{campaign.end}</TableCell>
-                      <TableCell className="text-center align-middle">
-                        {getStatusBadge(campaign.status)}
-                      </TableCell>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-28 text-left">
+                        Campaign ID
+                      </TableHead>
+                      <TableHead className="w-48 text-left">
+                        Campaign Name
+                      </TableHead>
+                      <TableHead className="max-w-[360px] text-left">
+                        Short Description
+                      </TableHead>
+                      <TableHead className="w-40 text-left">
+                        Collected
+                      </TableHead>
+                      <TableHead className="w-32 text-left">Due</TableHead>
+                      <TableHead className="w-20 text-center">View</TableHead>
+                      <TableHead className="w-32 text-center">Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedCampaigns.map((campaign) => (
+                      <TableRow
+                        key={campaign.id}
+                        onClick={() => setViewCampaign(campaign)}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
+                        <TableCell className="font-medium text-left">
+                          {campaign.campaignId}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {campaign.campaignName}
+                        </TableCell>
+                        <TableCell className="max-w-[360px] whitespace-normal break-words text-left">
+                          {(campaign.description || "").slice(0, 60)}
+                        </TableCell>
+                        <TableCell className="w-40 text-left align-top">
+                          {/* show percentage bar if data available */}
+                          {campaign.completedVehicles &&
+                          campaign.affectedVehicles ? (
+                            (() => {
+                              const pct = Math.round(
+                                (campaign.completedVehicles /
+                                  campaign.affectedVehicles) *
+                                  100
+                              );
+                              return (
+                                <div>
+                                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                    <div
+                                      className="h-2 bg-primary"
+                                      style={{
+                                        width: `${Math.min(
+                                          Math.max(pct, 0),
+                                          100
+                                        )}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="text-sm text-muted-foreground mt-1">
+                                    {pct}%
+                                  </div>
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <div className="text-sm text-muted-foreground">
+                              -
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {campaign.end}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewCampaign(campaign)}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center align-middle">
+                          {getStatusBadge(campaign.status)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
                 </Table>
               </div>
             </div>
@@ -162,7 +223,9 @@ export default function EVMStaffCampaign() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -178,7 +241,11 @@ export default function EVMStaffCampaign() {
         onSave={handleSaveCampaign}
         campaign={editingCampaign}
       />
-      <EVMStaffDetailCampaign open={!!viewCampaign} onOpenChange={() => setViewCampaign(null)} campaign={viewCampaign} />
+      <EVMStaffDetailCampaign
+        open={!!viewCampaign}
+        onOpenChange={() => setViewCampaign(null)}
+        campaign={viewCampaign}
+      />
     </div>
-  )
+  );
 }

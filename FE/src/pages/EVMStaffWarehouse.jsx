@@ -31,13 +31,6 @@ export default function EVMStaffSupplyChain() {
   const itemsPerPage = 5;
   const [showCreate, setShowCreate] = useState(false);
 
-  const user = {
-    name: "Mage Team",
-    email: "evmstaff@evwarranty.com",
-    role: "EVM Staff",
-    image: "/diverse-professional-team.png",
-  };
-
   const filteredWarehouseInventory = mockWarehousesInventory.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -95,9 +88,9 @@ export default function EVMStaffSupplyChain() {
 
   return (
     <div className="flex h-screen bg-background">
-      <EVMStaffSideBar image={user.image} name={user.name} role={user.role} />
+      <EVMStaffSideBar />
       <div className="flex-1 flex flex-col ml-64">
-        <Header name={user.name} email={user.email} image={user.image} />
+        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
