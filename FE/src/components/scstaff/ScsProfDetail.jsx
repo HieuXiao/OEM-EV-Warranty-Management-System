@@ -2,7 +2,7 @@ import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
 import CustomerVinCard from "@/components/scstaff/ScsProfCard";
 import { Label } from "@radix-ui/react-label";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { mockCustomers, mockVIN, vehicleModels } from "@/lib/Mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,17 +25,42 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import axiosPrivate from "@/api/axios";
+
+const CUSTOMERS_URL = "/api/customer/";
 
 export default function CustomerDetail() {
   const { id } = useParams();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const [customer, setCustomer] = useState({});
+  const [formData, setFormData] = useState({});
+  const [vinList, setVinList] = useState([]);
 
-  const customer = mockCustomers.find((c) => c.id === id);
-  const [formData, setFormData] = useState(customer || {});
-  const [vinList, setVinList] = useState(
-    mockVIN.filter((v) => v.customerName === customer?.name)
-  );
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const response = await axiosPrivate.get(CUSTOMERS_URL);
+        const cus = response.data.find((c) => c.customerId === parseInt(id));
+        setCustomer(cus);
+      } catch (error) {
+        console.error("API Error: " + error.message);
+      }
+    }
+    fetchCustomers();
+  }, [id]);
+
+  useEffect(() => {
+    if (customer && Object.keys(customer).length > 0) {
+      setFormData(customer);
+    }
+
+    if (customer?.customerName) {
+      setVinList(
+        mockVIN.filter((v) => v.customerName === customer.customerName)
+      );
+    }
+  }, [customer]);
 
   // Form state
   const [formVinData, setFormVinData] = useState({
@@ -43,7 +68,6 @@ export default function CustomerDetail() {
     vehicleType: "",
     model: "",
     plate: "",
-    customerName: customer.name,
   });
 
   if (!customer) return <p>Customer not found</p>;
@@ -70,10 +94,6 @@ export default function CustomerDetail() {
     setVinList((prev) =>
       prev.map((v) => (v.vin === updatedVin.vin ? updatedVin : v))
     );
-  };
-
-  const handleDeleteVIN = (vin) => {
-    setVinList((prev) => prev.filter((v) => v.vin !== vin));
   };
 
   const resetForm = () => {
@@ -116,7 +136,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Name</label>
                     <Input
                       name="name"
-                      value={formData.name}
+                      value={formData.customerName}
                       onChange={handleChange}
                     />
                   </div>
@@ -124,7 +144,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Email</label>
                     <Input
                       name="email"
-                      value={formData.email}
+                      value={formData.customerEmail}
                       onChange={handleChange}
                     />
                   </div>
@@ -132,7 +152,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Phone</label>
                     <Input
                       name="phone"
-                      value={formData.phone}
+                      value={formData.customerPhone}
                       onChange={handleChange}
                     />
                   </div>
@@ -140,7 +160,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Address</label>
                     <Input
                       name="address"
-                      value={formData.address}
+                      value={formData.customerAddress}
                       onChange={handleChange}
                     />
                   </div>
