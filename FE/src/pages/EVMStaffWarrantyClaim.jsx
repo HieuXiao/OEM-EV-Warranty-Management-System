@@ -152,7 +152,10 @@ export default function EVMStaffWarrantyClaim() {
                 </TableHeader>
                 <TableBody>
                   {paginatedWarranties.map((claim) => (
-                    <TableRow key={`claim-${claim.id}`}>
+                    <TableRow key={`claim-${claim.id}`}
+                      onClick={() => handleViewWarranty(claim)}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
                       <TableCell className="font-medium align-middle">
                         {claim.claimId}
                       </TableCell>

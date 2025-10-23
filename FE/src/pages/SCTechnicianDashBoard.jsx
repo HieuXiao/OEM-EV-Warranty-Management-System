@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
@@ -12,40 +13,42 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, ClipboardCheck, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockJobs, mockUsers } from "@/lib/Mock-data";
+import axiosPrivate from "@/api/axios";
+import useAuth from "@/hook/useAuth";
 
 export default function SCTechnicianDashboard() {
-  const checkJobs = mockJobs
-    .filter(
-      (job) =>
-        job.type === "check" &&
-        (job.priority === "urgent" || job.priority === "high")
-    )
-    .slice(0, 3);
+  const { auth } = useAuth();
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const repairJobs = mockJobs
-    .filter(
-      (job) =>
-        job.type === "repair" &&
-        (job.priority === "urgent" || job.priority === "high")
-    )
-    .slice(0, 3);
+  const techId = auth?.accountId;
 
-  const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
-    return date
-      .toLocaleString("en-GB", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .replace(",", "");
+  useEffect(() => {
+    const fetchClaims = async () => {
+      if (!techId) return;
+      try {
+        const res = await axiosPrivate.get(
+          `/api/warranty_claims/technician/${techId}`
+        );
+        setClaims(res.data || []);
+      } catch (err) {
+        console.error("Error fetching claims:", err);
+        setError("Failed to load technician claims.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClaims();
+  }, [techId]);
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-GB");
   };
 
-  function getStatusColor(status) {
-    switch (status) {
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
       case "pending":
         return "bg-yellow-500";
       case "in_progress":
@@ -55,37 +58,35 @@ export default function SCTechnicianDashboard() {
       default:
         return "bg-gray-500";
     }
-  }
+  };
 
-  function getPriorityColor(priority) {
-    switch (priority) {
-      case "low":
-        return "bg-gray-500";
-      case "medium":
-        return "bg-yellow-500";
-      case "high":
-        return "bg-orange-500";
-      case "urgent":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  }
+  // Giả sử description hoặc status có thể phân biệt loại job
+  const checkJobs = claims.filter((c) =>
+    c.description?.toLowerCase().includes("check")
+  );
+  const repairJobs = claims.filter((c) =>
+    c.description?.toLowerCase().includes("repair")
+  );
+
+  if (loading)
+    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+  if (error)
+    return <div className="p-8 text-center text-destructive">{error}</div>;
 
   return (
     <div className="min-h-screen bg-muted/30">
       <SCTechnicianSidebar />
-      {/* Main Content */}
       <div className="lg:pl-64">
         <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">My Job</h1>
+              <h1 className="text-3xl font-bold">My Jobs</h1>
               <p className="text-muted-foreground mt-1">
                 High priority tasks requiring immediate attention
               </p>
             </div>
+
             <div className="grid gap-6 md:grid-cols-2">
               {/* Check Jobs */}
               <Card>
@@ -110,14 +111,14 @@ export default function SCTechnicianDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {checkJobs.map((job) => (
+                    {checkJobs.slice(0, 3).map((job) => (
                       <div
-                        key={job.id}
+                        key={job.claimId}
                         className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <p className="font-semibold">{job.jobNumber}</p>
+                            <p className="font-semibold">Claim #{job.claimId}</p>
                             <Badge
                               variant="outline"
                               className={cn(
@@ -125,23 +126,14 @@ export default function SCTechnicianDashboard() {
                                 getStatusColor(job.status)
                               )}
                             >
-                              {job.status.replace("_", " ")}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getPriorityColor(job.priority)
-                              )}
-                            >
-                              {job.priority}
+                              {job.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {job.vehicleModel} - {job.vehiclePlate}
+                            VIN: {job.vin}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatDateTime(job.createdAt)}
+                            Date: {formatDate(job.claimDate)}
                           </p>
                         </div>
                       </div>
@@ -173,14 +165,14 @@ export default function SCTechnicianDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {repairJobs.map((job) => (
+                    {repairJobs.slice(0, 3).map((job) => (
                       <div
-                        key={job.id}
+                        key={job.claimId}
                         className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <p className="font-semibold">{job.jobNumber}</p>
+                            <p className="font-semibold">Claim #{job.claimId}</p>
                             <Badge
                               variant="outline"
                               className={cn(
@@ -188,23 +180,14 @@ export default function SCTechnicianDashboard() {
                                 getStatusColor(job.status)
                               )}
                             >
-                              {job.status.replace("_", " ")}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getPriorityColor(job.priority)
-                              )}
-                            >
-                              {job.priority}
+                              {job.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {job.vehicleModel} - {job.vehiclePlate}
+                            VIN: {job.vin}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {formatDateTime(job.createdAt)}
+                            Date: {formatDate(job.claimDate)}
                           </p>
                         </div>
                       </div>

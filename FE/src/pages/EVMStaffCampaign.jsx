@@ -137,7 +137,11 @@ export default function EVMStaffCampaign() {
                   </TableHeader>
                   <TableBody>
                     {paginatedCampaigns.map((campaign) => (
-                      <TableRow key={campaign.id}>
+                      <TableRow
+                        key={campaign.id}
+                        onClick={() => setViewCampaign(campaign)}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
                         <TableCell className="font-medium text-left">
                           {campaign.campaignId}
                         </TableCell>
