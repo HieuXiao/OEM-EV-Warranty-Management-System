@@ -41,7 +41,7 @@ export default function WarrantiesTable({ onSelectWarranty }) {
   const [warranties, setWarranties] = useState(mock_warranty_data);
   const [newClaimTechnician, setNewClaimTechnician] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 9;
 
   const scTechnicians = mockUsers.filter(
     (user) => user.role === "sc_technician"

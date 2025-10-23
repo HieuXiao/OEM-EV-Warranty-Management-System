@@ -15,14 +15,14 @@ export default function SCStaffProfile() {
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            <div>
+            {/* <div>
               <h1 className="text-3xl font-bold text-foreground">
                 Profile Management
               </h1>
               <p className="text-muted-foreground mt-1">
                 Configure system preferences and integrations
               </p>
-            </div>
+            </div> */}
 
             {/* Customer Tab */}
             <CustomersTable />

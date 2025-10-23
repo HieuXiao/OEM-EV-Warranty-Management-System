@@ -1,4 +1,4 @@
-"use client"
+//FE/src/components/scstaff/ScsCampOverview.jsx
 import {
   Dialog,
   DialogContent,

@@ -959,6 +959,26 @@ export const campaignsDetail = [
     contacted: 312,
     scheduled: 298,
   },
+  {
+    id: 4,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
+  {
+    id: 5,
+    name: "Brake System Inspection",
+    status: "completed",
+    startDate: "2023-10-01",
+    endDate: "2023-12-31",
+    totalVehicles: 312,
+    contacted: 312,
+    scheduled: 298,
+  },
 ];
 // SCS CAMPAIGN : List Campaigns / campaign reports
 export const mockReports = [
@@ -1037,6 +1057,7 @@ export const mockJobs = [
     comment: "Initial vehicle inspection",
     createdAt: "2025-10-11T08:00:00Z",
     hasReport: false,
+    priority: "urgent",
   },
   {
     id: "WC-NA001-2025-10-11-002",
@@ -1051,6 +1072,7 @@ export const mockJobs = [
     comment: "Engine oil leakage repair",
     createdAt: "2025-10-11T08:30:00Z",
     hasReport: false,
+    priority: "urgent",
   },
   {
     id: "WC-NA001-2025-10-11-003",
