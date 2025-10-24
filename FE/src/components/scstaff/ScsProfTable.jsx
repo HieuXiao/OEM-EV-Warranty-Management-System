@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
+import { vehicleModels } from "@/lib/Mock-data";
 import {
   Table,
   TableBody,
@@ -40,6 +41,7 @@ import axiosPrivate from "@/api/axios";
 
 const CUSTOMERS_URL = "/api/customer/";
 const CUSTOMER_CREATE_URL = "/api/customer/create";
+const VEHICLE_CREATE_URL = "/api/vehicle/create";
 
 export default function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +58,15 @@ export default function CustomersTable() {
     customerEmail: "",
     customerPhone: "",
     customerAddress: "",
+  });
+
+  const [formVinData, setFormVinData] = useState({
+    vin: "",
+    plate: "",
+    type: "",
+    color: "",
+    model: "",
+    customerPhone: "",
   });
 
   const handleChange = (e) => {
@@ -100,17 +111,41 @@ export default function CustomersTable() {
         customerAddress: formData.customerAddress,
       };
 
-      const response = await axiosPrivate.post(
-        CUSTOMER_CREATE_URL,
-        JSON.stringify(newCustomer),
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const newVehicle = {
+        vin: formVinData.vin,
+        plate: formVinData.plate,
+        type: formVinData.type,
+        color: formVinData.color,
+        model: formVinData.model,
+        customerPhone: formData.customerPhone,
+      };
 
-      setCustomers([...customers, response.data]);
-      setIsAddDialogOpen(false);
-      resetForm();
+      axiosPrivate
+        .post(CUSTOMER_CREATE_URL, newCustomer, {
+          headers: { "Content-Type": "application/json" },
+        })
+        .then((res) => {
+          const createdCustomer = res.data;
+          setCustomers([...customers, createdCustomer]);
+          return axiosPrivate
+            .post(VEHICLE_CREATE_URL, newVehicle, {
+              headers: { "Content-Type": "application/json" },
+            })
+            .then(() => createdCustomer);
+        })
+        .then((createCustomer) => {
+          resetForm();
+          setIsAddDialogOpen(false);
+          navigate(`/scstaff/profiles/${createCustomer.customerId}`);
+        })
+        .catch((error) => console.error("API Error:", error.message));
     } catch (error) {
-      console.error("API Error: " + error.message);
+      if (error.response?.status === 409) {
+        setError("Customer already exists (duplicate email or phone)");
+      } else {
+        console.error("API Error:", error);
+        setError("Failed to add customer. Please try again.");
+      }
     }
   };
 
@@ -120,6 +155,15 @@ export default function CustomersTable() {
       customerEmail: "",
       customerPhone: "",
       customerAddress: "",
+    });
+
+    setFormVinData({
+      vin: "",
+      plate: "",
+      type: "",
+      color: "",
+      model: "",
+      customerPhone: "",
     });
   };
 
@@ -235,27 +279,27 @@ export default function CustomersTable() {
                       <Input
                         id="vin"
                         name="vin"
-                        // value={formVinData.vin}
-                        // onChange={(e) =>
-                        //   setFormVinData({
-                        //     ...formVinData,
-                        //     vin: e.target.value,
-                        //   })
-                        // }
-                        placeholder="VN-BIKE-0003"
+                        value={formVinData.vin}
+                        onChange={(e) =>
+                          setFormVinData({
+                            ...formVinData,
+                            vin: e.target.value,
+                          })
+                        }
+                        placeholder="6HPJVKVA8N*******"
                       />
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1 grid gap-2">
                         <Label htmlFor="type">Vehicle Type</Label>
                         <Select
-                        // value={formVinData.type}
-                        // onValueChange={(value) =>
-                        //   setFormVinData({
-                        //     ...formVinData,
-                        //     type: value,
-                        //   })
-                        // }
+                          value={formVinData.type}
+                          onValueChange={(value) =>
+                            setFormVinData({
+                              ...formVinData,
+                              type: value,
+                            })
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select type" />
@@ -272,22 +316,38 @@ export default function CustomersTable() {
                       </div>
 
                       <div className="flex-1 grid gap-2">
+                        <Label htmlFor="color">Color</Label>
+                        <Input
+                          id="color"
+                          name="color"
+                          value={formVinData.color}
+                          onChange={(e) =>
+                            setFormVinData({
+                              ...formVinData,
+                              color: e.target.value,
+                            })
+                          }
+                          placeholder="Red"
+                        />
+                      </div>
+
+                      <div className="flex-1 grid gap-2">
                         <Label htmlFor="model">Model</Label>
                         <Select
-                        // value={formVinData.model}
-                        // onValueChange={(value) =>
-                        //   setFormVinData({ ...formVinData, model: value })
-                        // }
+                          value={formVinData.model}
+                          onValueChange={(value) =>
+                            setFormVinData({ ...formVinData, model: value })
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select model" />
                           </SelectTrigger>
                           <SelectContent>
-                            {/* {vehicleModels.map((model) => (
+                            {vehicleModels.map((model) => (
                               <SelectItem key={model} value={model}>
                                 {model}
                               </SelectItem>
-                            ))} */}
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -297,13 +357,13 @@ export default function CustomersTable() {
                       <Input
                         id="plate"
                         name="plate"
-                        // value={formVinData.plate}
-                        // onChange={(e) =>
-                        //   setFormVinData({
-                        //     ...formVinData,
-                        //     plate: e.target.value,
-                        //   })
-                        // }
+                        value={formVinData.plate}
+                        onChange={(e) =>
+                          setFormVinData({
+                            ...formVinData,
+                            plate: e.target.value,
+                          })
+                        }
                         placeholder="59X1-11111"
                       />
                     </div>
