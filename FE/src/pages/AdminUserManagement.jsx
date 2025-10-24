@@ -234,6 +234,7 @@ export default function AdminUserManagement() {
                 </DialogTrigger>
 
                 <DialogContent className="sm:max-w-[500px]">
+
                   <DialogHeader>
                     <DialogTitle>Add New User</DialogTitle>
                     <DialogDescription>
@@ -316,6 +317,7 @@ export default function AdminUserManagement() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+
             </div>
 
             {/* Search */}
@@ -465,6 +467,7 @@ export default function AdminUserManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
           </div>
         </div>
       </div>

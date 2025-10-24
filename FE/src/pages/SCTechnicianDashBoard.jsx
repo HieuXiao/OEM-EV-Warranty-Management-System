@@ -33,7 +33,7 @@ export default function SCTechnicianDashboard() {
         const allClaims = res.data || [];
 
         const technicianClaims = allClaims.filter(
-          (claim) => claim.scTechnicianId === techId
+          (claim) => claim.scTechnicianId.toUpperCase() === techId.toUpperCase()
         );
         
         setClaims(technicianClaims);
@@ -110,10 +110,7 @@ export default function SCTechnicianDashboard() {
                             <p className="font-semibold">Claim #{job.claimId}</p>
                             <Badge
                               variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getStatusColor(job.status)
-                              )}
+                              className="text-xs capitalize"
                             >
                               {job.status}
                             </Badge>
@@ -164,10 +161,7 @@ export default function SCTechnicianDashboard() {
                             <p className="font-semibold">Claim #{job.claimId}</p>
                             <Badge
                               variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getStatusColor(job.status)
-                              )}
+                              className="text-xs capitalize"
                             >
                               {job.status}
                             </Badge>

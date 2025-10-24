@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
@@ -9,26 +10,37 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../ui/select";
 import { Badge } from "../ui/badge";
 import { vehicleModels, mockParts } from "@/lib/Mock-data";
+import axiosPrivate from "@/api/axios";
 
-export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campaign }) {
+const CAMPAIGN_CREATE_URL = "/api/campaign/create";
+
+export default function EVMStaffFormCampaign({
+  open,
+  onOpenChange,
+  onSave,
+  campaign,
+}) {
   // initialize from `campaign` when provided, otherwise use defaults
-  const [formData, setFormData] = useState(
-    campaign || {
-      campaignId: "",
-      campaignName: "",
-      vehicleModels: [],
-      parts: [], // will store part IDs
-      description: "",
-      start: "",
-      end: "",
-      status: "to_do",
-    }
-  );
+  const [formData, setFormData] = useState({
+    campaignName: "",
+    model: [],
+    //parts: [], // will store part IDs
+    serviceDescription: "",
+    startDate: "",
+    endDate: "",
+    //status: "to_do",
+  });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Validate start date is today or future
     const today = new Date();
@@ -55,8 +67,28 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
 
     setDateError("");
     setStartError("");
-    onSave(formData);
-    onOpenChange(false);
+
+    const newCampaign = {
+      campaignName: formData.campaignName,
+      serviceDescription: formData.serviceDescription,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      model: formData.model.toString(),
+    };
+
+    try {
+      const response = await axiosPrivate.post(
+        CAMPAIGN_CREATE_URL,
+        JSON.stringify(newCampaign),
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      onSave(newCampaign);
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error("API Error: " + error.message);
+    }
   };
 
   const [dateError, setDateError] = useState("");
@@ -77,6 +109,18 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
     return `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
   })();
 
+  function resetForm() {
+    setFormData({
+      campaignName: "",
+      model: [],
+      //parts: [], // will store part IDs
+      serviceDescription: "",
+      startDate: "",
+      endDate: "",
+      //status: "to_do",
+    });
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -84,34 +128,22 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
           <DialogTitle className="text-xl font-bold">
             {campaign ? "Edit Campaign" : "Create New Campaign"}
           </DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Campaign ID & Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="campaignId">Campaign ID</Label>
-              <Input
-                id="campaignId"
-                value={formData.campaignId}
-                onChange={(e) =>
-                  setFormData({ ...formData, campaignId: e.target.value })
-                }
-                required
-                disabled={!!campaign}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="campaignName">Campaign Name</Label>
-              <Input
-                id="campaignName"
-                value={formData.campaignName}
-                onChange={(e) =>
-                  setFormData({ ...formData, campaignName: e.target.value })
-                }
-                required
-              />
-            </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="campaignName">Campaign Name</Label>
+            <Input
+              id="campaignName"
+              value={formData.campaignName}
+              onChange={(e) =>
+                setFormData({ ...formData, campaignName: e.target.value })
+              }
+              required
+            />
           </div>
 
           {/* Vehicle Models & Parts (multi-select style) */}
@@ -121,21 +153,25 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
               <Label htmlFor="vehicleModels">Vehicle Models</Label>
               <Select
                 // keep trigger empty so selection doesn't insert into the select input
-                value={""}
+                value={
+                  formData.model.length
+                    ? formData.model[formData.model.length - 1]
+                    : ""
+                }
                 onValueChange={(value) => {
                   // special value to select all models
                   if (value === "__ALL_MODELS__") {
                     setFormData({
                       ...formData,
-                      vehicleModels: [...vehicleModels],
+                      model: [...model],
                     });
                     return;
                   }
 
-                  if (!formData.vehicleModels.includes(value)) {
+                  if (!formData.model.includes(value)) {
                     setFormData({
                       ...formData,
-                      vehicleModels: [...formData.vehicleModels, value],
+                      model: [...formData.model, value],
                     });
                   }
                 }}
@@ -156,7 +192,7 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
               </Select>
 
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.vehicleModels.map((model) => (
+                {formData.model.map((model) => (
                   <Badge
                     key={model}
                     variant="secondary"
@@ -164,9 +200,7 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
                     onClick={() =>
                       setFormData({
                         ...formData,
-                        vehicleModels: formData.vehicleModels.filter(
-                          (m) => m !== model
-                        ),
+                        model: formData.model.filter((m) => m !== model),
                       })
                     }
                   >
@@ -177,12 +211,10 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
             </div>
 
             {/* Parts */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="parts">Part ID</Label>
               <Select
-                value={
-                  formData.parts[formData.parts.length - 1] || ""
-                }
+                value={formData.parts[formData.parts.length - 1] || ""}
                 onValueChange={(value) => {
                   if (!formData.parts.includes(value)) {
                     setFormData({
@@ -196,49 +228,49 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
                   <SelectValue placeholder="Select related parts" />
                 </SelectTrigger>
                 <SelectContent>
-                    {mockParts.map((part) => (
-                      <SelectItem key={part.id} value={part.id}>
-                        {part.name}
-                      </SelectItem>
-                    ))}
+                  {mockParts.map((part) => (
+                    <SelectItem key={part.id} value={part.id}>
+                      {part.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.parts.map((partId) => {
-                    const p = mockParts.find((x) => x.id === partId);
-                    return (
-                      <Badge
-                        key={partId}
-                        variant="secondary"
-                        className="cursor-pointer"
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            parts: formData.parts.filter((p) => p !== partId),
-                          })
-                        }
-                      >
-                        {p ? p.name : partId} ×
-                      </Badge>
-                    );
-                  })}
+                {formData.parts.map((partId) => {
+                  const p = mockParts.find((x) => x.id === partId);
+                  return (
+                    <Badge
+                      key={partId}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          parts: formData.parts.filter((p) => p !== partId),
+                        })
+                      }
+                    >
+                      {p ? p.name : partId} ×
+                    </Badge>
+                  );
+                })}
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="min-h-[80px] min-w-0 max-w-full box-border whitespace-pre-wrap break-words break-all overflow-auto resize-y"
-                required
-              />
+            <Textarea
+              id="description"
+              value={formData.serviceDescription}
+              onChange={(e) =>
+                setFormData({ ...formData, serviceDescription: e.target.value })
+              }
+              className="min-h-[80px] min-w-0 max-w-full box-border whitespace-pre-wrap break-words break-all overflow-auto resize-y"
+              required
+            />
           </div>
 
           {/* Start / End */}
@@ -249,10 +281,10 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
                 id="start"
                 type="date"
                 min={todayStr}
-                value={formData.start}
+                value={formData.startDate}
                 onChange={(e) => {
                   const newStart = e.target.value;
-                  setFormData({ ...formData, start: newStart });
+                  setFormData({ ...formData, startDate: newStart });
                   // validate start not in past
                   if (newStart) {
                     const startDate = new Date(newStart);
@@ -266,11 +298,14 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
                     }
                   }
 
-                  if (newStart && formData.end) {
+                  if (newStart && formData.endDate) {
                     const startDate = new Date(newStart);
-                    const dueDate = new Date(formData.end);
+                    const dueDate = new Date(formData.endDate);
                     const requiredDaysMs = 5 * 24 * 60 * 60 * 1000;
-                    if (dueDate.getTime() - startDate.getTime() < requiredDaysMs) {
+                    if (
+                      dueDate.getTime() - startDate.getTime() <
+                      requiredDaysMs
+                    ) {
                       // clear invalid due date so user must reselect
                       setFormData((prev) => ({ ...prev, end: "" }));
                       setDateError(
@@ -293,15 +328,18 @@ export default function EVMStaffFormCampaign({ open, onOpenChange, onSave, campa
                 id="end"
                 type="date"
                 min={minDueStr}
-                value={formData.end}
+                value={formData.endDate}
                 onChange={(e) => {
                   const newEnd = e.target.value;
-                  setFormData({ ...formData, end: newEnd });
-                  if (formData.start && newEnd) {
-                    const startDate = new Date(formData.start);
+                  setFormData({ ...formData, endDate: newEnd });
+                  if (formData.startDate && newEnd) {
+                    const startDate = new Date(formData.startDate);
                     const dueDate = new Date(newEnd);
                     const requiredDaysMs = 5 * 24 * 60 * 60 * 1000;
-                    if (dueDate.getTime() - startDate.getTime() < requiredDaysMs) {
+                    if (
+                      dueDate.getTime() - startDate.getTime() <
+                      requiredDaysMs
+                    ) {
                       setDateError(
                         "Due date must be at least five days after Start date."
                       );

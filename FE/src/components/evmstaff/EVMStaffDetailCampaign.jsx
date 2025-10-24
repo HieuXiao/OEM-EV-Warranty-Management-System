@@ -1,16 +1,28 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { mockParts } from "@/lib/Mock-data";
 
-export default function EVMStaffDetailCampaign({ open, onOpenChange, campaign }) {
+export default function EVMStaffDetailCampaign({
+  open,
+  onOpenChange,
+  campaign,
+}) {
   if (!campaign) return null;
 
   // compute collected percent: prefer completed/affected, fallback to collected/total
   let percent = 0;
   if (campaign.completedVehicles && campaign.affectedVehicles) {
-    percent = Math.round((campaign.completedVehicles / campaign.affectedVehicles) * 100);
+    percent = Math.round(
+      (campaign.completedVehicles / campaign.affectedVehicles) * 100
+    );
   } else if (campaign.collected && campaign.total) {
     percent = Math.round((campaign.collected / campaign.total) * 100);
   } else if (campaign.collectedPercent) {
@@ -26,7 +38,10 @@ export default function EVMStaffDetailCampaign({ open, onOpenChange, campaign })
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Campaign Detail</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            Campaign Detail
+          </DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -42,27 +57,31 @@ export default function EVMStaffDetailCampaign({ open, onOpenChange, campaign })
 
           <div>
             <Label>Vehicle Models</Label>
-            <div className="mt-1">{(campaign.vehicleModels || []).join(", ") || "-"}</div>
+            <div className="mt-1">{campaign.model}</div>
           </div>
 
-          <div>
+          {/* <div>
             <Label>Parts</Label>
-            <div className="mt-1">{partNames.length ? partNames.join(", ") : "-"}</div>
-          </div>
+            <div className="mt-1">
+              {partNames.length ? partNames.join(", ") : "-"}
+            </div>
+          </div> */}
 
           <div>
             <Label>Description</Label>
-            <div className="mt-1 whitespace-pre-wrap">{campaign.description || "-"}</div>
+            <div className="mt-1 whitespace-pre-wrap">
+              {campaign.serviceDescription}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Start Date</Label>
-              <div className="mt-1">{campaign.start || "-"}</div>
+              <div className="mt-1">{campaign.startDate}</div>
             </div>
             <div>
               <Label>Due Date</Label>
-              <div className="mt-1">{campaign.end || "-"}</div>
+              <div className="mt-1">{campaign.endDate}</div>
             </div>
           </div>
 
@@ -74,8 +93,10 @@ export default function EVMStaffDetailCampaign({ open, onOpenChange, campaign })
                 style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
               />
             </div>
-            <div className="text-sm text-muted-foreground mt-1">{percent}% collected</div>
-          </div> 
+            <div className="text-sm text-muted-foreground mt-1">
+              {percent}% collected
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end mt-6">

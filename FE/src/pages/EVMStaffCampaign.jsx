@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
@@ -17,22 +17,35 @@ import {
 // import Badge removed; using inline border-only pill for status consistency
 import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
-import { mockEVMCampaigns } from "@/lib/Mock-data";
+import axiosPrivate from "@/api/axios";
+
+const CAMPAIGN_URL = "/api/campaign/";
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [viewCampaign, setViewCampaign] = useState(null);
-  const [campaigns, setCampaigns] = useState(mockEVMCampaigns);
+  const [campaigns, setCampaigns] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
+
+  useEffect(() => {
+    async function fetchCampaigns() {
+      try {
+        const response = await axiosPrivate.get(CAMPAIGN_URL);
+        setCampaigns(response.data);
+      } catch (error) {
+        console.error("API Error: " + error.message);
+      }
+    }
+    fetchCampaigns();
+  }, []);
 
   const filteredCampaigns = campaigns.filter((campaign) => {
-    return (
-      campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.campaignId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return campaign.campaignName
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
   });
 
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
@@ -118,41 +131,41 @@ export default function EVMStaffCampaign() {
                 <Table className="table-auto w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-28 text-left">
-                        Campaign ID
-                      </TableHead>
+                      <TableHead className="w-28 text-left">No.</TableHead>
                       <TableHead className="w-48 text-left">
                         Campaign Name
                       </TableHead>
                       <TableHead className="max-w-[360px] text-left">
-                        Short Description
+                        Description
                       </TableHead>
-                      <TableHead className="w-40 text-left">
+                      {/* <TableHead className="w-40 text-left">
                         Collected
+                      </TableHead> */}
+                      <TableHead className="w-40 text-left">
+                        Start Date
                       </TableHead>
-                      <TableHead className="w-32 text-left">Due</TableHead>
-                      <TableHead className="w-20 text-center">View</TableHead>
-                      <TableHead className="w-32 text-center">Status</TableHead>
+                      <TableHead className="w-32 text-left">Due Date</TableHead>
+                      {/* <TableHead className="w-32 text-center">Status</TableHead> */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedCampaigns.map((campaign) => (
+                    {paginatedCampaigns.map((campaign, i) => (
                       <TableRow
                         key={campaign.id}
                         onClick={() => setViewCampaign(campaign)}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
                       >
                         <TableCell className="font-medium text-left">
-                          {campaign.campaignId}
+                          {i + 1}
                         </TableCell>
                         <TableCell className="text-left">
                           {campaign.campaignName}
                         </TableCell>
                         <TableCell className="max-w-[360px] whitespace-normal break-words text-left">
-                          {(campaign.description || "").slice(0, 60)}
+                          {(campaign.serviceDescription || "").slice(0, 60)}
                         </TableCell>
-                        <TableCell className="w-40 text-left align-top">
-                          {/* show percentage bar if data available */}
+                        {/* <TableCell className="w-40 text-left align-top">
+                          show percentage bar if data available
                           {campaign.completedVehicles &&
                           campaign.affectedVehicles ? (
                             (() => {
@@ -185,22 +198,16 @@ export default function EVMStaffCampaign() {
                               -
                             </div>
                           )}
+                        </TableCell> */}
+                        <TableCell className="text-left">
+                          {campaign.startDate}
                         </TableCell>
                         <TableCell className="text-left">
-                          {campaign.end}
+                          {campaign.endDate}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewCampaign(campaign)}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-center align-middle">
+                        {/* <TableCell className="text-center align-middle">
                           {getStatusBadge(campaign.status)}
-                        </TableCell>
+                        </TableCell> */}
                       </TableRow>
                     ))}
                   </TableBody>
