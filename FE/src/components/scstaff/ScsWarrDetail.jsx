@@ -1,276 +1,115 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ArrowLeft } from "lucide-react"
-import { vehicleModels, mockUsers } from "@/lib/Mock-data"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import axiosPrivate from "@/api/axios"
 
-export default function WarrantyDetail({ warranty, onBack, onUpdate }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState(warranty)
-
-  const scTechnicians = mockUsers.filter(
-    (user) => user.role === "sc_technician"
-  )
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+const getStatusColor = (status) => {
+  const colors = {
+    CHECK: "bg-blue-100 text-blue-800 border-blue-300",
+    DECIDE: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    REPAIR: "bg-orange-100 text-orange-700 border-orange-300",
+    HANDOVER: "bg-purple-100 text-purple-800 border-purple-300",
+    DONE: "bg-green-100 text-green-800 border-green-300",
   }
+  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300"
+}
 
-  const handleSelectChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
+  const [loading, setLoading] = useState(false)
+  const [claim, setClaim] = useState(selectedClaim)
 
-  const handleSave = () => {
-    onUpdate(formData)
-    setIsEditing(false)
-  }
+  useEffect(() => {
+    setClaim(selectedClaim)
+  }, [selectedClaim])
 
-  const handleCancel = () => {
-    setFormData(warranty)
-    setIsEditing(false)
+  const handleMarkComplete = async () => {
+    if (!claim || claim.status !== "HANDOVER") {
+      return
+    }
+
+    try {
+      setLoading(true)
+      await axiosPrivate.put(`/api/warranty_claims/${claim.claimId}/complete`)
+
+      // Update local state
+      setClaim({ ...claim, status: "DONE" })
+      onOpenChange(false)
+    } catch (error) {
+      console.error("Error marking claim complete:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{warranty.warrantyId}</h1>
-          <p className="text-sm text-muted-foreground">{warranty.customer}</p>
-        </div>
-      </div>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <DialogTitle className="text-xl">Claim #{claim?.claimId}</DialogTitle>
+            <Badge variant="outline" className={getStatusColor(claim?.status)}>
+              {claim?.status}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">Warranty claim details and actions</p>
+        </DialogHeader>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Warranty Information</CardTitle>
-                  <CardDescription>
-                    View and manage warranty details
-                  </CardDescription>
-                </div>
-                {/* {!isEditing && (
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-black hover:bg-gray-800 text-white"
-                  >
-                    Edit
-                  </Button>
-                )} */}
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-4">
-                {/* Customer Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Customer Name</label>
-                    <Input
-                      name="customer"
-                      value={formData.customer}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Phone</label>
-                    <Input
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                </div>
-
-                {/* Vehicle Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Vehicle Plate</label>
-                    <Input
-                      name="vehiclePlate"
-                      value={formData.vehiclePlate}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Vehicle Model</label>
-                    {isEditing ? (
-                      <Select
-                        value={formData.vehicleModel}
-                        onValueChange={(val) =>
-                          handleSelectChange("vehicleModel", val)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select vehicle model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vehicleModels.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={formData.vehicleModel}
-                        disabled
-                        className="bg-muted"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Technician Assignment */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Assigned Technician
-                  </label>
-                  {isEditing ? (
-                    <Select
-                      value={formData.technician}
-                      onValueChange={(val) =>
-                        handleSelectChange("technician", val)
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a technician" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {scTechnicians.map((tech) => (
-                          <SelectItem key={tech.id} value={tech.name}>
-                            {tech.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={formData.technician}
-                      disabled
-                      className="bg-muted"
-                    />
-                  )}
-                </div>
-
-                {/* Issue Description */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Issue Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border border-input ${
-                      isEditing ? "bg-background" : "bg-muted"
-                    }`}
-                  />
-                </div>
-
-                {/* Previous Warranty Count */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Previous Warranty Count
-                  </label>
-                  <Input
-                    name="previousCount"
-                    value={formData.previousCount || ""}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""}
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                {isEditing && (
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="outline" onClick={handleCancel}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSave}
-                      className="bg-black hover:bg-gray-800 text-white"
-                    >
-                      Save Changes
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Status & Metadata */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Current Status
-                  </p>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    {formData.status}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Metadata</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+        {claim && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-xs text-muted-foreground">Created By</p>
-                <p className="font-medium">{formData.createdBy}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">VIN</h4>
+                <p className="font-medium">{claim.vin}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Warranty ID</p>
-                <p className="font-medium">{formData.warrantyId}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Policy ID</h4>
+                <p className="font-medium">{claim.policyId}</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Claim Date</h4>
+                <p className="font-medium">{claim.claimDate}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
+                <Badge variant="outline" className={getStatusColor(claim.status)}>
+                  {claim.status}
+                </Badge>
+              </div>
+              <div className="col-span-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">SC Staff ID</h4>
+                <p className="font-medium">{claim.scStaffId}</p>
+              </div>
+              <div className="col-span-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Technician ID</h4>
+                <p className="font-medium">{claim.scTechnicianId}</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
+              <p className="text-sm">{claim.description}</p>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">EVM Description</h4>
+              <p className="text-sm">{claim.evmDescription}</p>
+            </div>
+
+            <Button
+              onClick={handleMarkComplete}
+              disabled={claim.status !== "HANDOVER" || loading}
+              className="w-full bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading
+                ? "Processing..."
+                : claim.status === "HANDOVER"
+                  ? "Mark Complete"
+                  : "Can only mark complete when status is HANDOVER"}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
