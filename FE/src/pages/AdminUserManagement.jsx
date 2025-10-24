@@ -159,9 +159,9 @@ export default function AdminUserManagement() {
                 <h1 className="text-3xl font-bold text-foreground">
                   User Management
                 </h1>
-                <p className="text-muted-foreground mt-1">
+                {/* <p className="text-muted-foreground mt-1">
                   Manage system users and permissions
-                </p>
+                </p> */}
               </div>
               {/* Form Add User */}
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

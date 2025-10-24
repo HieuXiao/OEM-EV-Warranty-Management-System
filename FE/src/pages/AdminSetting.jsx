@@ -43,9 +43,9 @@ export default function AdminSetting() {
               <h1 className="text-3xl font-bold text-foreground">
                 System Settings
               </h1>
-              <p className="text-muted-foreground mt-1">
+              {/* <p className="text-muted-foreground mt-1">
                 Configure system preferences and integrations
-              </p>
+              </p> */}
             </div>
             {/* Switch Tabs */}
             <Tabs defaultValue="general" className="space-y-6">
