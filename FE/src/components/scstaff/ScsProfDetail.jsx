@@ -2,7 +2,7 @@ import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
 import CustomerVinCard from "@/components/scstaff/ScsProfCard";
 import { Label } from "@radix-ui/react-label";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { mockCustomers, mockVIN, vehicleModels } from "@/lib/Mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,25 +25,61 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import axiosPrivate from "@/api/axios";
+
+const CUSTOMERS_URL = "/api/customer/";
+const VEHICLES_BY_PHONE_URL = "/api/vehicle/customer/";
+const VEHICLE_CREATE_URL = "/api/vehicle/create";
 
 export default function CustomerDetail() {
   const { id } = useParams();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const [phone, setPhone] = useState();
+  const [customer, setCustomer] = useState({});
+  const [formData, setFormData] = useState({});
+  const [vinList, setVinList] = useState([]);
 
-  const customer = mockCustomers.find((c) => c.id === id);
-  const [formData, setFormData] = useState(customer || {});
-  const [vinList, setVinList] = useState(
-    mockVIN.filter((v) => v.customerName === customer?.name)
-  );
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const response = await axiosPrivate.get(CUSTOMERS_URL);
+        const cus = response.data.find((c) => c.customerId === parseInt(id));
+        setPhone(cus.customerPhone);
+        setCustomer(cus);
+      } catch (error) {
+        console.error("API Error: " + error.message);
+      }
+    }
+    fetchCustomers();
+  }, [id]);
+  useEffect(() => {
+    if (customer && Object.keys(customer).length > 0) {
+      setFormData(customer);
+    }
+  }, [customer]);
+
+  useEffect(() => {
+    if (!phone) return;
+    async function fetchVehicles() {
+      try {
+        const response = await axiosPrivate.get(VEHICLES_BY_PHONE_URL + phone);
+        setVinList(response.data);
+      } catch (error) {
+        console.error("API Error: " + error.message);
+      }
+    }
+    fetchVehicles();
+  }, [phone]);
 
   // Form state
   const [formVinData, setFormVinData] = useState({
     vin: "",
-    vehicleType: "",
-    model: "",
     plate: "",
-    customerName: customer.name,
+    type: "",
+    color: "",
+    model: "",
+    customerPhone: "",
   });
 
   if (!customer) return <p>Customer not found</p>;
@@ -53,17 +89,31 @@ export default function CustomerDetail() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleAddVIN = () => {
-    const newVIN = {
+  const handleAddVIN = async (e) => {
+    e.preventDefault();
+
+    const newVehicle = {
       vin: formVinData.vin,
-      type: formVinData.type,
-      model: formVinData.model,
       plate: formVinData.plate,
-      customerName: formVinData.customerName,
+      type: formVinData.type,
+      color: formVinData.color,
+      model: formVinData.model,
+      customerPhone: phone,
     };
-    setVinList([...vinList, newVIN]);
-    setIsAddDialogOpen(false);
-    resetForm();
+
+    try {
+      const response = await axiosPrivate.post(
+        VEHICLE_CREATE_URL,
+        JSON.stringify(newVehicle),
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      setVinList([...vinList, response.data]);
+      setIsAddDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("API Error: " + error.message);
+    }
   };
 
   const handleUpdateVIN = (updatedVin) => {
@@ -72,17 +122,14 @@ export default function CustomerDetail() {
     );
   };
 
-  const handleDeleteVIN = (vin) => {
-    setVinList((prev) => prev.filter((v) => v.vin !== vin));
-  };
-
   const resetForm = () => {
-    setFormData({
+    setFormVinData({
       vin: "",
-      type: "",
-      model: "",
       plate: "",
-      customerName: customer.name,
+      type: "",
+      color: "",
+      model: "",
+      customerPhone: phone,
     });
   };
 
@@ -116,7 +163,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Name</label>
                     <Input
                       name="name"
-                      value={formData.name}
+                      value={formData.customerName}
                       onChange={handleChange}
                     />
                   </div>
@@ -124,7 +171,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Email</label>
                     <Input
                       name="email"
-                      value={formData.email}
+                      value={formData.customerEmail}
                       onChange={handleChange}
                     />
                   </div>
@@ -132,7 +179,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Phone</label>
                     <Input
                       name="phone"
-                      value={formData.phone}
+                      value={formData.customerPhone}
                       onChange={handleChange}
                     />
                   </div>
@@ -140,7 +187,7 @@ export default function CustomerDetail() {
                     <label className="font-medium">Address</label>
                     <Input
                       name="address"
-                      value={formData.address}
+                      value={formData.customerAddress}
                       onChange={handleChange}
                     />
                   </div>
@@ -181,7 +228,7 @@ export default function CustomerDetail() {
                               vin: e.target.value,
                             })
                           }
-                          placeholder="VN-BIKE-0003"
+                          placeholder="6HPJVKVA8N*******"
                         />
                       </div>
                       <div className="flex gap-4">
@@ -208,6 +255,22 @@ export default function CustomerDetail() {
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                        </div>
+
+                        <div className="flex-1 grid gap-2">
+                          <Label htmlFor="color">Color</Label>
+                          <Input
+                            id="color"
+                            name="color"
+                            value={formVinData.color}
+                            onChange={(e) =>
+                              setFormVinData({
+                                ...formVinData,
+                                color: e.target.value,
+                              })
+                            }
+                            placeholder="Red"
+                          />
                         </div>
 
                         <div className="flex-1 grid gap-2">
@@ -261,7 +324,7 @@ export default function CustomerDetail() {
               </div>
 
               {/* VIN Cards */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {vinList.map((v) => (
                   <CustomerVinCard
                     key={v.vin}

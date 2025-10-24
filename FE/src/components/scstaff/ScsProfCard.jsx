@@ -22,7 +22,7 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
       <CardHeader>
         <CardTitle>{form.vin}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1">
         <div>
           <label className="text-sm font-medium">Model</label>
           <Input
@@ -46,6 +46,15 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
           <Input
             name="type"
             value={form.type}
+            onChange={handleChange}
+            disabled={!editMode}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Color</label>
+          <Input
+            name="color"
+            value={form.color}
             onChange={handleChange}
             disabled={!editMode}
           />
