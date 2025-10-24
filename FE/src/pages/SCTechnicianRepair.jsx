@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useState } from "react";
 import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
 import Header from "@/components/Header";
-import ReportRepair from "@/components/sctechnician/ScTechnicianRepiarForm";
+import ReportRepair from "@/components/sctechnician/ScTechnicianRepairForm";
 import {
   Card,
   CardContent,
@@ -10,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,9 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { mockJobs, mockUsers } from "@/lib/Mock-data";
+import { Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { mockJobs } from "@/lib/Mock-data";
 
 export default function SCTechnicianRepair() {
   const [selectedJob, setSelectedJob] = useState(null);
@@ -30,6 +30,8 @@ export default function SCTechnicianRepair() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
 
   const formatDateTime = (isoString) => {
     const date = new Date(isoString);
@@ -44,35 +46,16 @@ export default function SCTechnicianRepair() {
       .replace(",", "");
   };
 
-  function getStatusColor(status) {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-500";
-      case "in_progress":
-        return "bg-blue-500";
-      case "completed":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
-    }
-  }
-
-  const handleOpenReport = (job) => {
-    setSelectedJob(job);
-  };
-
-  const handleCloseReport = () => {
-    setSelectedJob(null);
-  };
+  // Modal open/close
+  const handleOpenReport = (job) => setSelectedJob(job);
+  const handleCloseReport = () => setSelectedJob(null);
 
   const handleCompleteRepair = () => {
     setJobs((prevJobs) => {
-      // Update the status
       const updatedJobs = prevJobs.map((job) =>
         job.id === selectedJob.id ? { ...job, status: "completed" } : job
       );
 
-      // Move completed jobs to the end of the list
       const sortedJobs = [
         ...updatedJobs.filter((job) => job.status !== "completed"),
         ...updatedJobs.filter((job) => job.status === "completed"),
@@ -84,15 +67,38 @@ export default function SCTechnicianRepair() {
     setSelectedJob(null);
   };
 
+  // Filtering logic
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    const matchesTechnician =
-      job.assignedTechnician.toLowerCase() === mockUsers[5].name.toLowerCase();
-    return matchesSearch && matchesStatus && matchesTechnician;
+    return matchesSearch && matchesStatus;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -102,102 +108,108 @@ export default function SCTechnicianRepair() {
         <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Repair Jobs</h1>
-              <p className="text-muted-foreground mt-1">
-                Active repair and maintenance tasks
-              </p>
+            {/* Header */}
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">
+                  Repair Jobs
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg">
+                  Active repair and maintenance tasks
+                </p>
+              </div>
+
+              {/* Search and filter */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by job number or vehicle plate..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-10 h-12 text-base"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Filters */}
+            {/* Jobs list */}
             <Card>
               <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by job number or vehicle plate..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-[200px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Jobs List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Repair Jobs List</CardTitle>
-                <CardDescription>
-                  {filteredJobs.length} job(s) found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {filteredJobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold">{job.jobNumber}</p>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getStatusColor(job.status)
-                              )}
-                            >
-                              {job.status.replace("_", " ")}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle:</span>{" "}
-                              {job.vehicleModel} - {job.vehiclePlate}
-                            </p>
-                            <p className="text-muted-foreground">
-                              <span className="font-medium">Date:</span>{" "}
-                              {formatDateTime(job.createdAt)}
-                            </p>
-                            <p className="text-muted-foreground">
-                              <span className="font-medium">SC Staff:</span>{" "}
-                              {job.assignedStaff}
-                            </p>
-                            <p className="text-muted-foreground">
-                              <span className="font-medium">Technician:</span>{" "}
-                              {job.assignedTechnician}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenReport(job)}
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Report
-                          </Button>
-                        </div>
-                      </div>
+                <div className="space-y-4">
+                  {/* Pagination info */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1}-
+                      {Math.min(endIndex, filteredJobs.length)} of{" "}
+                      {filteredJobs.length} job(s)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground px-2">
+                        Page {currentPage} of {totalPages || 1}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={
+                          currentPage === totalPages || totalPages === 0
+                        }
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Job cards grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {currentJobs.length > 0 ? (
+                      currentJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          onClick={() => handleOpenReport(job)}
+                          className="p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-lg">
+                                {job.jobNumber}
+                              </p>
+                            </div>
+
+                            <div className="space-y-1.5 text-sm">
+                              <p className="text-muted-foreground">
+                                <span className="font-medium">Vehicle:</span>{" "}
+                                {job.vehicleModel} - {job.vehiclePlate}
+                              </p>
+                              <p className="text-muted-foreground">
+                                <span className="font-medium">Date:</span>{" "}
+                                {formatDateTime(job.createdAt)}
+                              </p>
+                              <p className="text-muted-foreground">
+                                <span className="font-medium">SC Staff:</span>{" "}
+                                {job.assignedStaff}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        No jobs found matching your criteria
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

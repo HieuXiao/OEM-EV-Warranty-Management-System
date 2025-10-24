@@ -1,8 +1,8 @@
 import axios from "axios";
 import { getCurrentUser } from "@/lib/auth";
 
-// const BASE_URL =
-//   "https://oem-ev-warranty-management-system-be-production.up.railway.app";
+//  const BASE_URL =
+//    "https://oem-ev-warranty-management-system-be-production.up.railway.app";
 
 const axiosPrivate = axios.create({
   baseURL: "",
