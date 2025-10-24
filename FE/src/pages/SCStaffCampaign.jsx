@@ -2,9 +2,9 @@
 // IMPORT FROM COMPONENT
 import Header from "@/components/Header";
 import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
-import SCStaffSummary from "@/components/scstaff/ScsCampSummary";
+import SCStaffOverview from "@/components/scstaff/ScsCampOverview";
 import SCStaffAppointments from "@/components/scstaff/ScsCampAppSection";
-import ScsCampaignSection from "@/components/scstaff/ScsCampSection";
+import ScsCampaignPraticipants from "@/components/scstaff/ScsCampParticipant";
 import ScsReportSection from "@/components/scstaff/ScsRepoSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -20,27 +20,27 @@ export default function SCStaffProfile() {
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            <div>
+            {/* <div>
               <h1 className="text-3xl font-bold text-foreground">
                 Profile Management
               </h1>
-            </div>
+            </div> */}
 
-            <Tabs defaultValue="summary" className="space-y-6">
+            <Tabs defaultValue="overview" className="space-y-6">
               <TabsList>
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="list">Campaigns</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="practipant">Participants</TabsTrigger>
                 <TabsTrigger value="appointment">Appointments</TabsTrigger>
                 <TabsTrigger value="report">Reports</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
-              <TabsContent value="summary" className="space-y-4">
-                <SCStaffSummary />
+              <TabsContent value="overview" className="space-y-4">
+                <SCStaffOverview />
               </TabsContent>
-              {/* Campaign Tab */}
-              <TabsContent value="list" className="space-y-4">
-                <ScsCampaignSection />
+              {/* Praticipants Tab */}
+              <TabsContent value="practipant" className="space-y-4">
+                <ScsCampaignPraticipants />
               </TabsContent>
               {/* Appointments Tab */}
               <TabsContent value="appointment" className="space-y-4">

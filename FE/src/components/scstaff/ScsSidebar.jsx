@@ -33,14 +33,14 @@ export default function SCStaffSibebar() {
             funcName={"Dashboard"}
           />
           <NavigationItem
-            path={"/scstaff/warranty"}
-            icon={Shield}
-            funcName={"Warranty claim"}
-          />
-          <NavigationItem
             path={"/scstaff/profiles"}
             icon={FileUser}
             funcName={"Profile"}
+          />
+          <NavigationItem
+            path={"/scstaff/warranty"}
+            icon={Shield}
+            funcName={"Warranty claim"}
           />
           <NavigationItem
             path={"/scstaff/campaigns"}
