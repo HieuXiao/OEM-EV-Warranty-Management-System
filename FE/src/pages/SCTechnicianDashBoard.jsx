@@ -28,10 +28,16 @@ export default function SCTechnicianDashboard() {
     const fetchClaims = async () => {
       if (!techId) return;
       try {
-        const res = await axiosPrivate.get(
-          `/api/warranty_claims/technician/${techId}`
+        const res = await axiosPrivate.get(`/api/warranty_claims/`);
+        
+        const allClaims = res.data || [];
+
+        const technicianClaims = allClaims.filter(
+          (claim) => claim.scTechnicianId === techId
         );
-        setClaims(res.data || []);
+        
+        setClaims(technicianClaims);
+        
       } catch (err) {
         console.error("Error fetching claims:", err);
         setError("Failed to load technician claims.");
@@ -47,26 +53,9 @@ export default function SCTechnicianDashboard() {
     return d.toLocaleDateString("en-GB");
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-500";
-      case "in_progress":
-        return "bg-blue-500";
-      case "completed":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
   // Giả sử description hoặc status có thể phân biệt loại job
-  const checkJobs = claims.filter((c) =>
-    c.description?.toLowerCase().includes("check")
-  );
-  const repairJobs = claims.filter((c) =>
-    c.description?.toLowerCase().includes("repair")
-  );
+  const checkJobs = claims.filter((claim) => claim.status?.toUpperCase() === "CHECK");
+  const repairJobs = claims.filter((claim) => claim.status?.toUpperCase() === "REPAIR");
 
   if (loading)
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;

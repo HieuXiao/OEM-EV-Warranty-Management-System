@@ -65,7 +65,7 @@ const ReportRepair = ({ job, onClose, onComplete }) => {
       })),
     };
 
-    console.log("✅ Repair Completed:", repairResult);
+    console.log(" Repair Completed:", repairResult);
     onComplete(repairResult);
   };
 
