@@ -1,4 +1,5 @@
 // FE/src/components/scstaff/ScsCampParticipant.jsx
+
 import { useState } from "react"
 import { Calendar, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -149,7 +150,7 @@ export default function CampaignsSection() {
             </div>
           </div>
           <div className="flex gap-4">
-            <div className="flex-1 relative">
+            <div className="relative max-w-[550px] w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by owner, phone, or license plate..."
@@ -158,17 +159,6 @@ export default function CampaignsSection() {
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -177,50 +167,20 @@ export default function CampaignsSection() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  {/* <TableHead className="w-12 text-center">Contacted</TableHead>
-                  <TableHead className="pr-2">Actions</TableHead> */}
-                  <TableHead>Contacted</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3">Owner</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3">License Plate</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3">Phone</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3">Contacted</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedVehicles.map((vehicle) => (
                   <TableRow key={vehicle.id}>
-                    <TableCell>{vehicle.owner}</TableCell>
-                    <TableCell>{vehicle.licensePlate}</TableCell>
-                    <TableCell>{vehicle.phone}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          vehicle.status === "scheduled"
-                            ? "default"
-                            : vehicle.status === "contacted"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
-                        {vehicle.status}
-                      </Badge>
-                    </TableCell>
-                    {/* <TableCell className="w-12">
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={contactedVehicles.has(vehicle.id)}
-                          onCheckedChange={() => handleContactedToggle(vehicle.id)}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="pr-2">
-                      <Button size="sm" variant="outline" onClick={() => handleScheduleAppointment(vehicle)}>
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Schedule
-                      </Button>
-                    </TableCell> */}
-                    <TableCell>
+                    <TableCell className="px-4 py-3">{vehicle.owner}</TableCell>
+                    <TableCell className="px-4 py-3">{vehicle.licensePlate}</TableCell>
+                    <TableCell className="px-4 py-3">{vehicle.phone}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="m-[5px]">
                         <Checkbox
                           checked={contactedVehicles.has(vehicle.id)}
@@ -228,7 +188,7 @@ export default function CampaignsSection() {
                         />
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <Button size="sm" variant="outline" onClick={() => handleScheduleAppointment(vehicle)}>
                         <Calendar className="w-4 h-4 mr-2" />
                         Schedule
