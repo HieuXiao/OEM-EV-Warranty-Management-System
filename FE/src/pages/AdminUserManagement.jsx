@@ -51,6 +51,7 @@ import axios from "axios";
 import useAuth from "@/hook/useAuth";
 
 const USERS_URL = "/api/accounts/";
+const REGISTER_URL = "/api/auth/register";
 
 export default function AdminUserManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -67,12 +68,13 @@ export default function AdminUserManagement() {
   );
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    id: "",
+    username: "",
     password: "",
-    role: "sc_technician",
-    phone: "",
-    serviceCenter: "",
+    fullname: "",
+    gender: "male",
+    email: "",
+    phone: ""
   });
 
   const handleChange = (e) => {
@@ -159,10 +161,8 @@ export default function AdminUserManagement() {
                 <h1 className="text-3xl font-bold text-foreground">
                   User Management
                 </h1>
-                {/* <p className="text-muted-foreground mt-1">
-                  Manage system users and permissions
-                </p> */}
               </div>
+
               {/* Form Add User */}
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
@@ -172,6 +172,7 @@ export default function AdminUserManagement() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
+
                   <DialogHeader>
                     <DialogTitle>Add New User</DialogTitle>
                     <DialogDescription>
@@ -179,27 +180,30 @@ export default function AdminUserManagement() {
                       permissions
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+
+                  <div className="grid grid-cols-2 gap-4  py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="name">Account Id</Label>
                       <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
+                        id="id"
+                        name="id"
+                        value={formData.id}
                         onChange={handleChange}
-                        placeholder="Nguyen Van A"
+                        placeholder="ss001122"
                       />
                     </div>
+
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Email</Label>
+                      <Label htmlFor="name">Username</Label>
                       <Input
-                        id="email"
-                        name="email"
-                        value={formData.email}
+                        id="username"
+                        name="username"
+                        value={formData.username}
                         onChange={handleChange}
-                        placeholder="user@example.com"
+                        placeholder="AnVN02"
                       />
                     </div>
+
                     <div className="grid gap-2">
                       <Label htmlFor="password">Password</Label>
                       <Input
@@ -210,43 +214,48 @@ export default function AdminUserManagement() {
                         placeholder="*********"
                       />
                     </div>
+
                     <div className="grid gap-2">
-                      <Label htmlFor="role">Role</Label>
+                      <Label htmlFor="fullname">Full Name</Label>
+                      <Input
+                        id="fullname"
+                        name="fullname"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Nguyen Van An"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="gender">Gender</Label>
                       <Select
-                        name="role"
-                        value={formData.role}
+                        name="gender"
+                        value={formData.gender}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, role: value })
+                          setFormData({ ...formData, gender: value })
                         }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Administrator</SelectItem>
-                          <SelectItem value="evm_staff">EVM Staff</SelectItem>
-                          <SelectItem value="sc_staff">SC Staff</SelectItem>
-                          <SelectItem value="sc_technician">
-                            SC Technician
-                          </SelectItem>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    {(formData.role === "sc_staff" ||
-                      formData.role === "sc_technician") && (
-                      <>
-                        <div className="grid gap-2">
-                          <Label htmlFor="serviceCenter">Service Center</Label>
-                          <Input
-                            id="serviceCenter"
-                            name="serviceCenter"
-                            value={formData.serviceCenter}
-                            onChange={handleChange}
-                            placeholder="SC Hanoi Central"
-                          />
-                        </div>
-                      </>
-                    )}
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="nguyenvanan@example.com"
+                      />
+                    </div>
+                    
                     <div className="grid gap-2">
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input
@@ -254,7 +263,7 @@ export default function AdminUserManagement() {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        placeholder="1900150xxx"
+                        placeholder="0912345678"
                       />
                     </div>
                   </div>
@@ -269,7 +278,9 @@ export default function AdminUserManagement() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+
             </div>
+
             {/* Stats */}
             <div className="grid gap-5 md:grid-cols-5">
               <Card>
@@ -321,6 +332,7 @@ export default function AdminUserManagement() {
                 </CardContent>
               </Card>
             </div>
+
             {/* Users Table */}
             <Card>
               <CardHeader>
@@ -415,6 +427,7 @@ export default function AdminUserManagement() {
                 </div>
               </CardContent>
             </Card>
+
             {/* Edit Dialog */}
             <Dialog
               open={!!editingUser}
@@ -429,6 +442,16 @@ export default function AdminUserManagement() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
+                    <div className="grid gap-2">
+                    <Label htmlFor="edit-name">Account Id</Label>
+                    <Input
+                      id="edit-name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                    />
+                  </div>
+
                     <Label htmlFor="edit-name">Full Name</Label>
                     <Input
                       id="edit-name"
@@ -437,6 +460,26 @@ export default function AdminUserManagement() {
                       onChange={handleChange}
                     />
                   </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-gender">Gender</Label>
+                    <Select
+                      name="gender"
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, gender: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid gap-2">
                     <Label htmlFor="edit-email">Email</Label>
                     <Input
@@ -509,6 +552,7 @@ export default function AdminUserManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
           </div>
         </div>
       </div>
