@@ -30,6 +30,11 @@ export default function AdminSidebar() {
             funcName={"Warehouse Area"}
           />
           <NavigationItem
+            path={"/admin/parts-policy"}
+            icon={Warehouse}
+            funcName={"Parts & Policy"}
+          />
+          <NavigationItem
             path={"/admin/setting"}
             icon={Settings}
             funcName={"Setting"}
