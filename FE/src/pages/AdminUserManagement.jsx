@@ -130,21 +130,29 @@ export default function AdminUserManagement() {
   const openEditDialog = (user) => {
     setEditingUser(user);
     setFormData({
-      id: user.id,
+      id: user.accountId,
       username: user.username,
       password: "",
-      fullname: user.fullname,
-      gender: user.gender,
+      fullname: user.fullName,
+      gender: user.gender ? "male" : "female",
       email: user.email,
       phone: user.phone || "",
-      role: user.role,
-      serviceCenter: user.serviceCenter || "",
     });
   };
 
   const handleEditUser = async () => {
+    const updatedUser = {
+      username: formData.username,
+      password: formData.password || null, // nếu bỏ trống thì không đổi
+      fullName: formData.fullname,
+      gender: formData.gender === "male",
+      email: formData.email,
+      phone: formData.phone,
+    };
+
     try {
-      await axiosPrivate.put(`${USERS_URL}${formData.id}`, formData);
+      await axiosPrivate.put(`${USERS_URL}${formData.id}`, updatedUser);
+      console.log("User updated");
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
@@ -234,7 +242,6 @@ export default function AdminUserManagement() {
                 </DialogTrigger>
 
                 <DialogContent className="sm:max-w-[500px]">
-
                   <DialogHeader>
                     <DialogTitle>Add New User</DialogTitle>
                     <DialogDescription>
@@ -317,7 +324,6 @@ export default function AdminUserManagement() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-
             </div>
 
             {/* Search */}
@@ -416,7 +422,7 @@ export default function AdminUserManagement() {
               </CardContent>
             </Card>
 
-            {/* Edit Dialog */}
+            {/* Edit User Dialog */}
             <Dialog
               open={!!editingUser}
               onOpenChange={(open) => !open && setEditingUser(null)}
@@ -424,38 +430,94 @@ export default function AdminUserManagement() {
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>Edit User</DialogTitle>
+                  <DialogDescription>
+                    Update account information
+                  </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <Label>Full Name</Label>
-                  <Input
-                    name="fullname"
-                    value={formData.fullname}
-                    onChange={handleChange}
-                  />
-                  <Label>Email</Label>
-                  <Input
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                  <Label>Role</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(v) =>
-                      setFormData((p) => ({ ...p, role: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="evm_staff">EVM Staff</SelectItem>
-                      <SelectItem value="sc_staff">SC Staff</SelectItem>
-                      <SelectItem value="sc_technician">Technician</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-4 py-4">
+                  {/* Username */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="e.g. john_doe"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Leave blank to keep current"
+                    />
+                  </div>
+
+                  {/* Full Name */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="fullname">Full Name</Label>
+                    <Input
+                      id="fullname"
+                      name="fullname"
+                      value={formData.fullname}
+                      onChange={handleChange}
+                      placeholder="e.g. John Doe"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="e.g. john@example.com"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="e.g. 0987654321"
+                    />
+                  </div>
+
+                  {/* Gender */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(v) =>
+                        setFormData((p) => ({ ...p, gender: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
                 <DialogFooter>
                   <Button
                     variant="outline"
@@ -467,7 +529,6 @@ export default function AdminUserManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
           </div>
         </div>
       </div>
