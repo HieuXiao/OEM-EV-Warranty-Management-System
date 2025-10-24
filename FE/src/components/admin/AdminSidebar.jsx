@@ -1,4 +1,4 @@
-import { Users, BookOpen, Warehouse, Settings } from "lucide-react";
+import { Users, BookOpen, Warehouse, Settings, Package } from "lucide-react";
 import { Button } from "../ui/button";
 import UserInfo from "../UserInfo";
 import NavigationItem from "../NavigationItem";
@@ -31,7 +31,7 @@ export default function AdminSidebar() {
           />
           <NavigationItem
             path={"/admin/parts-policy"}
-            icon={Warehouse}
+            icon={Package}
             funcName={"Parts & Policy"}
           />
           <NavigationItem

@@ -117,7 +117,15 @@ export default function AdminPartsPolicy() {
         <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-
+            {/* Header */}
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Parts & Policies
+                </h1>
+                {/* <p className="text-muted-foreground mt-1">
+                  Manage Warehouse Aarea
+                </p> */}
+              </div>
             {/* Tabs */}
             <Tabs defaultValue="parts" className="space-y-6">
               <TabsList>
