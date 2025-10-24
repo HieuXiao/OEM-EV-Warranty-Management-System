@@ -130,20 +130,8 @@ export default function SCTechnicianCheck() {
                     className="pl-10 h-12 text-base"
                   />
                 </div>
-                {/* <Select value={statusFilter} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full md:w-[200px] h-12">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select> */}
               </div>
             </div>
-
             <Card>
               <CardContent className="pt-6">
                 <div className="space-y-4">
@@ -194,15 +182,6 @@ export default function SCTechnicianCheck() {
                               <p className="font-semibold text-lg">
                                 {job.jobNumber}
                               </p>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-xs capitalize",
-                                  getTypeColor(job.type)
-                                )}
-                              >
-                                {job.type.replace("_", " ")}
-                              </Badge>
                             </div>
                             <div className="space-y-1.5 text-sm">
                               <p className="text-muted-foreground">
