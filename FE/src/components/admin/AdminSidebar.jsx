@@ -1,3 +1,5 @@
+//  FE/src/components/admin/AdminSidebar.jsx
+
 import { Users, BookOpen, Warehouse, Settings, Package } from "lucide-react";
 import { Button } from "../ui/button";
 import UserInfo from "../UserInfo";

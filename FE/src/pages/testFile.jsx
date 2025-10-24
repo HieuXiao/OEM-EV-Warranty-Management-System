@@ -1,454 +1,459 @@
+import Sidebar from "@/components/admin/AdminSidebar"
+import Header from "@/components/header"
 import { useEffect, useState } from "react"
-import { Search, Filter, Eye, Plus, ArrowUpDown, Calendar } from "lucide-react"
-import SCStaffSidebar from "@/components/scstaff/ScsSidebar"
-import Header from "@/components/Header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { mockWarrantyClaims, vehicleModels, mockUsers } from "@/lib/Mock-data"
+import { Input } from "@/components/ui/input"
+import { Plus, Search, MoreVertical, Edit, Trash2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import axiosPrivate from "@/api/axios"
+import axios from "axios"
+import useAuth from "@/hook/useAuth"
 
-const getStatusColor = (status) => {
-  const colors = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    "in progress": "bg-blue-100 text-blue-800 border-blue-300",
-    completed: "bg-green-100 text-green-800 border-green-300",
-    rejected: "bg-red-100 text-red-800 border-red-300",
-  }
-  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300"
-}
+const USERS_URL = "/api/accounts/"
+const REGISTER_URL = "/api/auth/register"
 
-const getPriorityColor = (priority) => {
-  const colors = {
-    low: "bg-gray-100 text-gray-700 border-gray-300",
-    medium: "bg-orange-100 text-orange-700 border-orange-300",
-    high: "bg-red-100 text-red-700 border-red-300",
-  }
-  return colors[priority] || "bg-gray-100 text-gray-700 border-gray-300"
-}
-
-const getStatisticsClaims = (dateFrom, dateTo) => {
-  return mockWarrantyClaims.filter((claim) => {
-    const claimDate = new Date(claim.createdAt)
-    const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom)
-    const matchesDateTo = !dateTo || claimDate <= new Date(dateTo + "T23:59:59")
-    return matchesDateFrom && matchesDateTo
-  })
-}
-
-const getDefaultDateFrom = () => {
-  const date = new Date()
-  date.setDate(date.getDate() - 10)
-  return date.toISOString().split("T")[0]
-}
-
-const getDefaultDateTo = () => {
-  return new Date().toISOString().split("T")[0]
-}
-
-export default function SCStaffWarrantyClaim() {
-  const [currentUser] = useState({
-    name: "Tran Thi B",
-    role: "SC Staff",
-    serviceCenter: "SC Hanoi Central",
-  })
-
+export default function AdminUserManagement() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [selectedClaim, setSelectedClaim] = useState(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [dateFrom, setDateFrom] = useState(getDefaultDateFrom())
-  const [dateTo, setDateTo] = useState(getDefaultDateTo())
-  const [vehicleModelFilter, setVehicleModelFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("date-desc")
-  const [newClaimTechnician, setNewClaimTechnician] = useState("")
+  const [users, setUsers] = useState([])
+  const [editingUser, setEditingUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { auth } = useAuth()
 
-  const scTechnicians = mockUsers.filter((user) => user.role === "sc_technician")
+  const filteredUsers = users.filter(
+    (u) =>
+      u.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.username?.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
-  const statisticsClaims = getStatisticsClaims(dateFrom, dateTo)
-  const totalClaims = statisticsClaims.length
-  const pendingClaims = statisticsClaims.filter((claim) => claim.status === "pending").length
-  const inProgressClaims = statisticsClaims.filter((claim) => claim.status === "in progress").length
-  const completedClaims = statisticsClaims.filter((claim) => claim.status === "completed").length
+  const [formData, setFormData] = useState({
+    id: "",
+    username: "",
+    password: "",
+    fullname: "",
+    gender: "male",
+    email: "",
+    phone: "",
+  })
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const handleAddUser = async () => {
+    if (!formData.username || !formData.email || !formData.password || !formData.fullname) {
+      console.log("Please fill in all required fields")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await axios.post(REGISTER_URL, {
+        id: formData.id,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        fullname: formData.fullname,
+        gender: formData.gender,
+        phone: formData.phone,
+      })
+
+      setUsers([...users, response.data])
+      console.log("User added successfully")
+
+      setIsAddDialogOpen(false)
+      resetForm()
+    } catch (err) {
+      console.error("Add User Error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleEditUser = async () => {
+    if (!formData.fullname || !formData.email) {
+      console.log("Please fill in all required fields")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await axiosPrivate.put(`${USERS_URL}${editingUser.id}`, {
+        fullname: formData.fullname,
+        email: formData.email,
+        password: formData.password,
+        gender: formData.gender,
+        phone: formData.phone,
+      })
+
+      setUsers(users.map((u) => (u.id === editingUser.id ? response.data : u)))
+      console.log("User updated successfully")
+
+      setEditingUser(null)
+      resetForm()
+    } catch (err) {
+      console.error("Edit User Error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm("Are you sure you want to delete this user?")) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await axiosPrivate.delete(`${USERS_URL}${userId}`)
+      setUsers(users.filter((u) => u.id !== userId))
+      console.log("User deleted successfully")
+    } catch (err) {
+      console.error("Delete User Error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const openEditDialog = (user) => {
+    setEditingUser(user)
+    setFormData({
+      id: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      password: user.password,
+      gender: user.gender || "male",
+      phone: user.phone || "",
+      username: user.username || "",
+    })
+  }
+
+  const resetForm = () => {
+    setFormData({
+      id: "",
+      username: "",
+      password: "",
+      fullname: "",
+      gender: "male",
+      email: "",
+      phone: "",
+    })
+  }
+
+  function cancelEdit() {
+    setEditingUser(null)
+    resetForm()
+  }
 
   useEffect(() => {
-    document.title = `Warranty`
-  }, [])
-
-  const handleSetToday = () => {
-    setDateFrom(getDefaultDateFrom())
-    setDateTo(getDefaultDateTo())
-  }
-
-  const filteredClaims = mockWarrantyClaims
-    .filter((claim) => {
-      const matchesSearch =
-        claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-
-      const matchesStatus = statusFilter === "all" || claim.status === statusFilter
-
-      const matchesVehicleModel = vehicleModelFilter === "all" || claim.vehicleModel === vehicleModelFilter
-
-      const claimDate = new Date(claim.createdAt)
-      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom)
-      const matchesDateTo = !dateTo || claimDate <= new Date(dateTo + "T23:59:59")
-
-      return matchesSearch && matchesStatus && matchesVehicleModel && matchesDateFrom && matchesDateTo
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "date-desc":
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        case "date-asc":
-          return new Date(a.createdAt) - new Date(b.createdAt)
-        case "priority-high":
-          const priorityOrder = { high: 3, medium: 2, low: 1 }
-          return priorityOrder[b.priority] - priorityOrder[a.priority]
-        case "priority-low":
-          const priorityOrderLow = { high: 3, medium: 2, low: 1 }
-          return priorityOrderLow[a.priority] - priorityOrderLow[b.priority]
-        case "status":
-          return a.status.localeCompare(b.status)
-        default:
-          return 0
+    async function fetchUsers() {
+      try {
+        const response = await axiosPrivate.get(USERS_URL)
+        if (response.data && Array.isArray(response.data)) {
+          setUsers(response.data)
+        }
+      } catch (err) {
+        console.error("Fetch Users Error:", err.message)
       }
-    })
-
-  const handleViewClaim = (claim) => {
-    setSelectedClaim(claim)
-    setIsDialogOpen(true)
-  }
-
-  const handleMarkComplete = () => {
-    console.log("[v0] Marking claim as complete:", selectedClaim?.claimNumber)
-    setIsDialogOpen(false)
-  }
-
-  const handleCreateClaim = () => {
-    setIsCreateDialogOpen(true)
-  }
-
-  const handleSubmitNewClaim = (e) => {
-    e.preventDefault()
-    console.log("[v0] Creating new warranty claim with technician:", newClaimTechnician)
-    setIsCreateDialogOpen(false)
-    setNewClaimTechnician("")
-  }
+    }
+    fetchUsers()
+  }, [])
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSidebar name={currentUser.name} role={currentUser.role} />
-
+      <Sidebar />
       <div className="lg:pl-64">
-        <Header name={currentUser.name} email={"tranthib@sc.com"} />
-
+        <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by claim number, plate, or customer..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleCreateClaim} className="bg-black hover:bg-gray-800 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Create
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="date-from" className="text-sm font-medium whitespace-nowrap">
-                  From:
-                </Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[160px]"
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">User Management</h1>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label htmlFor="date-to" className="text-sm font-medium whitespace-nowrap">
-                  To:
-                </Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[160px]"
-                />
-              </div>
+              {/* Form Add User */}
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogDescription>Create a new user account</DialogDescription>
+                  </DialogHeader>
 
-              <Button variant="outline" size="sm" onClick={handleSetToday} className="gap-2 bg-transparent">
-                <Calendar className="h-4 w-4" />
-                Today
-              </Button>
-
-              <Select value={vehicleModelFilter} onValueChange={setVehicleModelFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Models" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Models</SelectItem>
-                  {vehicleModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[200px]">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date-desc">Date (Newest First)</SelectItem>
-                  <SelectItem value="date-asc">Date (Oldest First)</SelectItem>
-                  <SelectItem value="priority-high">Priority (High to Low)</SelectItem>
-                  <SelectItem value="priority-low">Priority (Low to High)</SelectItem>
-                  <SelectItem value="status">Status (A-Z)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {filteredClaims.length} of {totalClaims} claims
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {filteredClaims.map((claim) => (
-                <Card key={claim.claimNumber} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold">{claim.claimNumber}</h3>
-                          <Badge variant="outline" className={getStatusColor(claim.status)}>
-                            {claim.status}
-                          </Badge>
-                          <Badge variant="outline" className={getPriorityColor(claim.priority)}>
-                            {claim.priority}
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Vehicle: </span>
-                            <span className="font-medium">
-                              {claim.vehicleModel} - {claim.vehiclePlate}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Customer: </span>
-                            <span className="font-medium">{claim.customerName}</span>
-                            <span className="block text-muted-foreground text-xs mt-1">{claim.customerPhone}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button variant="ghost" size="sm" onClick={() => handleViewClaim(claim)} className="ml-4">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
+                  <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="fullname">Full Name</Label>
+                      <Input
+                        id="fullname"
+                        name="fullname"
+                        value={formData.fullname}
+                        onChange={handleChange}
+                        placeholder="Nguyen Van An"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        placeholder="AnVN02"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="nguyenvanan@example.com"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="id">Account Id</Label>
+                      <Input
+                        id="id"
+                        name="id"
+                        value={formData.id}
+                        onChange={handleChange}
+                        placeholder="AnNV"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="0912345678"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="*********"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select
+                        name="gender"
+                        value={formData.gender}
+                        onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsAddDialogOpen(false)
+                        resetForm()
+                      }}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddUser} disabled={isLoading}>
+                      {isLoading ? "Adding..." : "Add User"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
+
+            {/* Stats */}
+            <div className="grid gap-5 md:grid-cols-1">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{users.length}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Users Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle>All Users</CardTitle>
+                    <CardDescription>Manage user accounts</CardDescription>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <p className="font-medium text-sm">{u.fullname}</p>
+                                <p className="text-xs text-muted-foreground">{u.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{u.username}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{u.phone || "-"}</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" disabled={isLoading}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditDialog(u)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(u.id)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Edit Dialog */}
+            <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Edit User</DialogTitle>
+                  <DialogDescription>Update user information</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-fullname">Full Name</Label>
+                    <Input id="edit-fullname" name="fullname" value={formData.fullname} onChange={handleChange} />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input id="edit-email" name="email" type="email" value={formData.email} onChange={handleChange} />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-phone">Phone Number</Label>
+                    <Input id="edit-phone" name="phone" value={formData.phone} onChange={handleChange} />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-password">Password</Label>
+                    <Input
+                      id="edit-password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-gender">Gender</Label>
+                    <Select
+                      name="gender"
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => cancelEdit()} disabled={isLoading}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleEditUser} disabled={isLoading}>
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">{selectedClaim?.claimNumber}</DialogTitle>
-              <Badge variant="outline" className={getStatusColor(selectedClaim?.status)}>
-                {selectedClaim?.status}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">Warranty claim details and actions</p>
-          </DialogHeader>
-
-          {selectedClaim && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Vehicle</h4>
-                  <p className="font-medium">
-                    {selectedClaim.vehicleModel} - {selectedClaim.vehiclePlate}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Customer</h4>
-                  <p className="font-medium">{selectedClaim.customerName}</p>
-                  <p className="text-sm text-muted-foreground">{selectedClaim.customerPhone}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Service Center</h4>
-                  <p className="font-medium">{selectedClaim.serviceCenter}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Kilometers</h4>
-                  <p className="font-medium">{selectedClaim.kilometers.toLocaleString()}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Priority</h4>
-                  <Badge variant="outline" className={getPriorityColor(selectedClaim.priority)}>
-                    {selectedClaim.priority}
-                  </Badge>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Created</h4>
-                  <p className="font-medium">{selectedClaim.createdAt}</p>
-                </div>
-                <div className="col-span-2">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Assigned Technician</h4>
-                  <p className="font-medium">
-                    {selectedClaim.assignedTechnician || (
-                      <span className="text-muted-foreground italic">Not assigned yet</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Issue Description</h4>
-                <p className="text-sm">{selectedClaim.issueDescription}</p>
-              </div>
-
-              {selectedClaim.estimatedCost && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Estimated Cost</h4>
-                  <p className="text-lg font-semibold">{selectedClaim.estimatedCost.toLocaleString()} VND</p>
-                </div>
-              )}
-
-              <Button onClick={handleMarkComplete} className="w-full bg-black hover:bg-gray-800 text-white">
-                Mark Complete
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Create New Warranty Claim</DialogTitle>
-            <p className="text-sm text-muted-foreground">Fill in the details to create a new warranty claim</p>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmitNewClaim} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">Created By (SC Staff)</label>
-                <Input value={currentUser.name} disabled className="bg-muted" />
-              </div>
- 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Phone</label>
-                <Input placeholder="e.g., 0901234567" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Name</label>
-                <Input placeholder="Enter customer name" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vehicle Plate</label>
-                <Input placeholder="e.g., 30A-12345" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vehicle Model</label>
-                <Select required>
-                  <SelectTrigger
-                    className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md"
-                  >
-                    <SelectValue placeholder="Select vehicle model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicleModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Assign to Technician</label>
-                <Select value={newClaimTechnician} onValueChange={setNewClaimTechnician} required>
-                  <SelectTrigger
-                    className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md"
-                  >
-                    <SelectValue placeholder="Select a technician" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scTechnicians.map((tech) => (
-                      <SelectItem key={tech.id} value={tech.name}>
-                        {tech.name}
-                      </SelectItem>
-                    ))} 
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Previous Warranty Count</label>
-                <Input placeholder="e.g., 01;02;10,.." required/>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Issue Description</label>
-              <textarea
-                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background"
-                placeholder="Describe the issue in detail..."
-                required
-              />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-black hover:bg-gray-800 text-white">
-                Create Claim
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
