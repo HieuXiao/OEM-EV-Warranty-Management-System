@@ -7,6 +7,7 @@ import AdminUserManagement from "./pages/AdminUserManagement";
 import AdminWarehouseArea from "./pages/AdminWarehouseArea";
 import AdminPartsPolicy from "./pages/AdminParts&Policy";
 import AdminSetting from "./pages/AdminSetting";
+import AdminServiceCenter from "./pages/AdminServiceCenter";
 // IMPORT SCSTAFF
 import SCStaffDashboard from "./pages/SCStaffDashboard";
 import SCStaffProfile from "./pages/SCStaffProfile";
@@ -44,6 +45,7 @@ function App() {
           <Route path="/admin/users" element={<AdminUserManagement />} />
           <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
           <Route path="/admin/parts-policy" element={<AdminPartsPolicy />} />
+          <Route path="/admin/service-centers" element={<AdminServiceCenter />} />
         </Route>
 
         {/* ScStaff */}
