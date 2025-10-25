@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, MoreVertical, Edit, Shield, Power } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import AdminUserDetail from "@/components/admin/AdUserDetail.jsx";
+
 import {
   Card,
   CardContent,
@@ -55,6 +57,8 @@ export default function AdminUserManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -163,9 +167,17 @@ export default function AdminUserManagement() {
   // ================== ENABLE / DISABLE USER ==================
   const toggleUserStatus = async (user) => {
     try {
-      await axiosPrivate.patch(`${USERS_URL}${user.id}/status`, {
-        enabled: !user.enabled,
-      });
+      const accountId = user.accountId;
+      const newStatus = !user.enabled;
+
+      await axiosPrivate.put(
+        `/api/accounts/${accountId}/status?enabled=${newStatus}`
+      );
+      console.log(
+        `User ${accountId} status updated to ${
+          newStatus ? "enabled" : "disabled"
+        }`
+      );
       fetchUsers();
     } catch (err) {
       console.error("Toggle user status failed:", err);
@@ -356,6 +368,7 @@ export default function AdminUserManagement() {
                           <TableHead>Phone Number</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -363,13 +376,24 @@ export default function AdminUserManagement() {
                       <TableBody>
                         {filteredUsers.length > 0 ? (
                           filteredUsers.map((u) => (
-                            <TableRow key={u.accountId}>
+                            <TableRow
+                              key={u.accountId}
+                              onClick={() => {
+                                setSelectedUser(u);
+                                setIsDetailDialogOpen(true);
+                              }}
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            >
                               <TableCell className="font-medium">
                                 {u.username}
                               </TableCell>
+
                               <TableCell>{u.fullName}</TableCell>
+
                               <TableCell>{u.phone || "—"}</TableCell>
+
                               <TableCell>{u.email}</TableCell>
+
                               <TableCell>
                                 <Badge
                                   variant="outline"
@@ -378,6 +402,16 @@ export default function AdminUserManagement() {
                                   )} text-white`}
                                 >
                                   {getRoleLabel(u.roleName?.toLowerCase())}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    u.enabled ? "bg-green-500" : "bg-red-500"
+                                  }
+                                >
+                                  {u.enabled ? "Enabled" : "Disabled"}
                                 </Badge>
                               </TableCell>
 
@@ -397,7 +431,13 @@ export default function AdminUserManagement() {
                                     <DropdownMenuItem
                                       onClick={() => toggleUserStatus(u)}
                                     >
-                                      <Power className="mr-2 h-4 w-4" />
+                                      <Power
+                                        className={`mr-2 h-4 w-4 ${
+                                          u.enabled
+                                            ? "text-red-500"
+                                            : "text-green-500"
+                                        }`}
+                                      />
                                       {u.enabled ? "Disable" : "Enable"}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -529,6 +569,14 @@ export default function AdminUserManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <AdminUserDetail
+              open={isDetailDialogOpen}
+              onClose={() => setIsDetailDialogOpen(false)}
+              user={selectedUser}
+              onToggleStatus={toggleUserStatus}
+            />
+            
           </div>
         </div>
       </div>
