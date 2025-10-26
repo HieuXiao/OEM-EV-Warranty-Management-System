@@ -25,10 +25,16 @@ export default function LoginForm({
     setError("");
     setIsLoading(true);
 
+    const trimmedAccountId = accountId.trim();
+    const trimmedPassword = password.trim();
+
     try {
       const response = await axiosPrivate.post(
         LOGIN_URL,
-        JSON.stringify({ accountId, password }),
+        JSON.stringify({
+          accountId: trimmedAccountId,
+          password: trimmedPassword,
+        }),
         {
           headers: { "Content-Type": "application/json" },
         }
