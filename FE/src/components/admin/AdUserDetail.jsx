@@ -114,24 +114,6 @@ export default function AdminUserDetail({ open, onClose, user, onToggleStatus, o
           )}
         </div>
 
-        <Separator className="my-4" />
-
-        {/* ===== Footer Actions ===== */}
-        {/* <div className="flex justify-between mt-2">
-          <Button
-            variant="destructive"
-            className="gap-2"
-            onClick={() => onToggleStatus(user)}
-          >
-            <Trash2 className="h-4 w-4" />
-            {enabled ? "Disable" : "Enable"}
-          </Button>
-
-          <Button className="gap-2" onClick={() => onEdit(user)}>
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
-        </div> */}
       </DialogContent>
     </Dialog>
   )
