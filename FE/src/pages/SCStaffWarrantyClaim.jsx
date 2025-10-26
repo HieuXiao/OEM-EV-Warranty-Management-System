@@ -57,7 +57,7 @@ export default function SCStaffWarrantyClaim() {
     const fetchClaims = async () => {
       try {
         setLoading(true)
-        const response = await axiosPrivate.get("/api/warranty_claims/", {
+        const response = await axiosPrivate.get("/api/warranty-claims", {
           params: {
             dateFrom,
             dateTo,

@@ -73,7 +73,7 @@ export default function SCTechnicianCheck() {
 
   const fetchClaimsAndEnrich = async () => {
     try {
-      const res = await axiosPrivate.get("/api/warranty_claims/");
+      const res = await axiosPrivate.get("/api/warranty-claims");
       const data = Array.isArray(res?.data) ? res.data : [];
 
       // filter CHECK status

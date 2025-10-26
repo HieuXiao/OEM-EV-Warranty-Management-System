@@ -28,7 +28,7 @@ export default function SCTechnicianDashboard() {
     const fetchClaims = async () => {
       if (!techId) return;
       try {
-        const res = await axiosPrivate.get(`/api/warranty_claims/`);
+        const res = await axiosPrivate.get(`/api/warranty-claims`);
         
         const allClaims = res.data || [];
 
