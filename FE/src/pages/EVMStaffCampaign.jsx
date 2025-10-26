@@ -19,7 +19,7 @@ import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
 import axiosPrivate from "@/api/axios";
 
-const CAMPAIGN_URL = "/api/campaign/";
+const CAMPAIGN_URL = "/api/campaigns/all";
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +28,7 @@ export default function EVMStaffCampaign() {
   const [viewCampaign, setViewCampaign] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 5;
 
   useEffect(() => {
     async function fetchCampaigns() {
@@ -75,16 +75,33 @@ export default function EVMStaffCampaign() {
     setEditingCampaign(null);
   };
 
+  const getCampaignStatus = (startDate, endDate) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày hôm nay
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày bắt đầu
+
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày kết thúc
+
+    if (now > end) {
+      return "completed";
+    } else if (now >= start && now <= end) {
+      return "on going";
+    } else {
+      // now < start
+      return "not yet";
+    }
+  };
+
   // border-only pill; keep original casing (do not uppercase)
-  const getStatusBadge = (decision) => {
-    const s = String(decision || "").toLowerCase();
+  const getStatusBadge = (status) => {
+    const s = String(status || "").toLowerCase();
     const map = {
-      done: "text-green-700 border-green-400",
-      cancel: "text-red-700 border-red-400",
-      process: "text-yellow-700 border-yellow-400",
-      to_do: "text-blue-700 border-blue-400",
-      "to do": "text-blue-700 border-blue-400",
-      "on going": "text-yellow-700 border-yellow-400",
+      completed: "text-green-700 border-green-400",
+      "not yet": "text-blue-700 border-blue-400",
+      "on going": "text-yellow-600 border-yellow-600",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
@@ -138,14 +155,11 @@ export default function EVMStaffCampaign() {
                       <TableHead className="max-w-[360px] text-left">
                         Description
                       </TableHead>
-                      {/* <TableHead className="w-40 text-left">
-                        Collected
-                      </TableHead> */}
                       <TableHead className="w-40 text-left">
                         Start Date
                       </TableHead>
                       <TableHead className="w-32 text-left">Due Date</TableHead>
-                      {/* <TableHead className="w-32 text-center">Status</TableHead> */}
+                      <TableHead className="w-32 text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -164,50 +178,20 @@ export default function EVMStaffCampaign() {
                         <TableCell className="max-w-[360px] whitespace-normal break-words text-left">
                           {(campaign.serviceDescription || "").slice(0, 60)}
                         </TableCell>
-                        {/* <TableCell className="w-40 text-left align-top">
-                          show percentage bar if data available
-                          {campaign.completedVehicles &&
-                          campaign.affectedVehicles ? (
-                            (() => {
-                              const pct = Math.round(
-                                (campaign.completedVehicles /
-                                  campaign.affectedVehicles) *
-                                  100
-                              );
-                              return (
-                                <div>
-                                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                    <div
-                                      className="h-2 bg-primary"
-                                      style={{
-                                        width: `${Math.min(
-                                          Math.max(pct, 0),
-                                          100
-                                        )}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mt-1">
-                                    {pct}%
-                                  </div>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              -
-                            </div>
-                          )}
-                        </TableCell> */}
                         <TableCell className="text-left">
                           {campaign.startDate}
                         </TableCell>
                         <TableCell className="text-left">
                           {campaign.endDate}
                         </TableCell>
-                        {/* <TableCell className="text-center align-middle">
-                          {getStatusBadge(campaign.status)}
-                        </TableCell> */}
+                        <TableCell className="text-center align-middle">
+                          {getStatusBadge(
+                            getCampaignStatus(
+                              campaign.startDate,
+                              campaign.endDate
+                            )
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

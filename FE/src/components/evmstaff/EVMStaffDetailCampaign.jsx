@@ -29,10 +29,10 @@ export default function EVMStaffDetailCampaign({
     percent = Math.round(campaign.collectedPercent);
   }
 
-  const partNames = (campaign.parts || []).map((pid) => {
-    const p = mockParts.find((x) => x.id === pid);
-    return p ? p.name : pid;
-  });
+  const modelDisplay =
+    Array.isArray(campaign.model) && campaign.model.length > 0
+      ? campaign.model.join(", ")
+      : campaign.model || "-";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,15 +57,8 @@ export default function EVMStaffDetailCampaign({
 
           <div>
             <Label>Vehicle Models</Label>
-            <div className="mt-1">{campaign.model}</div>
+            <div className="mt-1">{modelDisplay}</div>
           </div>
-
-          {/* <div>
-            <Label>Parts</Label>
-            <div className="mt-1">
-              {partNames.length ? partNames.join(", ") : "-"}
-            </div>
-          </div> */}
 
           <div>
             <Label>Description</Label>
