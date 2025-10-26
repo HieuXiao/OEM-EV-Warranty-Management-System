@@ -42,7 +42,7 @@ import {
 import axiosPrivate from "@/api/axios";
 
 const CUSTOMERS_URL = "/api/customers";
-const VEHICLES_BY_ID_URL = "/api/vehicles/customer/";
+const VEHICLES_BY_ID_URL = "/api/vehicles/search/";
 const VEHICLE_CREATE_URL = "/api/vehicles";
 
 export default function CustomerDetail() {
