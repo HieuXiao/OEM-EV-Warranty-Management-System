@@ -1,9 +1,5 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,15 +16,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, Edit, Power, Loader2 } from "lucide-react";
+import {
+  MoreVertical,
+  Edit,
+  Power,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 export default function AdUserTable({
-  users,
-  loading,
+  users = [],
+  loading = false,
   onEdit,
   onToggleStatus,
   onSelectUser,
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage] = useState(6);
+
+  const totalPages = Math.ceil(users.length / rowsPerPage);
+  const currentUsers = users.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
   const getRoleColor = (role) => {
     switch (role) {
       case "admin":
@@ -60,9 +72,33 @@ export default function AdUserTable({
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm border">
+      <CardHeader className="pb-3 flex items-center justify-between">
         <CardTitle>All Users</CardTitle>
+
+        {users.length > rowsPerPage && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -87,26 +123,43 @@ export default function AdUserTable({
               </TableHeader>
 
               <TableBody>
-                {users.length ? (
-                  users.map((u) => (
+                {currentUsers.length ? (
+                  currentUsers.map((u) => (
                     <TableRow
                       key={u.accountId}
-                      onClick={() => onSelectUser(u)}
+                      onClick={() => onSelectUser?.(u)}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
                     >
                       <TableCell className="font-medium">{u.username}</TableCell>
                       <TableCell>{u.fullName}</TableCell>
                       <TableCell>{u.phone || "—"}</TableCell>
-                      <TableCell>{u.email}</TableCell>
+                      <TableCell title={u.email}>
+                        {u.email?.length > 25
+                          ? u.email.slice(0, 25) + "..."
+                          : u.email}
+                      </TableCell>
 
                       <TableCell>
-                        <Badge className={`${getRoleColor(u.roleName?.toLowerCase())} text-white`}>
+                        <Badge
+                          className={`${getRoleColor(
+                            u.roleName?.toLowerCase()
+                          )} text-white`}
+                        >
                           {getRoleLabel(u.roleName?.toLowerCase())}
                         </Badge>
                       </TableCell>
 
                       <TableCell>
-                        <Badge className={u.enabled ? "bg-green-500" : "bg-red-500"}>
+                        <Badge
+                          className={`gap-1 ${
+                            u.enabled ? "bg-green-500" : "bg-red-500"
+                          }`}
+                        >
+                          <div
+                            className={`h-2 w-2 rounded-full ${
+                              u.enabled ? "bg-green-300" : "bg-red-300"
+                            }`}
+                          ></div>
                           {u.enabled ? "Enabled" : "Disabled"}
                         </Badge>
                       </TableCell>
@@ -123,7 +176,7 @@ export default function AdUserTable({
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onEdit(u);
+                                onEdit?.(u);
                               }}
                             >
                               <Edit className="mr-2 h-4 w-4" /> Edit
@@ -132,12 +185,14 @@ export default function AdUserTable({
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleStatus(u);
+                                onToggleStatus?.(u);
                               }}
                             >
                               <Power
                                 className={`mr-2 h-4 w-4 ${
-                                  u.enabled ? "text-red-500" : "text-green-500"
+                                  u.enabled
+                                    ? "text-red-500"
+                                    : "text-green-500"
                                 }`}
                               />
                               {u.enabled ? "Disable" : "Enable"}

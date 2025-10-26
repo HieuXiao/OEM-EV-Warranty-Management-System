@@ -5,12 +5,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { useEffect } from "react"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { useEffect } from "react";
 
 export default function AdUserEdit({
   open,
@@ -26,14 +32,13 @@ export default function AdUserEdit({
       setFormData({
         id: user.accountId,
         username: user.username,
-        password: "",
         fullname: user.fullName,
         gender: user.gender ? "male" : "female",
         email: user.email,
         phone: user.phone || "",
-      })
+      });
     }
-  }, [user])
+  }, [user]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -45,8 +50,6 @@ export default function AdUserEdit({
 
         <div className="grid grid-cols-2 gap-4 py-4">
           {[
-            { id: "username", label: "Username" },
-            { id: "password", label: "Password" },
             { id: "fullname", label: "Full Name" },
             { id: "email", label: "Email" },
             { id: "phone", label: "Phone Number" },
@@ -88,5 +91,5 @@ export default function AdUserEdit({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
