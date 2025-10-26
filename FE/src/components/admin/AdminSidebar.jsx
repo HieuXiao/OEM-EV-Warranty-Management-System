@@ -1,6 +1,6 @@
 //  FE/src/components/admin/AdminSidebar.jsx
 
-import { Users, BookOpen, Warehouse, Settings, Package } from "lucide-react";
+import { Users, BookOpen, Warehouse, Settings, Package, Building2 } from "lucide-react";
 import { Button } from "../ui/button";
 import UserInfo from "../UserInfo";
 import NavigationItem from "../NavigationItem";
@@ -25,6 +25,11 @@ export default function AdminSidebar() {
             path={"/admin/users"}
             icon={Users}
             funcName={"User Management"}
+          />
+          <NavigationItem
+            path={"/admin/service-centers"}
+            icon={Building2}
+            funcName={"Service Center"}
           />
           <NavigationItem
             path={"/admin/warehouses"}

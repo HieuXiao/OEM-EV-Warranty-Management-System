@@ -1,71 +1,33 @@
+//FE/src/pages/AdminUserManagement.jsx
+
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
-import profile from "../assets/profile.jpg";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, MoreVertical, Edit, Trash2, Shield } from "lucide-react";
-import { mockUsers } from "@/lib/Mock-data";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Search, Plus } from "lucide-react";
+import AdminUserDetail from "@/components/admin/AdUserDetail.jsx";
+import AdUserTable from "@/components/admin/AdUserTable.jsx";
+import AdUserEdit from "@/components/admin/AdUserEdit.jsx";
+import AdUserCreate from "@/components/admin/AdUserCreate.jsx";
 import axiosPrivate from "@/api/axios";
-import axios from "axios";
 import useAuth from "@/hook/useAuth";
 
 const USERS_URL = "/api/accounts/";
 const REGISTER_URL = "/api/auth/register";
 
 export default function AdminUserManagement() {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState(mockUsers);
-  const [editingUser, setEditingUser] = useState(null);
   const { auth } = useAuth();
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // State
+  const [users, setUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -74,486 +36,176 @@ export default function AdminUserManagement() {
     fullname: "",
     gender: "male",
     email: "",
-    phone: ""
+    phone: "",
+    role: "sc_technician",
+    serviceCenter: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const openEditDialog = (user) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: user.password,
-      role: user.role,
-      phone: user.phone || "",
-      serviceCenter: user.serviceCenter || "",
-    });
-  };
-
-  function cancelEdit(params) {
-    setEditingUser(null);
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role: "sc_technician",
-      phone: "",
-      serviceCenter: "",
-    });
-  }
-
-  function getRoleColor(role) {
-    switch (role) {
-      case "admin":
-        return "bg-purple-500";
-      case "evm_staff":
-        return "bg-blue-500";
-      case "sc_staff":
-        return "bg-green-500";
-      case "sc_technician":
-        return "bg-orange-500";
-      default:
-        return "bg-gray-400";
+  // ================== FETCH USERS ==================
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await axiosPrivate.get(USERS_URL);
+      setUsers(res.data || []);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  function getRoleLabel(role) {
-    switch (role) {
-      case "admin":
-        return "Admin";
-      case "evm_staff":
-        return "EVM Staff";
-      case "sc_staff":
-        return "SC Staff";
-      case "sc_technician":
-        return "Technician";
-      default:
-        return "Unknown";
-    }
-  }
+  };
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const response = await axiosPrivate.get(USERS_URL);
-        console.log(response.data);
-      } catch (err) {
-        console.error("API Error: " + err.message);
-      }
-    }
-    //fetchUsers();
+    fetchUsers();
   }, []);
 
+  // ================== FORM HANDLERS ==================
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () =>
+    setFormData({
+      id: "",
+      username: "",
+      password: "",
+      fullname: "",
+      gender: "male",
+      email: "",
+      phone: "",
+      role: "sc_technician",
+      serviceCenter: "",
+    });
+
+  // ================== CRUD ==================
+  const handleAddUser = async () => {
+    const newUser = {
+      accountId: formData.id,
+      username: formData.username,
+      password: formData.password,
+      fullName: formData.fullname,
+      gender: formData.gender === "male",
+      email: formData.email,
+      phone: formData.phone,
+    };
+
+    try {
+      await axiosPrivate.post(REGISTER_URL, newUser);
+      fetchUsers();
+      setIsAddDialogOpen(false);
+      resetForm();
+    } catch (err) {
+      console.error("Failed to add user:", err);
+    }
+  };
+
+  const handleEditUser = async () => {
+    const updatedUser = {
+      username: formData.username,
+      password: formData.password || null,
+      fullName: formData.fullname,
+      gender: formData.gender === "male",
+      email: formData.email,
+      phone: formData.phone,
+    };
+
+    try {
+      await axiosPrivate.put(`${USERS_URL}${formData.id}`, updatedUser);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Edit user failed:", err);
+    }
+  };
+
+  const toggleUserStatus = async (user) => {
+    try {
+      const newStatus = !user.enabled;
+      await axiosPrivate.put(
+        `${USERS_URL}${user.accountId}/status?enabled=${newStatus}`
+      );
+      fetchUsers();
+    } catch (err) {
+      console.error("Toggle user status failed:", err);
+    }
+  };
+
+  // ================== FILTER ==================
+  const filteredUsers = users.filter((u) =>
+    [u.username, u.fullName, u.email, u.roleName]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
+
+  // ================== UI ==================
   return (
     <div className="min-h-screen bg-muted/30">
       <Sidebar />
-      {/* Main Content */}
       <div className="lg:pl-64">
         <Header />
-        <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  User Management
-                </h1>
-              </div>
-
-              {/* Form Add User */}
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add User
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
-
-                  <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
-                    <DialogDescription>
-                      Create a new user account with specific role and
-                      permissions
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="grid grid-cols-2 gap-4  py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Account Id</Label>
-                      <Input
-                        id="id"
-                        name="id"
-                        value={formData.id}
-                        onChange={handleChange}
-                        placeholder="ss001122"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Username</Label>
-                      <Input
-                        id="username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        placeholder="AnVN02"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="*********"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="fullname">Full Name</Label>
-                      <Input
-                        id="fullname"
-                        name="fullname"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Nguyen Van An"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="gender">Gender</Label>
-                      <Select
-                        name="gender"
-                        value={formData.gender}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, gender: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="nguyenvanan@example.com"
-                      />
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="0912345678"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button>Add User</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-            </div>
-
-            {/* Stats */}
-            <div className="grid gap-5 md:grid-cols-5">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Users
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Admin</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    EVM Staff
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    SC Staff
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    SC Technician
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">5</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Users Table */}
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle>All Users</CardTitle>
-                    <CardDescription>
-                      Manage user accounts and permissions
-                    </CardDescription>
-                  </div>
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search users..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Service Center</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((u) => (
-                        <TableRow key={u.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div>
-                                <p className="font-medium text-sm">{u.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {u.email}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={`${getRoleColor(u.role)} text-white`}
-                            >
-                              {getRoleLabel(u.role)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {u.serviceCenter || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(u.createdAt).toLocaleDateString(
-                                "vi-VN"
-                              )}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => openEditDialog(u)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Edit Dialog */}
-            <Dialog
-              open={!!editingUser}
-              onOpenChange={(open) => !open && setEditingUser(null)}
-            >
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Edit User</DialogTitle>
-                  <DialogDescription>
-                    Update user information and permissions
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Account Id</Label>
-                    <Input
-                      id="edit-name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                    <Label htmlFor="edit-name">Full Name</Label>
-                    <Input
-                      id="edit-name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-gender">Gender</Label>
-                    <Select
-                      name="gender"
-                      value={formData.gender}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, gender: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-email">Email</Label>
-                    <Input
-                      id="edit-email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-password">Password</Label>
-                    <Input
-                      id="edit-password"
-                      name="password"
-                      type="text"
-                      value={formData.password}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-role">Role</Label>
-                    <Select
-                      name="role"
-                      value={formData.role}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, role: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrator</SelectItem>
-                        <SelectItem value="evm_staff">EVM Staff</SelectItem>
-                        <SelectItem value="sc_staff">SC Staff</SelectItem>
-                        <SelectItem value="sc_technician">
-                          SC Technician
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {(formData.role === "sc_staff" ||
-                    formData.role === "sc_technician") && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-serviceCenter">Service Center</Label>
-                      <Input
-                        id="edit-serviceCenter"
-                        name="serviceCenter"
-                        value={formData.serviceCenter}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  )}
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-phone">Phone Number</Label>
-                    <Input
-                      id="edit-phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => cancelEdit()}>
-                    Cancel
-                  </Button>
-                  <Button>Save Changes</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-3xl font-bold">User Management</h1>
           </div>
+
+          <div className="flex items-center justify-between mb-4">
+            {/* Thanh search */}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search user..."
+                className="w-[450px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Nút Add User */}
+            <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Create New User
+            </Button>
+          </div>
+
+          {/* Table */}
+          <AdUserTable
+            users={filteredUsers}
+            loading={loading}
+            onEdit={setEditingUser}
+            onToggleStatus={toggleUserStatus}
+            onSelectUser={(user) => {
+              setSelectedUser(user);
+              setIsDetailDialogOpen(true);
+            }}
+          />
+
+          {/* Dialogs */}
+          <AdUserCreate
+            open={isAddDialogOpen}
+            onClose={() => setIsAddDialogOpen(false)}
+            onReset={resetForm}
+            formData={formData}
+            onChange={handleChange}
+            onSubmit={handleAddUser}
+          />
+
+          <AdUserEdit
+            open={!!editingUser}
+            formData={formData}
+            onClose={() => setEditingUser(null)}
+            onChange={handleChange}
+            onSubmit={handleEditUser}
+            setFormData={setFormData}
+            user={editingUser}
+          />
+
+          <AdminUserDetail
+            open={isDetailDialogOpen}
+            onClose={() => setIsDetailDialogOpen(false)}
+            user={selectedUser}
+            onToggleStatus={toggleUserStatus}
+          />
         </div>
       </div>
     </div>
