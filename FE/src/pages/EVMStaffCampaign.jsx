@@ -14,6 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // import Badge removed; using inline border-only pill for status consistency
 import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
@@ -23,6 +30,7 @@ const CAMPAIGN_URL = "/api/campaigns/all";
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [viewCampaign, setViewCampaign] = useState(null);
@@ -42,39 +50,6 @@ export default function EVMStaffCampaign() {
     fetchCampaigns();
   }, []);
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    return campaign.campaignName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-  });
-
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
-  const paginatedCampaigns = filteredCampaigns.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleEditCampaign = (campaign) => {
-    setEditingCampaign(campaign);
-    setShowCampaignDialog(true);
-  };
-
-  const handleSaveCampaign = (campaignData) => {
-    if (editingCampaign) {
-      setCampaigns(
-        campaigns.map((c) =>
-          c.id === editingCampaign.id ? { ...c, ...campaignData } : c
-        )
-      );
-    } else {
-      setCampaigns([
-        ...campaigns,
-        { id: String(campaigns.length + 1), ...campaignData },
-      ]);
-    }
-    setEditingCampaign(null);
-  };
-
   const getCampaignStatus = (startDate, endDate) => {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày hôm nay
@@ -93,6 +68,46 @@ export default function EVMStaffCampaign() {
       // now < start
       return "not yet";
     }
+  };
+
+  const filteredCampaigns = campaigns
+    .filter((campaign) => {
+      return campaign.campaignName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    })
+    .filter((campaign) => {
+      // 2. Filter theo status
+      if (statusFilter === "all") {
+        return true; // Trả về tất cả nếu chọn "all"
+      }
+      const status = getCampaignStatus(campaign.startDate, campaign.endDate);
+      return status === statusFilter;
+    });
+
+  const totalPages =
+    Math.ceil(filteredCampaigns.length / itemsPerPage) === 0
+      ? 1
+      : Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const paginatedCampaigns = filteredCampaigns.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleSaveCampaign = (campaignData) => {
+    if (editingCampaign) {
+      setCampaigns(
+        campaigns.map((c) =>
+          c.id === editingCampaign.id ? { ...c, ...campaignData } : c
+        )
+      );
+    } else {
+      setCampaigns([
+        ...campaigns,
+        { id: String(campaigns.length + 1), ...campaignData },
+      ]);
+    }
+    setEditingCampaign(null);
   };
 
   // border-only pill; keep original casing (do not uppercase)
@@ -132,6 +147,25 @@ export default function EVMStaffCampaign() {
                   className="pl-10"
                 />
               </div>
+              {/* Thêm Filter Dropdown */}
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1); // Reset trang khi filter
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="not yet">Not Yet</SelectItem>
+                  <SelectItem value="on going">On Going</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 onClick={() => {
                   setEditingCampaign(null);
