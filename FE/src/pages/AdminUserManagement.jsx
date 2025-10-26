@@ -1,29 +1,52 @@
 //FE/src/pages/AdminUserManagement.jsx
 
+// ======================= IMPORTS =======================
+// Import layout & component utilities
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
+
+// React hooks
 import { useEffect, useState } from "react";
+
+// UI components (Shadcn)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Custom admin components
 import AdminUserDetail from "@/components/admin/AdUserDetail.jsx";
 import AdUserTable from "@/components/admin/AdUserTable.jsx";
 import AdUserEdit from "@/components/admin/AdUserEdit.jsx";
 import AdUserCreate from "@/components/admin/AdUserCreate.jsx";
+
+// API config & auth hook
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
+// ======================= CONSTANTS =======================
 const USERS_URL = "/api/accounts/";
 const REGISTER_URL = "/api/auth/register";
 
+// ======================= MAIN COMPONENT =======================
 export default function AdminUserManagement() {
   const { auth } = useAuth();
 
-  // State
+  // ================== STATE ==================
+  // User data and UI state
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [filterRole, setFilterRole] = useState("all");
 
+  // Dialog & form states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -42,6 +65,7 @@ export default function AdminUserManagement() {
   });
 
   // ================== FETCH USERS ==================
+  // Get list of users from API
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -59,11 +83,12 @@ export default function AdminUserManagement() {
   }, []);
 
   // ================== FORM HANDLERS ==================
+  // Handling input form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
+  //Reset form to original state
   const resetForm = () =>
     setFormData({
       id: "",
@@ -77,7 +102,8 @@ export default function AdminUserManagement() {
       serviceCenter: "",
     });
 
-  // ================== CRUD ==================
+  // ================== CRUD HANDLERS ==================
+  // Add new user (POST)
   const handleAddUser = async () => {
     const newUser = {
       accountId: formData.id,
@@ -98,11 +124,11 @@ export default function AdminUserManagement() {
       console.error("Failed to add user:", err);
     }
   };
-
+  // Edit user information (PUT)
   const handleEditUser = async () => {
     const updatedUser = {
-      username: formData.username,
-      password: formData.password || null,
+      username: editingUser.username,
+      password: null,
       fullName: formData.fullname,
       gender: formData.gender === "male",
       email: formData.email,
@@ -117,7 +143,7 @@ export default function AdminUserManagement() {
       console.error("Edit user failed:", err);
     }
   };
-
+  // Enable/Disable Account Status (PATCH)
   const toggleUserStatus = async (user) => {
     try {
       const newStatus = !user.enabled;
@@ -131,12 +157,17 @@ export default function AdminUserManagement() {
   };
 
   // ================== FILTER ==================
-  const filteredUsers = users.filter((u) =>
-    [u.username, u.fullName, u.email, u.roleName]
-      .join(" ")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  // Filter user list by search + role
+  const filteredUsers = users
+    .filter((u) =>
+      [u.username, u.fullName, u.email, u.roleName]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    )
+    .filter(
+      (u) => filterRole === "all" || u.roleName.toLowerCase() === filterRole
+    );
 
   // ================== UI ==================
   return (
@@ -144,31 +175,55 @@ export default function AdminUserManagement() {
       <Sidebar />
       <div className="lg:pl-64">
         <Header />
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h1 className="text-3xl font-bold">User Management</h1>
-          </div>
+          </div> */}
 
-          <div className="flex items-center justify-between mb-4">
-            {/* Thanh search */}
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search user..."
-                className="w-[450px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          {/* Toolbar: Search + Filter + Add */}
+          <Card className="border bg-white shadow-sm">
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 px-5 py-0">
+              {/* Search + Filter */}
+              <div className="flex items-center gap-2">
+                {/* Search box */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search user..."
+                    className="pl-9 w-[300px] sm:w-[400px] border-gray-300 focus-visible:ring-1 focus-visible:ring-primary h-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
 
-            {/* Nút Add User */}
-            <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Create New User
-            </Button>
-          </div>
+                {/* Filter role dropdown */}
+                <Select value={filterRole} onValueChange={setFilterRole}>
+                  <SelectTrigger className="w-[160px] border-gray-300 focus-visible:ring-1 focus-visible:ring-primary h-10">
+                    <SelectValue placeholder="Filter Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="evm_staff">EVM Staff</SelectItem>
+                    <SelectItem value="sc_staff">SC Staff</SelectItem>
+                    <SelectItem value="sc_technician">Technician</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Table */}
+              {/* Add new user button */}
+              <Button
+                className="gap-2 h-10"
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Create New User
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* User table */}
           <AdUserTable
             users={filteredUsers}
             loading={loading}
