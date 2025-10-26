@@ -1,4 +1,5 @@
 // FE/src/pages/AdminServiceCenter.jsx
+
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
@@ -6,16 +7,18 @@ import axiosPrivate from "@/api/axios";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-//Import Components
+// Import Components
 import AdServTable from "@/components/admin/AdServTable.jsx";
 import AdServCreate from "@/components/admin/AdServCreate.jsx";
 import AdServEdit from "@/components/admin/AdServEdit.jsx";
+import AdServDetail from "@/components/admin/AdServDetail.jsx"; // ✅ thêm import
 
 const CENTER_URL = "/api/service-centers";
 
 export default function AdminServiceCenter() {
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedCenterDetail, setSelectedCenterDetail] = useState(null);
 
   // dialogs state
   const [selectedCenter, setSelectedCenter] = useState(null);
@@ -78,15 +81,22 @@ export default function AdminServiceCenter() {
               </Button>
             </div>
 
-            {/* Table */}
-            <AdServTable
-              centers={centers}
-              loading={loading}
-              onEdit={handleEdit}
-              // Nếu chưa có Assign/Remove thì tạm thời để trống
-              onAssign={() => alert("Assign feature coming soon")}
-              onRemove={() => alert("Remove feature coming soon")}
-            />
+            {/* Render Table or Detail */}
+            {selectedCenterDetail ? (
+              <AdServDetail
+                center={selectedCenterDetail}
+                onBack={() => setSelectedCenterDetail(null)}
+              />
+            ) : (
+              <AdServTable
+                centers={centers}
+                loading={loading}
+                onEdit={handleEdit}
+                onAssign={() => alert("Assign feature coming soon")}
+                onRemove={() => alert("Remove feature coming soon")}
+                onRowClick={(center) => setSelectedCenterDetail(center)}
+              />
+            )}
 
             {/* Create Dialog */}
             <Dialog open={openCreate} onOpenChange={setOpenCreate}>
