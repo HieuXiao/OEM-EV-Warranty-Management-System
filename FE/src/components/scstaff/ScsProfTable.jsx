@@ -39,13 +39,12 @@ import {
 } from "@/components/ui/dialog";
 import axiosPrivate from "@/api/axios";
 
-const CUSTOMERS_URL = "/api/customer/";
-const CUSTOMER_CREATE_URL = "/api/customer/create";
-const VEHICLE_CREATE_URL = "/api/vehicle/create";
+const CUSTOMERS_URL = "/api/customers";
+const VEHICLE_CREATE_URL = "/api/vehicles";
 
 export default function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [errro, setError] = useState("");
+  const [formErrors, setFormErrors] = useState({});
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,7 +88,10 @@ export default function CustomersTable() {
     indexOfLastItem
   );
 
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const totalPages =
+    Math.ceil(filteredCustomers.length / itemsPerPage) === 0
+      ? 1
+      : Math.ceil(filteredCustomers.length / itemsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -101,7 +103,43 @@ export default function CustomersTable() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    setError("");
+    setFormErrors({});
+
+    // --- 1. BẮT LỖI INPUT (FRONT-END) ---
+    const errors = {};
+
+    // Kiểm tra Customer
+    if (!formData.customerName) errors.customerName = "Name is required.";
+    if (!formData.customerAddress)
+      errors.customerAddress = "Address is required.";
+    if (!formData.customerEmail) {
+      errors.customerEmail = "Email is required.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.customerEmail)) {
+      errors.customerEmail = "Email is invalid.";
+    }
+    if (!formData.customerPhone) {
+      errors.customerPhone = "Phone is required.";
+    } else if (!/^\d{10}$/.test(formData.customerPhone)) {
+      // Giả sử SĐT 10 số
+      errors.customerPhone = "Phone must be 10 digits.";
+    }
+
+    // Kiểm tra Vehicle
+    if (!formVinData.vin) {
+      errors.vin = "VIN is required.";
+    } else if (formVinData.vin.length !== 17) {
+      errors.vin = "VIN must be 17 characters.";
+    }
+    if (!formVinData.plate) errors.plate = "Vehicle plate is required.";
+    if (!formVinData.type) errors.type = "Vehicle type is required.";
+    if (!formVinData.color) errors.color = "Color is required.";
+    if (!formVinData.model) errors.model = "Model is required.";
+
+    // Nếu có bất kỳ lỗi nào, cập nhật state và dừng lại
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
 
     try {
       const newCustomer = {
@@ -111,41 +149,119 @@ export default function CustomersTable() {
         customerAddress: formData.customerAddress,
       };
 
-      const newVehicle = {
-        vin: formVinData.vin,
-        plate: formVinData.plate,
-        type: formVinData.type,
-        color: formVinData.color,
-        model: formVinData.model,
-        customerPhone: formData.customerPhone,
-      };
+      let createdCustomer = null;
 
-      axiosPrivate
-        .post(CUSTOMER_CREATE_URL, newCustomer, {
+      const customerResponse = await axiosPrivate.post(
+        CUSTOMERS_URL,
+        newCustomer,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      createdCustomer = customerResponse.data;
+
+      try {
+        const newVehicle = {
+          vin: formVinData.vin,
+          plate: formVinData.plate,
+          type: formVinData.type,
+          color: formVinData.color,
+          model: formVinData.model,
+          customerId: createdCustomer.customerId,
+        };
+
+        // --- BƯỚC 2: TẠO VEHICLE ---
+        await axiosPrivate.post(VEHICLE_CREATE_URL, newVehicle, {
           headers: { "Content-Type": "application/json" },
-        })
-        .then((res) => {
-          const createdCustomer = res.data;
-          setCustomers([...customers, createdCustomer]);
-          return axiosPrivate
-            .post(VEHICLE_CREATE_URL, newVehicle, {
-              headers: { "Content-Type": "application/json" },
-            })
-            .then(() => createdCustomer);
-        })
-        .then((createCustomer) => {
-          resetForm();
-          setIsAddDialogOpen(false);
-          navigate(`/scstaff/profiles/${createCustomer.customerId}`);
-        })
-        .catch((error) => console.error("API Error:", error.message));
-    } catch (error) {
-      if (error.response?.status === 409) {
-        setError("Customer already exists (duplicate email or phone)");
-      } else {
-        console.error("API Error:", error);
-        setError("Failed to add customer. Please try again.");
+        });
+
+        // === THÀNH CÔNG (Cả 2 đều OK) ===
+        setCustomers([...customers, createdCustomer]);
+        resetForm();
+        setIsAddDialogOpen(false);
+        navigate(`/scstaff/profiles/${createdCustomer.customerId}`);
+      } catch (vehicleError) {
+        console.error("Vehicle Creation Error:", vehicleError);
+        const fieldErrors = {}; // Lỗi cụ thể cho VIN/Plate
+        let apiErrorMessage = "Failed to create vehicle."; // Lỗi chung
+
+        // --- BƯỚC 3: ROLLBACK (Xóa Customer đã tạo) ---
+        let rollbackMessage = "Rolling back customer creation...";
+
+        try {
+          await axiosPrivate.delete(
+            CUSTOMERS_URL + `/${createdCustomer.customerId}`
+          );
+          rollbackMessage = "Customer creation was successfully rolled back.";
+        } catch (deleteError) {
+          console.error("Rollback Error:", deleteError);
+          setFormErrors({
+            api: "Critical error: Failed to add vehicle, AND failed to roll back customer. Please contact support.",
+          });
+          return; // Dừng ngay lập tức
+        }
+        // --- Phân tích lỗi Vehicle SAU KHI rollback ---
+        if (vehicleError.response) {
+          const { status, data } = vehicleError.response;
+          const message = data || ""; // Lấy message từ backend
+
+          if (status === 409) {
+            // Conflict
+            if (message.toLowerCase().includes("vin")) {
+              fieldErrors.vin = "This VIN is already registered.";
+            } else if (message.toLowerCase().includes(":")) {
+              fieldErrors.plate = "This Plate is already registered.";
+            } else {
+              apiErrorMessage = "Vehicle is a duplicate (VIN and Plate).";
+            }
+          } else {
+            apiErrorMessage = message || apiErrorMessage;
+          }
+        } else if (vehicleError.request) {
+          apiErrorMessage = "Network error while creating vehicle.";
+        }
+
+        // Gộp lỗi (lỗi field + lỗi api) và hiển thị
+        setFormErrors({
+          ...fieldErrors,
+          api: `${apiErrorMessage} ${rollbackMessage}`.trim(),
+        });
       }
+    } catch (customerError) {
+      // === LỖI BƯỚC 1 (Tạo Customer thất bại) ===
+      console.error("Customer Creation Error:", customerError);
+      const fieldErrors = {}; // Lỗi cụ thể cho Phone/Email
+      let apiErrorMessage = "Failed to add customer."; // Lỗi chung
+
+      if (customerError.response) {
+        const { status, data } = customerError.response;
+        const message = data?.message || ""; // Lấy message từ backend
+
+        if (status === 409) {
+          // Conflict
+          if (message.toLowerCase().includes("phone")) {
+            fieldErrors.customerPhone =
+              "This Phone number is already registered.";
+          } else if (message.toLowerCase().includes("email")) {
+            fieldErrors.customerEmail = "This Email is already registered.";
+          } else {
+            apiErrorMessage =
+              "Customer with this Email or Phone already exists.";
+          }
+        } else if (status === 400) {
+          apiErrorMessage = message || "Invalid data. Please check all fields.";
+        } else {
+          apiErrorMessage = message || apiErrorMessage;
+        }
+      } else if (customerError.request) {
+        apiErrorMessage = "Network error. Please check your connection.";
+      }
+
+      // Gộp lỗi (lỗi field + lỗi api nếu có) và hiển thị
+      setFormErrors({
+        ...fieldErrors,
+        // Chỉ hiển thị lỗi api nếu không có lỗi field cụ thể
+        ...(Object.keys(fieldErrors).length === 0 && { api: apiErrorMessage }),
+      });
     }
   };
 
@@ -206,7 +322,16 @@ export default function CustomersTable() {
               </div>
 
               {/* Add button */}
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <Dialog
+                open={isAddDialogOpen}
+                onOpenChange={(isOpen) => {
+                  setIsAddDialogOpen(isOpen);
+                  if (!isOpen) {
+                    setFormErrors({}); // Xóa lỗi khi đóng
+                    resetForm(); // Reset form khi đóng
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -231,6 +356,12 @@ export default function CustomersTable() {
                         onChange={handleChange}
                         placeholder="Nguyen Van A"
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.customerName && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.customerName}
+                        </p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="Email">Customer Email</Label>
@@ -241,6 +372,12 @@ export default function CustomersTable() {
                         onChange={handleChange}
                         placeholder="abc@gmail.com"
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.customerEmail && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.customerEmail}
+                        </p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="phone">Customer Phone</Label>
@@ -251,6 +388,12 @@ export default function CustomersTable() {
                         onChange={handleChange}
                         placeholder="0987654321"
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.customerPhone && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.customerPhone}
+                        </p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="address">Address</Label>
@@ -261,6 +404,12 @@ export default function CustomersTable() {
                         onChange={handleChange}
                         placeholder=""
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.customerAddress && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.customerAddress}
+                        </p>
+                      )}
                     </div>
                     <Separator />
                   </div>
@@ -288,6 +437,10 @@ export default function CustomersTable() {
                         }
                         placeholder="6HPJVKVA8N*******"
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.vin && (
+                        <p className="text-sm text-red-500">{formErrors.vin}</p>
+                      )}
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1 grid gap-2">
@@ -308,11 +461,17 @@ export default function CustomersTable() {
                             <SelectItem key="car" value="Car">
                               Car
                             </SelectItem>
-                            <SelectItem key="bike" value="Bike">
-                              Bike
+                            <SelectItem key="bike" value="Motorbike">
+                              Motorbike
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        {/* HIỂN THỊ LỖI */}
+                        {formErrors.type && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.type}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex-1 grid gap-2">
@@ -329,6 +488,12 @@ export default function CustomersTable() {
                           }
                           placeholder="Red"
                         />
+                        {/* HIỂN THỊ LỖI */}
+                        {formErrors.color && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.color}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex-1 grid gap-2">
@@ -350,6 +515,12 @@ export default function CustomersTable() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {/* HIỂN THỊ LỖI */}
+                        {formErrors.model && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.model}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="grid gap-2">
@@ -366,9 +537,19 @@ export default function CustomersTable() {
                         }
                         placeholder="59X1-11111"
                       />
+                      {/* HIỂN THỊ LỖI */}
+                      {formErrors.plate && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.plate}
+                        </p>
+                      )}
                     </div>
                   </div>
-
+                  {formErrors.api && (
+                    <p className="text-sm text-red-500 text-center">
+                      {formErrors.api}
+                    </p>
+                  )}
                   <DialogFooter>
                     <Button
                       variant="outline"
