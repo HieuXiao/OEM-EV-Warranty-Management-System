@@ -1,25 +1,41 @@
 import axios from "axios";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, clearAuth } from "@/lib/auth";
 
-//  const BASE_URL =
-//    "https://oem-ev-warranty-management-system-be-production.up.railway.app";
+// Có thể cấu hình sẵn nếu cần
+// const BASE_URL = "https://oem-ev-warranty-management-system-be-production.up.railway.app";
 
 const axiosPrivate = axios.create({
   baseURL: "",
   withCredentials: false,
 });
 
+// ✅ Interceptor: thêm Authorization + xử lý FormData
 axiosPrivate.interceptors.request.use(
   (config) => {
+    // Bảo đảm headers luôn là object
+    if (!config.headers) {
+      config.headers = {};
+    }
+
+    // Thêm token vào Authorization nếu có
     const user = getCurrentUser();
     if (user?.token) {
       config.headers["Authorization"] = `Bearer ${user.token}`;
     }
+
+    // Nếu data là FormData (ví dụ upload .png), xoá Content-Type mặc định
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"]; // axios sẽ tự thêm multipart/form-data
+    } else {
+      config.headers["Content-Type"] = "application/json";
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+// ✅ Interceptor: bắt lỗi response (giữ nguyên logic cũ của bạn)
 axiosPrivate.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -37,7 +53,6 @@ axiosPrivate.interceptors.response.use(
         console.error("Error clearing auth:", e);
       }
 
-      // Phát sự kiện toàn cục để các component khác (như Toast hoặc AuthProvider) có thể phản ứng
       try {
         window.dispatchEvent(
           new CustomEvent("app:unauthorized", {
@@ -50,7 +65,6 @@ axiosPrivate.interceptors.response.use(
         console.error("Error dispatching event:", e);
       }
 
-      // Nếu user không đang ở trang login thì điều hướng về login
       try {
         if (window.location.pathname !== "/login") {
           window.location.assign("/login");
@@ -60,7 +74,11 @@ axiosPrivate.interceptors.response.use(
       }
     }
 
-    // Luôn reject để các component có thể xử lý riêng nếu cần
+    // Ghi log lỗi 500 hoặc các lỗi khác (để dễ debug upload)
+    if (status === 500) {
+      console.error("💥 Internal Server Error:", error?.response?.data || {});
+    }
+
     return Promise.reject(error);
   }
 );
