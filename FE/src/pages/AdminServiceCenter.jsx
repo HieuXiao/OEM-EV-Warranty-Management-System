@@ -72,9 +72,6 @@ export default function AdminServiceCenter() {
                 <h1 className="text-3xl font-bold text-foreground">
                   Service Centers
                 </h1>
-                <p className="text-muted-foreground mt-1">
-                  Manage service centers
-                </p>
               </div>
               <Button onClick={() => setOpenCreate(true)}>
                 + Create New Center
