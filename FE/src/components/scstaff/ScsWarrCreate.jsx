@@ -1,467 +1,331 @@
-import { Button } from "@/components/ui/button";
-import { Search, Plus, ChevronRight, ChevronLeft, Eye } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
-import { vehicleModels } from "@/lib/Mock-data";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectItem,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import axiosPrivate from "@/api/axios";
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import axiosPrivate from "@/api/axios"
+import useAuth from "@/hook/useAuth"
 
-const CUSTOMERS_URL = "/api/customers";
-const CUSTOMER_CREATE_URL = "/api/customers";
-const VEHICLE_CREATE_URL = "/api/vehicles";
+const API_ENDPOINTS = {
+  CLAIMS: "/api/warranty-claims",
+  CUSTOMERS: "/api/customers",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+  CAMPAIGNS: "/api/campaigns/all",
+}
 
-export default function CustomersTable() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [errro, setError] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [customers, setCustomers] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const navigate = useNavigate();
+export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) {
+  const { auth } = useAuth()
+  const currentUser = auth
 
-  // Form state
-  const [formData, setFormData] = useState({
-    customerName: "",
-    customerEmail: "",
-    customerPhone: "",
-    customerAddress: "",
-  });
+  const [loading, setLoading] = useState(false)
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [customerName, setCustomerName] = useState("")
+  const [vehicles, setVehicles] = useState([])
+  const [selectedVin, setSelectedVin] = useState("")
+  const [vehicleModel, setVehicleModel] = useState("")
+  const [technicians, setTechnicians] = useState([])
+  const [selectedTechnician, setSelectedTechnician] = useState("")
+  const [description, setDescription] = useState("")
+  const [claimId, setClaimId] = useState("")
+  const [loadingVehicles, setLoadingVehicles] = useState(false)
+  const [loadingTechnicians, setLoadingTechnicians] = useState(false)
+  const [campaigns, setCampaigns] = useState([])
+  const [selectedCampaign, setSelectedCampaign] = useState("")
+  const [campaignFound, setCampaignFound] = useState(false)
 
-  const [formVinData, setFormVinData] = useState({
-    vin: "",
-    plate: "",
-    type: "",
-    color: "",
-    model: "",
-    customerPhone: "",
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.customerPhone.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Tính toán dữ liệu hiển thị theo trang
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCustomers.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
-
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      const newCustomer = {
-        customerName: formData.customerName,
-        customerPhone: formData.customerPhone,
-        customerEmail: formData.customerEmail,
-        customerAddress: formData.customerAddress,
-      };
-
-      const newVehicle = {
-        vin: formVinData.vin,
-        plate: formVinData.plate,
-        type: formVinData.type,
-        color: formVinData.color,
-        model: formVinData.model,
-        customerPhone: formData.customerPhone,
-      };
-
-      axiosPrivate
-        .post(CUSTOMER_CREATE_URL, newCustomer, {
-          headers: { "Content-Type": "application/json" },
-        })
-        .then((res) => {
-          const createdCustomer = res.data;
-          setCustomers([...customers, createdCustomer]);
-          return axiosPrivate
-            .post(VEHICLE_CREATE_URL, newVehicle, {
-              headers: { "Content-Type": "application/json" },
-            })
-            .then(() => createdCustomer);
-        })
-        .then((createCustomer) => {
-          resetForm();
-          setIsAddDialogOpen(false);
-          navigate(`/scstaff/profiles/${createCustomer.customerId}`);
-        })
-        .catch((error) => console.error("API Error:", error.message));
-    } catch (error) {
-      if (error.response?.status === 409) {
-        setError("Customer already exists (duplicate email or phone)");
-      } else {
-        console.error("API Error:", error);
-        setError("Failed to add customer. Please try again.");
-      }
+  // 🔹 Reset form mỗi khi mở dialog
+  useEffect(() => {
+    if (isOpen) {
+      resetForm()
+      fetchTechnicians()
+      fetchCampaigns()
+      generateClaimId()
     }
-  };
+  }, [isOpen])
 
   const resetForm = () => {
-    setFormData({
-      customerName: "",
-      customerEmail: "",
-      customerPhone: "",
-      customerAddress: "",
-    });
+    setCustomerPhone("")
+    setCustomerName("")
+    setVehicles([])
+    setSelectedVin("")
+    setVehicleModel("")
+    setSelectedTechnician("")
+    setDescription("")
+    setClaimId("")
+    setSelectedCampaign("")
+    setCampaignFound(false)
+  }
 
-    setFormVinData({
-      vin: "",
-      plate: "",
-      type: "",
-      color: "",
-      model: "",
-      customerPhone: "",
-    });
-  };
+  // 🔹 Sinh claimId theo format WC-{centerId}-{date}-{serial}
+  const generateClaimId = async () => {
+    const dateStr = new Date().toISOString().split("T")[0]
+    const centerId = currentUser?.serviceCenter?.centerId || "NA"
+    try {
+      const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
+      const claims = Array.isArray(res.data) ? res.data : []
+      const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`))
+      const nextSerial = (sameDay.length + 1).toString().padStart(3, "0")
+      const newId = `WC-${centerId}-${dateStr}-${nextSerial}`
+      setClaimId(newId)
+      return newId
+    } catch (err) {
+      console.error("Error generating claimId:", err)
+      const fallback = `WC-${centerId}-${dateStr}-001`
+      setClaimId(fallback)
+      return fallback
+    }
+  }
 
+  // 🔹 Lấy danh sách technician
+  const fetchTechnicians = async () => {
+    try {
+      setLoadingTechnicians(true)
+      const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
+      const list = Array.isArray(res.data) ? res.data : []
+      const techs = list.filter((a) => a.roleName === "SC_TECHNICIAN" && a.enabled)
+      setTechnicians(techs)
+    } catch (e) {
+      console.error("Error fetching technicians:", e)
+    } finally {
+      setLoadingTechnicians(false)
+    }
+  }
+
+  // 🔹 Lấy danh sách campaign
+  const fetchCampaigns = async () => {
+    try {
+      const res = await axiosPrivate.get(API_ENDPOINTS.CAMPAIGNS)
+      setCampaigns(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      console.error("Error fetching campaigns:", err)
+      setCampaigns([])
+    }
+  }
+
+  // 🔹 Lấy customer + vehicles theo phone
   useEffect(() => {
-    async function fetchCustomers() {
+    if (!customerPhone) {
+      setCustomerName("")
+      setVehicles([])
+      setSelectedVin("")
+      setVehicleModel("")
+      return
+    }
+
+    const fetchData = async () => {
       try {
-        const response = await axiosPrivate.get(CUSTOMERS_URL);
-        setCustomers(response.data);
+        setLoadingVehicles(true)
+        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS)
+        const customers = Array.isArray(customersRes.data) ? customersRes.data : []
+        const foundCustomer = customers.find((c) => c.customerPhone === customerPhone)
+
+        if (foundCustomer) {
+          setCustomerName(foundCustomer.customerName)
+          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
+          const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
+          const related = allVehicles.filter(
+            (v) => v.customer?.customerId === foundCustomer.customerId
+          )
+          setVehicles(related)
+        } else {
+          setCustomerName("")
+          setVehicles([])
+        }
       } catch (err) {
-        console.error("API Error: " + err.message);
+        console.error("Error fetching data:", err)
+        setCustomerName("")
+        setVehicles([])
+      } finally {
+        setLoadingVehicles(false)
       }
     }
-    fetchCustomers();
-  }, []);
+
+    fetchData()
+  }, [customerPhone])
+
+  // 🔹 Model tự điền theo VIN và kiểm tra campaign
+  useEffect(() => {
+    if (selectedVin) {
+      const selected = vehicles.find((v) => v.vin === selectedVin)
+      setVehicleModel(selected ? selected.model : "")
+
+      if (selected?.model) {
+        const matched = campaigns.find((c) => c.model.includes(selected.model))
+        setCampaignFound(!!matched)
+        setSelectedCampaign(matched ? matched.campaignId.toString() : "")
+      } else {
+        setCampaignFound(false)
+        setSelectedCampaign("")
+      }
+    } else {
+      setVehicleModel("")
+      setCampaignFound(false)
+      setSelectedCampaign("")
+    }
+  }, [selectedVin, vehicles, campaigns])
+
+  // 🔹 Submit claim
+  const handleSubmitNewClaim = async (e) => {
+    e.preventDefault()
+    if (!selectedVin || !selectedTechnician || !description) return
+
+    try {
+      setLoading(true)
+      const finalClaimId = claimId || (await generateClaimId())
+
+      await axiosPrivate.post(API_ENDPOINTS.CLAIMS, {
+        claimId: finalClaimId,
+        vin: selectedVin,
+        scStaffId: currentUser.accountId?.toUpperCase(),
+        scTechnicianId: selectedTechnician.toUpperCase(),
+        claimDate: new Date().toISOString().split("T")[0],
+        description,
+        campaignId: selectedCampaign || null,
+      })
+
+      resetForm()
+      onOpenChange(false)
+      onClaimCreated?.()
+    } catch (err) {
+      console.error("Error creating claim:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            {/* Title */}
-            <div>
-              <CardTitle>Customer Information</CardTitle>
-              <CardDescription>
-                Customer detatails and contact information
-              </CardDescription>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">Create New Warranty Claim</DialogTitle>
+          <p className="text-sm text-muted-foreground">Fill in the details below</p>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmitNewClaim} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Claim ID */}
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium">Claim ID</label>
+              <Input value={claimId} readOnly className="bg-muted h-10" />
             </div>
 
-            {/* Search box + Add Button */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              {/* Search box */}
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search Customers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
+            {/* Created By */}
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium">Created By (SC Staff)</label>
+              <Input value={currentUser.fullName} disabled className="bg-muted h-10" />
+            </div>
 
-              {/* Add button */}
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Customer
-                  </Button>
-                </DialogTrigger>
+            {/* Customer Info */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Customer Phone *</label>
+              <Input
+                placeholder="Enter customer phone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                required
+                className="h-10"
+              />
+            </div>
 
-                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Customer</DialogTitle>
-                    <DialogDescription>Create a new customer</DialogDescription>
-                  </DialogHeader>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Customer Name</label>
+              <Input placeholder="Auto-filled" value={customerName} disabled className="bg-muted h-10" />
+            </div>
 
-                  {/* Dialog Add Customer */}
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Customer Name</Label>
-                      <Input
-                        id="name"
-                        name="customerName"
-                        value={formData.customerName}
-                        onChange={handleChange}
-                        placeholder="Nguyen Van A"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="Email">Customer Email</Label>
-                      <Input
-                        id="email"
-                        name="customerEmail"
-                        value={formData.customerEmail}
-                        onChange={handleChange}
-                        placeholder="abc@gmail.com"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="phone">Customer Phone</Label>
-                      <Input
-                        id="phone"
-                        name="customerPhone"
-                        value={formData.customerPhone}
-                        onChange={handleChange}
-                        placeholder="0987654321"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        name="customerAddress"
-                        value={formData.customerAddress}
-                        onChange={handleChange}
-                        placeholder=""
-                      />
-                    </div>
-                    <Separator />
+            {/* Vehicle */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Vehicle VIN *</label>
+              <Select value={selectedVin} onValueChange={setSelectedVin} required>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder={loadingVehicles ? "Loading..." : "Select vehicle"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.vin} value={v.vin}>
+                      {v.vin} - {v.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Vehicle Model</label>
+              <Input placeholder="Auto-filled" value={vehicleModel} disabled className="bg-muted h-10" />
+            </div>
+
+            {/* Technician */}
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium">Assign to Technician *</label>
+              <Select value={selectedTechnician} onValueChange={setSelectedTechnician} required>
+                <SelectTrigger className="h-10">
+                  <SelectValue
+                    placeholder={loadingTechnicians ? "Loading..." : "Select technician"}
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
+                  {technicians.map((t) => (
+                    <SelectItem key={t.accountId} value={t.accountId}>
+                      {t.fullName} ({t.username})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 🔹 Campaign Section */}
+            <div className="col-span-2 space-y-2 border-t pt-3">
+              <label className="text-sm font-medium">Campaign (if available)</label>
+              {campaignFound ? (
+                <div className="flex items-center justify-between gap-3">
+                  <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="Select campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {campaigns.map((c) => (
+                        <SelectItem key={c.campaignId} value={c.campaignId.toString()}>
+                          {c.campaignName} ({c.startDate} → {c.endDate})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={campaignFound} readOnly />
+                    <span className="text-sm">Match found</span>
                   </div>
-
-                  <DialogHeader>
-                    <DialogTitle>Add New Vehicle</DialogTitle>
-                    <DialogDescription>
-                      Registe VIN for Vehicle
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  {/* Dialog Add Vehicle */}
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="vin">VIN</Label>
-                      <Input
-                        id="vin"
-                        name="vin"
-                        value={formVinData.vin}
-                        onChange={(e) =>
-                          setFormVinData({
-                            ...formVinData,
-                            vin: e.target.value,
-                          })
-                        }
-                        placeholder="6HPJVKVA8N*******"
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1 grid gap-2">
-                        <Label htmlFor="type">Vehicle Type</Label>
-                        <Select
-                          value={formVinData.type}
-                          onValueChange={(value) =>
-                            setFormVinData({
-                              ...formVinData,
-                              type: value,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem key="car" value="Car">
-                              Car
-                            </SelectItem>
-                            <SelectItem key="bike" value="Bike">
-                              Bike
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex-1 grid gap-2">
-                        <Label htmlFor="color">Color</Label>
-                        <Input
-                          id="color"
-                          name="color"
-                          value={formVinData.color}
-                          onChange={(e) =>
-                            setFormVinData({
-                              ...formVinData,
-                              color: e.target.value,
-                            })
-                          }
-                          placeholder="Red"
-                        />
-                      </div>
-
-                      <div className="flex-1 grid gap-2">
-                        <Label htmlFor="model">Model</Label>
-                        <Select
-                          value={formVinData.model}
-                          onValueChange={(value) =>
-                            setFormVinData({ ...formVinData, model: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select model" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {vehicleModels.map((model) => (
-                              <SelectItem key={model} value={model}>
-                                {model}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="plate">Vehicle Plate</Label>
-                      <Input
-                        id="plate"
-                        name="plate"
-                        value={formVinData.plate}
-                        onChange={(e) =>
-                          setFormVinData({
-                            ...formVinData,
-                            plate: e.target.value,
-                          })
-                        }
-                        placeholder="59X1-11111"
-                      />
-                    </div>
-                  </div>
-
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAdd}>Add Customer</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                </div>
+              ) : (
+                <p className="text-sm italic text-muted-foreground">Not found campaigns</p>
+              )}
             </div>
           </div>
-        </CardHeader>
 
-        {/* Customer Table */}
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>No.</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              {/* Customer data */}
-              <TableBody>
-                {currentItems.map((c, i) => (
-                  <TableRow key={c.customerId}>
-                    <TableCell>
-                      <p className="font-medium text-sm">{i + 1}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium text-sm">{c.customerName}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium text-sm">{c.customerEmail}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium text-sm">{c.customerPhone}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium text-sm">{c.customerAddress}</p>
-                    </TableCell>
-
-                    <TableCell className="text-middle">
-                      <div className="flex sm:flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/scstaff/profiles/${c.customerId}`)
-                          }
-                        >
-                          <Eye className="h-4 w-4" />
-                          Detail
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {/* Description */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Issue Description *</label>
+            <textarea
+              className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md resize-none"
+              placeholder="Describe the issue..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+            />
           </div>
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-5" />
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 sticky bottom-0 bg-white py-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancel
             </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-5" />
+            <Button type="submit" className="bg-black hover:bg-gray-800 text-white" disabled={loading}>
+              {loading ? "Creating..." : "Create Claim"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </>
-  );
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }

@@ -2,416 +2,382 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, X, Trash2, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import axiosPrivate from "@/api/axios";
-import axios from "axios";
+import { cn } from "@/lib/utils";
 
-const CLOUDINARY_UPLOAD_URL = "https://api.cloudinary.com/v1_1/drkr6zecu/image/upload";
-const CLOUDINARY_UPLOAD_PRESET = "Part_Requirment";
-
-// Chuẩn hóa text để so sánh
-const simplify = (text = "") =>
-  text
-    .replace(/\d+/g, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-// Map tên parts sang tiếng Việt
-const PART_NAME_MAP = {
-  volang: "Vô Lăng",
-  taylai: "Tay Lái",
-  dongco: "Động Cơ",
-  acquy: "Ắc Quy",
-  pin: "Pin",
+const API_ENDPOINTS = {
+  CLAIMS: "/api/warranty-claims",
+  PARTS: "/api/parts",
+  FILE_UPLOAD: "/api/warranty-files/combined/upload-create",
+  CLAIM_PART_CHECK_CREATE: "/api/claim-part-check/create",
 };
 
-const normalizePartName = (raw = "") => {
-  const simplified = simplify(raw);
-  return PART_NAME_MAP[simplified] || raw;
-};
-
-const ReportCheck = ({ job, onClose, onComplete }) => {
+export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const [checkStarted, setCheckStarted] = useState(false);
-  const [checkedParts, setCheckedParts] = useState({});
-  const [partImages, setPartImages] = useState({});
-  const [partQuantities, setPartQuantities] = useState({});
-  const [repairParts, setRepairParts] = useState({});
+  const [claimInfo, setClaimInfo] = useState(null);
   const [partsList, setPartsList] = useState([]);
+  const [partSelections, setPartSelections] = useState({});
+  const [partQuantities, setPartQuantities] = useState({});
+  const [partImages, setPartImages] = useState({});
   const [uploading, setUploading] = useState(false);
 
-  // 🔹 Lấy danh sách parts và lọc trùng
-  const fetchParts = async () => {
-    try {
-      const res = await axiosPrivate.get("/api/parts/");
-      const data = Array.isArray(res?.data) ? res.data : [];
+  const claimId = job?.claimId || job?.id;
 
-      const seen = new Set();
-      const unique = [];
-
-      for (const p of data) {
-        const simplified = simplify(p.name);
-        if (!simplified) continue;
-        if (!seen.has(simplified)) {
-          seen.add(simplified);
-          unique.push({
-            ...p,
-            name: normalizePartName(p.name),
-            _key: simplified,
-          });
-        }
-      }
-
-      setPartsList(unique);
-    } catch (e) {
-      console.error("[ReportCheck] fetchParts failed:", e);
-    }
-  };
-
+  // Lấy thông tin claim
   useEffect(() => {
+    const fetchClaimInfo = async () => {
+      try {
+        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS);
+        const all = Array.isArray(res.data) ? res.data : [];
+        const found = all.find((c) => c.claimId === claimId || c.id === claimId);
+        setClaimInfo(found || null);
+      } catch (err) {
+        console.error("[CheckForm] fetchClaimInfo failed:", err);
+      }
+    };
+    if (claimId) fetchClaimInfo();
+  }, [claimId]);
+
+  // Lấy danh sách part (lọc theo whId = 1)
+  useEffect(() => {
+    const fetchParts = async () => {
+      try {
+        const res = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const filtered =
+          Array.isArray(res?.data) && res.data.length > 0
+            ? res.data.filter((p) => p?.warehouse?.whId === 1)
+            : [];
+        setPartsList(filtered);
+      } catch (e) {
+        console.error("[CheckForm] fetchParts failed:", e);
+      }
+    };
     fetchParts();
   }, []);
 
   const handleStartCheck = () => setCheckStarted(true);
 
-  const handleTogglePartCheck = (partName) => {
-    setCheckedParts((prev) => ({ ...prev, [partName]: !prev[partName] }));
+  // Upload ảnh tạm
+  const handleImageUpload = (partKey, event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const current = partImages[partKey] || [];
+    if (current.length + files.length > 3) {
+      alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
+      return;
+    }
+    const newFiles = files.map((f) => ({
+      file: f,
+      url: URL.createObjectURL(f),
+    }));
+    setPartImages((prev) => ({
+      ...prev,
+      [partKey]: [...current, ...newFiles].slice(0, 3),
+    }));
   };
 
-  // Upload ảnh lên Cloudinary
-  const handleImageUpload = async (partName, event) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+  const handleDeleteImage = (partKey, idx) => {
+    setPartImages((prev) => {
+      const updated = [...(prev[partKey] || [])];
+      updated.splice(idx, 1);
+      const copy = { ...prev, [partKey]: updated };
+      if (updated.length === 0) delete copy[partKey];
+      return copy;
+    });
+  };
+
+  const handleSelectionChange = (partKey, value) => {
+    setPartSelections((prev) => ({ ...prev, [partKey]: value }));
+    if (value === "CHECKED") {
+      setPartQuantities((prev) => ({ ...prev, [partKey]: 0 }));
+    }
+  };
+
+  const handleQuantityChange = (partKey, value) => {
+    const num = Number.parseInt(value) || 0;
+    if (num >= 0) setPartQuantities((prev) => ({ ...prev, [partKey]: num }));
+  };
+
+  const allPartsSelected =
+    partsList.length > 0 && partsList.every((p) => !!partSelections[p.namePart]);
+
+  // Hoàn tất kiểm tra (Tạo claim-part-check + upload ảnh)
+  const handleCompleteCheck = async () => {
+    if (!claimId) return;
 
     setUploading(true);
+
+    console.log("=== DEBUG COMPLETE CHECK ===");
+    console.log("claimId:", claimId);
+    console.log("claimInfo:", claimInfo);
+    console.log("partsList:", partsList);
+    console.log("partSelections:", partSelections);
+    console.log("partQuantities:", partQuantities);
+    console.log("partImages:", partImages);
+    console.log("=============================");
+
     try {
-      for (const file of files) {
-        const form = new FormData();
-        form.append("file", file);
-        form.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-        form.append("format", "png"); // ép sang PNG
+      // 1. Upload ảnh cho từng part (nếu có)
+      for (const partKey in partImages) {
+        if (partImages[partKey].length > 0) {
+          const formData = new FormData();
+          formData.append("fileId", claimId);
+          formData.append("claimId", claimId);
 
-        const cloudRes = await axios.post(CLOUDINARY_UPLOAD_URL, form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+          // Append files (sử dụng file object thay vì URL)
+          partImages[partKey].forEach((img) => {
+            if (img.file) {
+              formData.append("files", img.file);
+            }
+          });
 
-        const secureUrl = cloudRes?.data?.secure_url;
-        if (secureUrl) {
-          setPartImages((prev) => ({
-            ...prev,
-            [partName]: [...(prev[partName] || []), secureUrl],
-          }));
-          setCheckedParts((prev) => ({ ...prev, [partName]: true }));
+          // Nếu không có file mới, bỏ qua
+          if (formData.getAll("files").length === 0) continue;
+
+          try {
+            await axiosPrivate.post(API_ENDPOINTS.FILE_UPLOAD, formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+            console.log(`✅ Upload ảnh cho ${partKey} thành công.`);
+          } catch (err) {
+            console.error("❌ Upload ảnh lỗi:", err.response || err);
+            alert(`Upload ảnh cho ${partKey} thất bại. Vui lòng thử lại.`);
+            // Không throw, cho phép tiếp tục với các part khác
+          }
         }
       }
-    } catch (e) {
-      console.error("[ReportCheck] upload error:", e);
+
+      // 2. Gửi Part Check cho mỗi part được chọn
+      for (const [index, part] of partsList.entries()) {
+        const partKey = `${part.partNumber}_${part.vin}_${part.quantity}`;
+        const selection = partSelections[partKey] || partSelections[part.namePart] || "";
+        const isRepair = selection === "REPAIR" || selection === "repair" || selection === "Repair";
+
+        if (!selection) continue; // Bỏ qua phần chưa chọn
+
+        // Nếu backend yêu cầu trường partSerial, bạn có thể lấy từ UI — hiện đặt rỗng
+        const partSerialValue = "";
+
+        const payload = {
+          partNumber: part.partNumber || part.namePart || `PART-${index + 1}`,
+          claimId, // dùng đúng field mà backend cần
+          vin: claimInfo?.vehicle?.vin || "UNKNOWN",
+          quantity: partQuantities[partKey] || 1,
+          partSerial: "Null",
+          repair: isRepair,
+        };
+
+        console.log(
+          "%c📦 Payload gửi lên /api/claim-part-check/create:",
+          "color: cyan; font-weight: bold;"
+        );
+        console.log(JSON.stringify(payload, null, 2));
+
+        try {
+          await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
+          console.log(`✅ Tạo part-check cho ${part.namePart} thành công.`);
+        } catch (err) {
+          console.error("❌ Error at part", part.namePart, err.response || err);
+          alert(
+            `Lỗi khi tạo part-check cho ${part.namePart}: ${
+              err.response?.data?.message || err.message
+            }\nMã lỗi HTTP: ${err.response?.status || "Unknown"}`
+          );
+          throw err; // Dừng toàn bộ nếu tạo part-check lỗi
+        }
+      }
+
+      // 3. (Tùy) cập nhật trạng thái claim — bạn có thể gọi API nếu cần
+      // await axiosPrivate.put(`${API_ENDPOINTS.CLAIMS}/${claimId}/complete-check`);
+
+      alert("Hoàn tất kiểm tra thành công!");
+      onComplete(claimId);
+      onClose();
+    } catch (err) {
+      console.error("[CheckForm] Complete failed:", err.response || err);
+      const status = err.response?.status;
+      const data = err.response?.data;
+
+      let message = "Lỗi khi hoàn tất kiểm tra.";
+      if (status) message += `\nMã lỗi: HTTP ${status}`;
+      if (data && typeof data === "object") {
+        message += `\nChi tiết: ${JSON.stringify(data, null, 2)}`;
+      } else if (data) {
+        message += `\nChi tiết: ${data}`;
+      }
+      alert(message);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDeleteImage = (partName, index) => {
-    setPartImages((prev) => {
-      const updated = [...(prev[partName] || [])];
-      updated.splice(index, 1);
-      const copy = { ...prev, [partName]: updated };
-      if (updated.length === 0) delete copy[partName];
-      return copy;
-    });
-  };
-
-  const handleQuantityChange = (partName, value) => {
-    const num = Number.parseInt(value) || 0;
-    if (num >= 0) setPartQuantities((prev) => ({ ...prev, [partName]: num }));
-  };
-
-  const hasImages = (partName) =>
-    !!(partImages[partName] && partImages[partName].length > 0);
-
-  const allPartsChecked =
-    partsList.length > 0 && partsList.every((p) => checkedParts[p.name]);
-
-  // 🔹 Complete Check -> gửi parts cần repair
-  const handleCompleteCheck = async () => {
-    try {
-      const claimId = job.claimId || job.id;
-
-      // 1️⃣ Lấy danh sách attachment hiện có
-      const existRes = await axiosPrivate.get("/api/claimAttachment");
-      const existing = Array.isArray(existRes?.data) ? existRes.data : [];
-      const usedIds = new Set(
-        existing.filter((a) => a.claimId === claimId).map((a) => a.attachmentId)
-      );
-
-      // 2️⃣ Gom các part có check "Do you want repair?"
-      const attachments = [];
-      for (const [partName, needRepair] of Object.entries(repairParts)) {
-        if (!needRepair) continue;
-
-        // tạo ID mới không trùng
-        let newId = Math.floor(Math.random() * 100000);
-        while (usedIds.has(newId)) {
-          newId = Math.floor(Math.random() * 100000);
-        }
-        usedIds.add(newId);
-
-        attachments.push({
-          attachmentId: newId,
-          fileType: normalizePartName(partName),
-          filePath: "manual", // hoặc "abc" nếu bạn muốn
-          claimId,
-        });
-      }
-
-      // 3️⃣ Gửi qua API
-      if (attachments.length > 0) {
-        await Promise.all(
-          attachments.map((a) =>
-            axiosPrivate.post("/api/claimAttachment/create", a)
-          )
-        );
-      }
-
-      console.log("[ReportCheck] Repair attachments created:", attachments);
-      onComplete?.();
-    } catch (e) {
-      console.error("[ReportCheck] Failed to create repair attachments:", e);
-    }
-  };
-
-  const canClose = !checkStarted || allPartsChecked;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200">
         {/* Header */}
-        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-bold text-cyan-500">
-            REPORT CHECK - Claim #{job?.claimId || job?.id}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-cyan-600">
+            REPORT CHECK — Claim #{claimInfo?.claimId || claimId}
           </h2>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onClose}
-            disabled={!canClose}
-            title={!canClose ? "Complete all checks before closing" : ""}
-          >
-            <X className="h-4 w-4 mr-1" /> Close
+          <Button variant="destructive" onClick={onClose}>
+            Close
           </Button>
         </div>
 
-        {/* Content */}
+        {/* Claim Info */}
+        <div className="px-6 pt-6">
+          {claimInfo ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+              <div>
+                <Label className="text-gray-500 text-sm">VIN</Label>
+                <p className="text-base font-semibold">{claimInfo.vehicle?.vin}</p>
+              </div>
+              <div>
+                <Label className="text-gray-500 text-sm">Model</Label>
+                <p className="text-base font-semibold">{claimInfo.vehicle?.model}</p>
+              </div>
+              <div>
+                <Label className="text-gray-500 text-sm">Claim Date</Label>
+                <p className="text-base font-semibold">{claimInfo.claimDate}</p>
+              </div>
+              <div>
+                <Label className="text-gray-500 text-sm">SC Staff</Label>
+                <p className="text-base font-semibold">
+                  {claimInfo.serviceCenterStaff?.fullName}
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-gray-500 text-sm">Description</Label>
+                <div className="p-3 bg-gray-50 border rounded-md text-sm">
+                  {claimInfo.description || "No description"}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 mb-4">Loading claim information...</p>
+          )}
+        </div>
+
+        {/* Body */}
         <div className="p-6 space-y-6">
-          {/* Vehicle Info */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-foreground">
-              Vehicle Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm text-muted-foreground">VIN:</Label>
-                <Input
-                  value={job?.vin || ""}
-                  disabled
-                  className="mt-1 bg-muted"
-                />
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">
-                  Model vehicle:
-                </Label>
-                <Input
-                  value={job?.vehicleModel || ""}
-                  disabled
-                  className="mt-1 bg-muted"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm text-muted-foreground">Note:</Label>
-              <Input
-                value={job?.description || ""}
-                disabled
-                className="mt-1 bg-muted"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-              <div>
-                <Label className="text-sm text-muted-foreground">Date:</Label>
-                <Input
-                  value={job?.claimDate || ""}
-                  disabled
-                  className="mt-1 bg-muted"
-                />
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">SC Staff:</Label>
-                <Input
-                  value={job?.scStaff?.fullName || job?.scStaffId || ""}
-                  disabled
-                  className="mt-1 bg-muted"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Start Button */}
-          {!checkStarted && (
-            <div className="flex justify-center py-4">
+          {!checkStarted ? (
+            <div className="flex justify-center py-8">
               <Button
-                onClick={handleStartCheck}
                 size="lg"
-                className="bg-cyan-500 hover:bg-cyan-600 text-white px-8"
+                onClick={handleStartCheck}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-8"
               >
                 Start Check
               </Button>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Danh sách parts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {partsList.map((part) => {
+                  const partKey = part.namePart;
+                  const selection = partSelections[partKey];
+                  const isRepair = selection === "REPAIR";
+                  const images = partImages[partKey] || [];
 
-          {/* Parts Checklist */}
-          {checkStarted && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Parts Checklist
-                </h3>
-                <span className="text-sm text-muted-foreground">
-                  {Object.values(checkedParts).filter(Boolean).length} /{" "}
-                  {partsList.length} checked
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                {partsList.map((part) => (
-                  <div
-                    key={part._key}
-                    className={cn(
-                      "border rounded-lg p-5 transition-all hover:shadow-md",
-                      checkedParts[part.name] && !hasImages(part.name)
-                        ? "border-green-500 bg-green-500/5 shadow-sm"
-                        : hasImages(part.name)
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/30"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleTogglePartCheck(part.name)}
-                          className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                            checkedParts[part.name]
-                              ? "bg-green-500 border-green-500"
-                              : "border-muted-foreground hover:border-green-500"
-                          )}
-                        >
-                          {checkedParts[part.name] && (
-                            <CheckCircle2 className="h-4 w-4 text-white" />
-                          )}
-                        </button>
-                        <div>
-                          <span className="text-sm font-semibold">
-                            {part.name}
-                          </span>
-                        </div>
-                      </div>
-
-                      <label className="cursor-pointer p-2 rounded-md hover:bg-muted transition-colors">
-                        <Camera className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                  return (
+                    <div
+                      key={partKey}
+                      className={cn(
+                        "rounded-lg border p-5 transition-all shadow-sm",
+                        isRepair
+                          ? "border-amber-400 bg-amber-50"
+                          : selection === "CHECKED"
+                          ? "border-green-400 bg-green-50"
+                          : "border-gray-200 hover:border-cyan-300"
+                      )}
+                    >
+                      <div className="flex justify-between mb-3">
+                        <span className="font-semibold text-sm">{part.namePart}</span>
                         <input
                           type="file"
                           accept="image/*"
                           multiple
-                          className="hidden"
-                          onChange={(e) => handleImageUpload(part.name, e)}
-                          disabled={uploading}
+                          className="text-xs"
+                          onChange={(e) => handleImageUpload(partKey, e)}
+                          disabled={images.length >= 3}
                         />
-                      </label>
-                    </div>
+                      </div>
 
-                    {/* Do you want repair? */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="checkbox"
-                        checked={repairParts[part.name] || false}
-                        onChange={(e) =>
-                          setRepairParts((prev) => ({
-                            ...prev,
-                            [part.name]: e.target.checked,
-                          }))
-                        }
-                      />
-                      <label className="text-sm text-muted-foreground">
-                        Do you want repair?
-                      </label>
-                    </div>
+                      <div className="flex gap-3 mb-2 items-center">
+                        <Label>Status</Label>
+                        <select
+                          value={selection || ""}
+                          onChange={(e) => handleSelectionChange(partKey, e.target.value)}
+                          className="border rounded px-2 py-1 text-sm w-32"
+                        >
+                          <option value="">Select...</option>
+                          <option value="CHECKED">CHECKED</option>
+                          <option value="REPAIR">REPAIR</option>
+                        </select>
+                      </div>
 
-                    {/* Images */}
-                    {hasImages(part.name) && (
-                      <div className="space-y-3 mt-3">
-                        <div className="flex flex-wrap gap-2">
-                          {partImages[part.name].map((img, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={img}
-                                alt={`${part.name}-${idx}`}
-                                className="w-16 h-16 object-cover rounded border border-border"
-                              />
-                              <button
-                                onClick={() =>
-                                  handleDeleteImage(part.name, idx)
-                                }
-                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-2 border-t border-border">
-                          <Label className="text-xs font-medium">Quantity:</Label>
+                      {isRepair && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label>Quantity</Label>
                           <Input
                             type="number"
-                            min="0"
-                            value={partQuantities[part.name] || 0}
+                            min="1"
+                            value={partQuantities[partKey] || ""}
                             onChange={(e) =>
-                              handleQuantityChange(part.name, e.target.value)
+                              handleQuantityChange(partKey, e.target.value)
                             }
                             className="h-8 w-20 text-sm"
                           />
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                      )}
 
-          {/* Complete Button */}
-          {checkStarted && (
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={onClose} disabled={!canClose}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCompleteCheck}
-                disabled={!allPartsChecked}
-                className="bg-cyan-500 hover:bg-cyan-600"
-              >
-                Complete Check
-              </Button>
-            </div>
+                      {/* Preview ảnh */}
+                      {images.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-500 mb-1">
+                            {images.length}/3 image(s)
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            {images.map((img, idx) => (
+                              <div key={idx} className="relative">
+                                <img
+                                  src={img.url}
+                                  alt={`img-${idx}`}
+                                  className="w-16 h-16 object-cover rounded border"
+                                />
+                                <button
+                                  onClick={() => handleDeleteImage(partKey, idx)}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-[5px]"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end mt-6 gap-3">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                  onClick={handleCompleteCheck}
+                  disabled={!allPartsSelected || uploading}
+                >
+                  {uploading ? "Saving..." : "Complete Check"}
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </div>
     </div>
   );
-};
-
-export default ReportCheck;
+}
