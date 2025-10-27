@@ -32,6 +32,7 @@ export default function AdServTable({
   onEdit,
   onAssign,
   onRemove,
+  onRowClick,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -63,6 +64,7 @@ export default function AdServTable({
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
         {loading ? (
           <p>Loading...</p>
@@ -77,9 +79,14 @@ export default function AdServTable({
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {filtered.map((c) => (
-                  <TableRow key={c.centerId}>
+                  <TableRow
+                    key={c.centerId}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => onRowClick && onRowClick(c)}
+                  >
                     <TableCell>
                       <div className="font-medium">{c.centerId}</div>
                     </TableCell>
@@ -87,21 +94,47 @@ export default function AdServTable({
                     <TableCell className="text-muted-foreground">
                       {c.location}
                     </TableCell>
+
                     <TableCell className="text-right">
+                      {/* Menu hành động */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          {/* Dừng sự kiện click lan lên TableRow */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
+
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEdit(c)}>
+                          {/* Mỗi item đều dừng event click lan lên hàng */}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(c);
+                            }}
+                          >
                             <Edit className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAssign(c)}>
+
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAssign(c);
+                            }}
+                          >
                             Assign Staff
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onRemove(c)}>
+
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemove(c);
+                            }}
+                          >
                             Remove Staff
                           </DropdownMenuItem>
                         </DropdownMenuContent>
