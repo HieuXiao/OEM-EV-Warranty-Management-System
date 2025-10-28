@@ -1,4 +1,10 @@
+// FE/src/components/admin/AdWareEdit.jsx
+
+// ===============IMPORT================
+// Import React Hooks
 import { useEffect, useState } from "react";
+
+// Import Shadcn UI Components
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,14 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-// import { useToast } from "@/components/ui/use-toast"; // ❌ Đã loại bỏ
+
+// Import Data & API
 import { provinces } from "@/lib/provinces";
 import axiosPrivate from "@/api/axios";
 
 export default function AdWareEdit({ open, formData: parentData, onSave, onCancel }) {
-  // const { toast } = useToast(); // ❌ Đã loại bỏ
+  // ===============State Management================
   const [loading, setLoading] = useState(false);
-  const [submitError, setSubmitError] = useState(""); // ✅ State để lưu lỗi 409
+  // State to hold and display submission errors (e.g., 409 Conflict)
+  const [submitError, setSubmitError] = useState(""); 
   const [localData, setLocalData] = useState({
     whId: "",
     name: "",
@@ -26,15 +34,20 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
     addressDetail: "",
   });
 
-  // Khởi tạo/Fetch dữ liệu khi mở dialog
+  
+  // ===============Data Fetching & Initialization================
+  /**
+   * Fetches the detailed warehouse data when the dialog opens.
+   */
   useEffect(() => {
-    // ✅ Reset lỗi khi dialog mở
+    // Reset error message on dialog open/close
     setSubmitError("");
     
     const fetchWarehouse = async () => {
       if (open && parentData?.whId) {
         setLoading(true);
         try {
+          // Fetch detailed data for the specific warehouse ID
           const res = await axiosPrivate.get(`/api/warehouses/${parentData.whId}`);
           const { name, location } = res.data;
 
@@ -42,10 +55,12 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
           let district = "";
           let addressDetail = "";
 
+          // Logic to parse the comma-separated 'location' string back into components
           if (location) {
             const parts = location.split(",").map((p) => p.trim()).filter(p => p);
             
             if (parts.length >= 3) {
+              // Assumes format: [addressDetail, district, province]
               province = parts[parts.length - 1];
               district = parts[parts.length - 2];
               addressDetail = parts.slice(0, parts.length - 2).join(", "); 
@@ -58,6 +73,7 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
             }
           }
 
+          // Validate and set state, ensuring selected province/district exists in the list
           const validProvince = provinces[province] ? province : "";
           const validDistrict =
             validProvince && provinces[validProvince]?.includes(district)
@@ -73,7 +89,6 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
           });
         } catch (err) {
           console.error("Failed to fetch warehouse:", err);
-          // Có thể thêm setSubmitError ở đây nếu lỗi fetch
           setSubmitError("Failed to load warehouse details. Please try again.");
         } finally {
           setLoading(false);
@@ -84,8 +99,13 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
     fetchWarehouse();
   }, [open, parentData]);
 
+  // ===============Handlers================
+  /**
+   * Handles input changes. Resets submit error on any change.
+   * If 'province' changes, resets 'district'.
+   */
   const handleChange = (e) => {
-    setSubmitError(""); // ✅ Xóa lỗi khi người dùng bắt đầu chỉnh sửa lại
+    setSubmitError("");
     const { name, value } = e.target;
     if (name === "province") {
       setLocalData({ ...localData, province: value, district: "" });
@@ -94,61 +114,63 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
     }
   };
 
+  /**
+   * Handles saving the updated warehouse data via API PUT call.
+   */
   const handleSave = async () => {
-    setSubmitError(""); // Reset lỗi trước khi lưu
+    setSubmitError("");
     const { whId, name, province, district, addressDetail } = localData;
 
-    // ✅ Thêm kiểm tra validation frontend cơ bản
+    // Frontend validation check
     if (!name.trim() || !province) {
         setSubmitError("Warehouse Name and Province are required.");
         return;
     }
 
-    // Ghép lại location
+    // Reconstruct the location string from form fields
     const locationParts = [addressDetail, district, province].filter(Boolean);
     const fullLocation = locationParts.join(", ");
     
-    // Bắt đầu loading button
     setLoading(true);
 
     try {
+      // API PUT call to update the warehouse
       await axiosPrivate.put(`/api/warehouses/${whId}`, {
         name: name.trim(),
         location: fullLocation,
       });
 
-      // Thành công
+      // On success, call parent handler and close dialog
       onSave({
         whId,
         name: name.trim(),
         location: fullLocation,
       });
-      // Không cần toast, onSave sẽ tự động đóng dialog
 
     } catch (err) {
       console.error("Failed to update warehouse:", err);
       let errorMessage = "An unknown error occurred.";
 
-      // ✅ Xử lý lỗi 409 cụ thể từ server
+      // Handle specific API error responses (like the 409 Conflict error)
       if (err.response && err.response.status === 409) {
-        // Lấy thông báo lỗi từ body của response nếu có
         errorMessage = err.response.data || 'Warehouse name or location already exists';
       } else if (err.response && err.response.data) {
-        // Xử lý các lỗi khác từ server
         errorMessage = err.response.data.message || err.response.data || errorMessage;
       }
       
-      setSubmitError(errorMessage); // Hiển thị lỗi trong dialog
+      setSubmitError(errorMessage);
     } finally {
         setLoading(false);
     }
   };
 
+  // Derived state for district options based on selected province
   const districtOptions = localData.province ? provinces[localData.province] || [] : [];
   
-  // Kiểm tra điều kiện disable button Save
+  // Determine if the Save button should be disabled
   const isSaveDisabled = loading || !localData.name.trim() || !localData.province;
 
+  // ===============Render================
   return (
     <Dialog open={open} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-[500px]">
@@ -157,19 +179,20 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
           <DialogDescription>Update warehouse information</DialogDescription>
         </DialogHeader>
 
-        {loading && !submitError ? ( // Chỉ hiện Loading nếu không có lỗi submit (tránh lỗi 409 khi fetch)
+        {/* Loading state indicator */}
+        {loading && !submitError ? (
           <p className="text-center py-6">Loading warehouse details...</p>
         ) : (
           <div className="grid gap-4 py-4">
             
-            {/* ✅ Hiển thị lỗi từ Server (409) hoặc lỗi Validate */}
+            {/* Error Message Display */}
             {submitError && (
               <div className="text-sm font-medium text-red-700 bg-red-50 border border-red-300 p-3 rounded-md">
-                🚨 **Error:** {submitError}
+              🔴 **Error:** {submitError}
               </div>
             )}
             
-            {/* Warehouse Name */}
+            {/* Warehouse Name Input */}
             <div className="grid gap-2">
               <Label htmlFor="name">Warehouse Name</Label>
               <Input
@@ -181,7 +204,7 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
               />
             </div>
 
-            {/* Province */}
+            {/* Province Selection */}
             <div className="grid gap-2">
               <Label>Province / City</Label>
               <select
@@ -199,7 +222,7 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
               </select>
             </div>
 
-            {/* District */}
+            {/* District Selection */}
             <div className="grid gap-2">
               <Label>District / Area</Label>
               <select
@@ -220,7 +243,7 @@ export default function AdWareEdit({ open, formData: parentData, onSave, onCance
               </select>
             </div>
 
-            {/* Address Detail */}
+            {/* Address Detail Input */}
             <div className="grid gap-2">
               <Label>Detailed Address</Label>
               <Input
