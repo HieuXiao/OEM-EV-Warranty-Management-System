@@ -114,14 +114,14 @@ export default function EVMStaffCampaign() {
   const getStatusBadge = (status) => {
     const s = String(status || "").toLowerCase();
     const map = {
-      completed: "text-green-700 border-green-400",
-      "not yet": "text-blue-700 border-blue-400",
-      "on going": "text-yellow-600 border-yellow-600",
+      completed: "text-white bg-green-400 border-green-400",
+      "not yet": "text-white bg-blue-400 border-blue-400",
+      "on going": "text-white bg-yellow-600 border-yellow-600",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
       <span
-        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border min-w-[100px] ${cls}`}
       >
         {String(status || "").replace(/_/g, " ")}
       </span>
@@ -223,7 +223,7 @@ export default function EVMStaffCampaign() {
                             getCampaignStatus(
                               campaign.startDate,
                               campaign.endDate
-                            )
+                            ).toUpperCase()
                           )}
                         </TableCell>
                       </TableRow>

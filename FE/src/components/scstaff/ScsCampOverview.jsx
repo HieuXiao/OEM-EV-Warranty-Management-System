@@ -271,7 +271,7 @@ export default function SCStaffCampaignSummary() {
                           variant="outline"
                           className={getStatusColor(campaign.status)}
                         >
-                          {campaign.status}
+                          {campaign.status.toUpperCase()}
                         </Badge>
                       </div>
 

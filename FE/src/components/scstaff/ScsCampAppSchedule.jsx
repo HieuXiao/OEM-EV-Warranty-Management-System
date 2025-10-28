@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,41 +12,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import axiosPrivate from "@/api/axios";
 
 const APPOINTMENT_URL = "/api/service-appointments";
+
+// Hàm helper để lấy thời gian hiện tại theo múi giờ địa phương
+// ở định dạng YYYY-MM-DDTHH:MM cho input "min"
+const getLocalISOString = () => {
+  const now = new Date();
+  // Trừ đi phần chênh lệch múi giờ để `toISOString` phản ánh đúng giờ địa phương
+  // thay vì giờ UTC
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  // Trả về 16 ký tự đầu tiên (YYYY-MM-DDTHH:MM)
+  return now.toISOString().slice(0, 16);
+};
 
 export function ScheduleAppointmentDialog({
   open,
   onOpenChange,
   vehicle,
   campaign,
+  onScheduleSuccess,
 }) {
-  const [date, setDate] = useState("");
+  // --- THAY ĐỔI: Hợp nhất state ---
+  const [dateTime, setDateTime] = useState("");
   const [notes, setNotes] = useState("");
-
-  const handleDateChange = (newDate) => {
-    setDate(newDate);
-  };
+  // --- KẾT THÚC THAY ĐỔI ---
 
   const handleSchedule = async (e) => {
     try {
       const newAppointment = {
         vin: vehicle.vin,
         campaignId: campaign.campaignId,
-        date: date,
+        date: dateTime, // <-- THAY ĐỔI: Gửi giá trị datetime
         description: notes,
       };
 
       const response = await axiosPrivate.post(APPOINTMENT_URL, newAppointment);
-
-      alert(
-        `Appointment scheduled for ${vehicle?.customer?.customerName} on ${date}`
-      );
       onOpenChange(false);
-      setDate("");
+      // --- THAY ĐỔI: Reset state ---
+      setDateTime("");
       setNotes("");
+      if (onScheduleSuccess) {
+        onScheduleSuccess();
+      }
+      // --- KẾT THÚC THAY ĐỔI ---
     } catch (error) {
       console.error("API Error: " + error.message);
     }
@@ -87,15 +97,18 @@ export function ScheduleAppointmentDialog({
             </div>
           </div>
 
+          {/* --- THAY ĐỔI: Sử dụng input datetime-local --- */}
           <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="datetime">Date and Time</Label>
             <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
+              id="datetime"
+              type="datetime-local" // <-- Đổi type
+              value={dateTime}
+              onChange={(e) => setDateTime(e.target.value)}
+              min={getLocalISOString()} // <-- Ngăn chọn ngày giờ quá khứ
             />
           </div>
+          {/* --- KẾT THÚC THAY ĐỔI --- */}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -113,7 +126,8 @@ export function ScheduleAppointmentDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSchedule} disabled={!date}>
+          {/* CẬP NHẬT: Vô hiệu hóa nếu dateTime rỗng */}
+          <Button onClick={handleSchedule} disabled={!dateTime}>
             <Calendar className="w-4 h-4 mr-2" />
             Schedule Appointment
           </Button>
