@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, ClipboardCheck, Wrench } from "lucide-react";
-import { cn } from "@/lib/utils";
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
@@ -25,37 +24,45 @@ export default function SCTechnicianDashboard() {
   const techId = auth?.accountId;
 
   useEffect(() => {
-    const fetchClaims = async () => {
-      if (!techId) return;
-      try {
-        const res = await axiosPrivate.get(`/api/warranty-claims`);
-        
-        const allClaims = res.data || [];
+  const fetchClaims = async () => {
+    if (!techId) {
+      console.warn("⚠️ techId is undefined or null");
+      return;
+    }
 
-        const technicianClaims = allClaims.filter(
-          (claim) => claim.scTechnicianId.toUpperCase() === techId.toUpperCase()
-        );
-        
-        setClaims(technicianClaims);
-        
-      } catch (err) {
-        console.error("Error fetching claims:", err);
-        setError("Failed to load technician claims.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchClaims();
-  }, [techId]);
+    try {
+      setLoading(true);
+      const res = await axiosPrivate.get(`/api/warranty-claims`);
+
+      const allClaims = Array.isArray(res.data) ? res.data : [];
+
+      const technicianClaims = allClaims.filter(
+        (claim) =>
+          claim.serviceCenterTechnician?.accountId?.toUpperCase() ===
+          techId.toUpperCase()
+      );
+
+      
+      setClaims(technicianClaims);
+
+    } catch (err) {
+      console.error("Error fetching claims:", err);
+      setError("Failed to load technician claims.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchClaims();
+}, [techId]);
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-GB");
+    return isNaN(d) ? "—" : d.toLocaleDateString("en-GB");
   };
 
-  // Giả sử description hoặc status có thể phân biệt loại job
-  const checkJobs = claims.filter((claim) => claim.status?.toUpperCase() === "CHECK");
-  const repairJobs = claims.filter((claim) => claim.status?.toUpperCase() === "REPAIR");
+  const checkJobs = claims.filter((claim) => claim.status.toUpperCase() === "CHECK");
+  const repairJobs = claims.filter((claim) => claim.status.toUpperCase() === "REPAIR");
 
   if (loading)
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
@@ -77,7 +84,7 @@ export default function SCTechnicianDashboard() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Check Jobs */}
+              {/* CHECK JOBS */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -98,37 +105,43 @@ export default function SCTechnicianDashboard() {
                     </Button>
                   </div>
                 </CardHeader>
+
                 <CardContent>
-                  <div className="space-y-3">
-                    {checkJobs.slice(0, 3).map((job) => (
-                      <div
-                        key={job.claimId}
-                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="font-semibold">Claim #{job.claimId}</p>
-                            <Badge
-                              variant="outline"
-                              className="text-xs capitalize"
-                            >
-                              {job.status}
-                            </Badge>
+                  {checkJobs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center">
+                      No check jobs assigned.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {checkJobs.slice(0, 3).map((job) => (
+                        <div
+                          key={job.claimId}
+                          className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-semibold">
+                                Claim #{job.claimId}
+                              </p>
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {job.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              VIN: {job.vehicle?.vin || "—"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Date: {formatDate(job.claimDate)}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            VIN: {job.vin}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Date: {formatDate(job.claimDate)}
-                          </p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Repair Jobs */}
+              {/* REPAIR JOBS */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -149,33 +162,39 @@ export default function SCTechnicianDashboard() {
                     </Button>
                   </div>
                 </CardHeader>
+
                 <CardContent>
-                  <div className="space-y-3">
-                    {repairJobs.slice(0, 3).map((job) => (
-                      <div
-                        key={job.claimId}
-                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="font-semibold">Claim #{job.claimId}</p>
-                            <Badge
-                              variant="outline"
-                              className="text-xs capitalize"
-                            >
-                              {job.status}
-                            </Badge>
+                  {repairJobs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center">
+                      No repair jobs assigned.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {repairJobs.slice(0, 3).map((job) => (
+                        <div
+                          key={job.claimId}
+                          className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-semibold">
+                                Claim #{job.claimId}
+                              </p>
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {job.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              VIN: {job.vehicle?.vin || "—"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Date: {formatDate(job.claimDate)}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            VIN: {job.vin}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Date: {formatDate(job.claimDate)}
-                          </p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
