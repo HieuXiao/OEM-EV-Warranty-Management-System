@@ -41,9 +41,11 @@ import axiosPrivate from "@/api/axios";
 
 const CUSTOMERS_URL = "/api/customers";
 const VEHICLE_CREATE_URL = "/api/vehicles";
+const ACCOUNT_URL = "/api/accounts/current";
 
 export default function CustomersTable() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentSC, setCurrentSC] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -79,6 +81,18 @@ export default function CustomersTable() {
       c.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.customerPhone.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    async function fetchCurrentSC() {
+      try {
+        const response = await axiosPrivate.get(ACCOUNT_URL);
+        setCurrentSC(response.data.serviceCenter.centerId);
+      } catch (error) {
+        console.error("API Error: " + error.message);
+      }
+    }
+    fetchCurrentSC();
+  }, []);
 
   // Tính toán dữ liệu hiển thị theo trang
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -158,6 +172,10 @@ export default function CustomersTable() {
       );
 
       createdCustomer = customerResponse.data;
+
+      const customerSCResponse = await axiosPrivate.post(
+        `${CUSTOMERS_URL}/${createdCustomer.customerId}/assign-service-center/${currentSC}`
+      );
 
       try {
         const newVehicle = {
@@ -461,8 +479,8 @@ export default function CustomersTable() {
                             <SelectItem key="car" value="Car">
                               Car
                             </SelectItem>
-                            <SelectItem key="bike" value="Motorbike">
-                              Motorbike
+                            <SelectItem key="bike" value="Electric Motorbike">
+                              Electric Motorbike
                             </SelectItem>
                           </SelectContent>
                         </Select>

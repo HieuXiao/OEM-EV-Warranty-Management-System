@@ -458,8 +458,8 @@ export default function CustomerDetail() {
                               <SelectItem key="car" value="Car">
                                 Car
                               </SelectItem>
-                              <SelectItem key="bike" value="Bike">
-                                Bike
+                              <SelectItem key="bike" value="Electric Motorbike">
+                                Electric Motorbike
                               </SelectItem>
                             </SelectContent>
                           </Select>
