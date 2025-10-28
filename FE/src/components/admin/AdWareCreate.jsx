@@ -1,6 +1,10 @@
 // FE/src/components/admin/AdWareCreate.jsx
 
+// ===============IMPORT================
+// Import React Hooks
 import { useState } from "react";
+
+// Import Shadcn UI Components
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,21 +18,34 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { provinces } from "@/lib/provinces"; // ✅ import danh sách tỉnh thành
+
+// Import Data
+import { provinces } from "@/lib/provinces";
+
+// Initial state for form data
+const initialFormData = {
+  name: "",
+  province: "",
+  district: "",
+  addressDetail: "",
+};
+
 
 export default function AdWareCreate({ onAdd }) {
+  // ===============STATE MANAGEMENT================
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    province: "",
-    district: "",
-    addressDetail: "",
-  });
+  const [formData, setFormData] = useState(initialFormData);
 
+
+  // ===============HANDLERS================
+  /**
+   * Handles input changes for all form fields.
+   * Resets 'district' if a new 'province' is selected.
+   * @param {object} e - The change event object
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Nếu chọn lại province thì reset district
     if (name === "province") {
       setFormData({
         ...formData,
@@ -43,21 +60,50 @@ export default function AdWareCreate({ onAdd }) {
     }
   };
 
+  /**
+   * Handles the warehouse creation process.
+   * Validates data, formats location, calls parent's API handler, and resets state.
+   */
   const handleAdd = async () => {
-    if (!formData.name || !formData.province || !formData.district || !formData.addressDetail) return;
+    // Basic frontend validation: check if all fields are filled
+    if (
+      !formData.name ||
+      !formData.province ||
+      !formData.district ||
+      !formData.addressDetail
+    )
+      return;
 
+    // Combine address parts into the required 'location' format
     const fullLocation = `${formData.addressDetail}, ${formData.district}, ${formData.province}`;
+
+    // Call the parent component's function to handle the API POST request
     await onAdd({ name: formData.name, location: fullLocation });
 
-    setFormData({ name: "", province: "", district: "", addressDetail: "" });
+    // Reset form and close dialog upon successful addition (assuming onAdd succeeds)
+    setFormData(initialFormData);
     setIsAddDialogOpen(false);
   };
+  
+  /**
+   * Resets the form data and closes the dialog.
+   */
+  const handleCancel = () => {
+      setFormData(initialFormData);
+      setIsAddDialogOpen(false);
+  };
 
-  const districtOptions = formData.province ? provinces[formData.province] || [] : [];
+  // Dynamically compute district options based on the currently selected province
+  const districtOptions = formData.province
+    ? provinces[formData.province] || []
+    : [];
 
+
+  // ===============RENDER================
   return (
     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
       <DialogTrigger asChild>
+        {/* Button to open the dialog */}
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
           Create New Warehouse
@@ -71,7 +117,7 @@ export default function AdWareCreate({ onAdd }) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Warehouse name */}
+          {/* Warehouse name input */}
           <div className="grid gap-2">
             <Label htmlFor="name">Warehouse Name</Label>
             <Input
@@ -83,7 +129,7 @@ export default function AdWareCreate({ onAdd }) {
             />
           </div>
 
-          {/* Province selection */}
+          {/* Province selection dropdown */}
           <div className="grid gap-2">
             <Label>Province / City</Label>
             <select
@@ -101,7 +147,7 @@ export default function AdWareCreate({ onAdd }) {
             </select>
           </div>
 
-          {/* District selection */}
+          {/* District selection dropdown */}
           <div className="grid gap-2">
             <Label>District / Area</Label>
             <select
@@ -112,7 +158,9 @@ export default function AdWareCreate({ onAdd }) {
               disabled={!formData.province}
             >
               <option value="">
-                {formData.province ? "Select a district" : "Select province first"}
+                {formData.province
+                  ? "Select a district"
+                  : "Select province first"}
               </option>
               {districtOptions.map((district) => (
                 <option key={district} value={district}>
@@ -122,7 +170,7 @@ export default function AdWareCreate({ onAdd }) {
             </select>
           </div>
 
-          {/* Detailed address */}
+          {/* Detailed address input */}
           <div className="grid gap-2">
             <Label>Detailed Address</Label>
             <Input
@@ -135,7 +183,7 @@ export default function AdWareCreate({ onAdd }) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
           <Button onClick={handleAdd}>Add Warehouse</Button>

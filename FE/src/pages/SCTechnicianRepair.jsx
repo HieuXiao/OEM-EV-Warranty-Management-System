@@ -11,101 +11,84 @@ import useAuth from "@/hook/useAuth";
 
 const API_ENDPOINTS = {
   WARRANTY_CLAIMS: "/api/warranty-claims",
-  VEHICLE_BY_VIN: "/api/vehicle",
-  ACCOUNTS_BY_ID: "/api/accounts",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
 };
 
 export default function SCTechnicianRepair() {
   const { auth } = useAuth();
   const techId = auth?.accountId;
-
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const vehicleCache = useRef({});
+  const accountCache = useRef({});
 
   useEffect(() => {
     if (techId) fetchClaimsAndEnrich();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [techId]);
-
-  const fetchVehicle = async (vin) => {
-    if (!vin) return null;
-    if (vehicleCache.current[vin]) return vehicleCache.current[vin];
-    try {
-      const res = await axiosPrivate.get(`${API_ENDPOINTS.VEHICLE_BY_VIN}/${encodeURIComponent(vin)}`);
-      const data = res?.data || null;
-      vehicleCache.current[vin] = data;
-      return data;
-    } catch {
-      return null;
-    }
-  };
-
-  const fetchStaff = async (accountId) => {
-    if (!accountId) return null;
-    try {
-      const res = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS_BY_ID}/${encodeURIComponent(accountId)}`);
-      return res?.data || null;
-    } catch {
-      return null;
-    }
-  };
 
   const fetchClaimsAndEnrich = async () => {
     try {
-      const res = await axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS);
-      const data = Array.isArray(res?.data) ? res.data : [];
+      const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
+        axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS),
+        axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+        axiosPrivate.get(API_ENDPOINTS.ACCOUNTS),
+      ]);
 
-      // 🔹 Lọc đúng technician đang đăng nhập + status REPAIR
-      const repairClaims = data.filter(
+      const allClaims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
+      const allVehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+      const allAccounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
+
+      // Lọc claim theo technician hiện tại + status = REPAIR
+      const repairClaims = allClaims.filter(
         (c) =>
           c.status === "REPAIR" &&
-          c.serviceCenterTechnician?.accountId?.toUpperCase() ===
-            techId?.toUpperCase()
+          c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
       );
 
-      const enriched = await Promise.all(
-        repairClaims.map(async (claim) => {
-          const vehicle = await fetchVehicle(claim.vin);
-          const staff = await fetchStaff(claim.scStaffId);
-          return {
-            id: claim.claimId,
-            claimId: claim.claimId,
-            jobNumber: `CLM-${claim.claimId}`,
-            vin: claim.vin,
-            vehicleModel: vehicle?.model || claim.vehicle?.model || "N/A",
-            claimDate: claim.claimDate,
-            comment: claim.description,
-            status: claim.status,
-            scStaff: staff,
-            rawClaim: claim,
-          };
-        })
-      );
+      const enriched = repairClaims.map((claim) => {
+        const vehicle = allVehicles.find((v) => v.vin === claim.vin);
+        const staffAcc = allAccounts.find(
+          (acc) =>
+            acc.accountId === claim.serviceCenterStaffId &&
+            acc.roleName === "SC_STAFF"
+        );
+
+        return {
+          id: claim.claimId,
+          claimId: claim.claimId,
+          jobNumber: `CLM-${claim.claimId}`,
+          vin: claim.vin,
+          vehicleModel: vehicle?.model || claim.model || "N/A",
+          claimDate: claim.claimDate,
+          comment: claim.description,
+          status: claim.status,
+          scStaff: staffAcc,
+          rawClaim: claim,
+        };
+      });
 
       setJobs(enriched);
-    } catch (e) {
-      console.error("[SCTechnicianRepair] fetchClaims failed:", e);
+    } catch (err) {
+      console.error("[SCTechnicianRepair] fetchClaims failed:", err);
     }
   };
 
   const handleOpenReport = (job) => setSelectedJob(job);
   const handleCloseReport = () => setSelectedJob(null);
-
   const handleCompleteRepair = () => {
     setSelectedJob(null);
-    // 🔄 Reload toàn trang sau khi hoàn tất
-    window.location.reload();
+    window.location.reload(); // reset lại sau khi complete
   };
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
-      (job.jobNumber || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.vin || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.vehicleModel || "").toLowerCase().includes(searchTerm.toLowerCase());
+      job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.vin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.vehicleModel.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 

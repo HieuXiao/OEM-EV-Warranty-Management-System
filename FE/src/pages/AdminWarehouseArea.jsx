@@ -1,17 +1,27 @@
 // FE/src/pages/AdminWarehouseArea.jsx
 
+// ===============IMPORT================
+// Import React Hooks
+import { useEffect, useState } from "react";
+
+// Import Components & API
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
-import { useEffect, useState } from "react";
-import axiosPrivate from "@/api/axios";
 import AdWareCreate from "@/components/admin/AdWareCreate";
 import AdWareTable from "@/components/admin/AdWareTable";
+import axiosPrivate from "@/api/axios";
+
 
 export default function AdminWarehouseArea() {
+  // ===============State Management================
   const [warehouses, setWarehouses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // ===============Data Fetching================
+  /**
+   * Fetch the list of all warehouses from the API.
+   */
   const fetchWarehouses = async () => {
     try {
       const res = await axiosPrivate.get("/api/warehouses");
@@ -27,6 +37,11 @@ export default function AdminWarehouseArea() {
     fetchWarehouses();
   }, []);
 
+  // ===============HANLDER================
+  /**
+   * Handles adding a new warehouse via API call and updates state.
+   * @param {object} newWare - { name, location }
+   */
   const handleAddWarehouse = async (newWare) => {
     try {
       const res = await axiosPrivate.post("/api/warehouses", {
@@ -39,6 +54,10 @@ export default function AdminWarehouseArea() {
     }
   };
 
+  /**
+   * Handles editing an existing warehouse via API PUT call and updates state.
+   * @param {object} updated - { whId, name, location }
+   */
   const handleEditWarehouse = async (updated) => {
     try {
       const res = await axiosPrivate.put(`/api/warehouses/${updated.whId}`, {
@@ -53,6 +72,11 @@ export default function AdminWarehouseArea() {
     }
   };
 
+  /**
+   * Handles toggling the status (enabled/disabled) of a warehouse.
+   * @param {string} whId - Warehouse ID
+   * @param {boolean} isEnabled - Current enabled status
+   */
   const handleToggleStatus = async (whId, isEnabled) => {
     try {
       await axiosPrivate.patch(`/api/warehouses/${whId}/status`, {
@@ -66,6 +90,7 @@ export default function AdminWarehouseArea() {
     }
   };
 
+  // ===============RENDER================
   return (
     <div className="min-h-screen bg-muted/30">
       <Sidebar />
@@ -73,13 +98,14 @@ export default function AdminWarehouseArea() {
         <Header />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
+            {/* Title and Create Button */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h1 className="text-3xl font-bold text-foreground">
                 Warehouse Area
               </h1>
               <AdWareCreate onAdd={handleAddWarehouse} />
             </div>
-
+            {/* Warehouse Table or Loading State */}
             {loading ? (
               <p>Loading warehouses...</p>
             ) : (

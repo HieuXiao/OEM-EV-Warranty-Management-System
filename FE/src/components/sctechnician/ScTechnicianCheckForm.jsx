@@ -4,15 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import axiosPrivate from "@/api/axios";
 import { cn } from "@/lib/utils";
+import useAuth from "@/hook/useAuth";
 
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   PARTS: "/api/parts",
-  FILE_UPLOAD: "/api/warranty-files/combined/upload-create",
+  FILE_UPLOAD: (claimId) =>
+    `/api/warranty-files/combined/upload-create?fileId=${claimId}&claimId=${claimId}`,
   CLAIM_PART_CHECK_CREATE: "/api/claim-part-check/create",
+  SKIP_REPAIR: (claimId, technicianId) =>
+    `/api/warranty-claims/workflow/${claimId}/technician/skip-repair?technicianId=${technicianId}`,
 };
 
 export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
+  const { auth } = useAuth();
+  const technicianId = auth?.accountId || auth?.id || "";
+
   const [checkStarted, setCheckStarted] = useState(false);
   const [claimInfo, setClaimInfo] = useState(null);
   const [partsList, setPartsList] = useState([]);
@@ -23,194 +30,140 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
   const claimId = job?.claimId || job?.id;
 
-  // Lấy thông tin claim
+  // 🔹 Fetch claim info
   useEffect(() => {
     const fetchClaimInfo = async () => {
+      if (!claimId) return;
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS);
-        const all = Array.isArray(res.data) ? res.data : [];
-        const found = all.find((c) => c.claimId === claimId || c.id === claimId);
-        setClaimInfo(found || null);
+        const res = await axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${claimId}`);
+        setClaimInfo(res.data);
       } catch (err) {
         console.error("[CheckForm] fetchClaimInfo failed:", err);
       }
     };
-    if (claimId) fetchClaimInfo();
+    fetchClaimInfo();
   }, [claimId]);
 
-  // Lấy danh sách part (lọc theo whId = 1)
+  // 🔹 Fetch parts
   useEffect(() => {
     const fetchParts = async () => {
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.PARTS);
-        const filtered =
-          Array.isArray(res?.data) && res.data.length > 0
-            ? res.data.filter((p) => p?.warehouse?.whId === 1)
-            : [];
-        setPartsList(filtered);
+        const resParts = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const filteredParts = Array.isArray(resParts.data)
+          ? resParts.data.filter((p) => p?.warehouse?.whId === 1)
+          : [];
+
+        if (claimInfo?.warrantyClaimParts?.length > 0) {
+          setPartsList(claimInfo.warrantyClaimParts);
+        } else {
+          setPartsList(filteredParts);
+        }
       } catch (e) {
         console.error("[CheckForm] fetchParts failed:", e);
       }
     };
     fetchParts();
-  }, []);
+  }, [claimInfo]);
 
+  // -------------------- HANDLERS ---------------------
   const handleStartCheck = () => setCheckStarted(true);
 
-  // Upload ảnh tạm
-  const handleImageUpload = (partKey, event) => {
-    const files = Array.from(event.target.files || []);
+  const handleSelectionChange = (key, val) =>
+    setPartSelections((p) => ({ ...p, [key]: val }));
+
+  const handleQuantityChange = (key, val) =>
+    setPartQuantities((p) => ({ ...p, [key]: Number(val) || 0 }));
+
+  const handleImageUpload = (key, e) => {
+    const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const current = partImages[partKey] || [];
+    const current = partImages[key] || [];
     if (current.length + files.length > 3) {
       alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
       return;
     }
-    const newFiles = files.map((f) => ({
-      file: f,
-      url: URL.createObjectURL(f),
-    }));
+    const newFiles = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
     setPartImages((prev) => ({
       ...prev,
-      [partKey]: [...current, ...newFiles].slice(0, 3),
+      [key]: [...current, ...newFiles].slice(0, 3),
     }));
   };
 
-  const handleDeleteImage = (partKey, idx) => {
+  const handleDeleteImage = (key, idx) => {
     setPartImages((prev) => {
-      const updated = [...(prev[partKey] || [])];
+      const updated = [...(prev[key] || [])];
       updated.splice(idx, 1);
-      const copy = { ...prev, [partKey]: updated };
-      if (updated.length === 0) delete copy[partKey];
+      const copy = { ...prev, [key]: updated };
+      if (!updated.length) delete copy[key];
       return copy;
     });
-  };
-
-  const handleSelectionChange = (partKey, value) => {
-    setPartSelections((prev) => ({ ...prev, [partKey]: value }));
-    if (value === "CHECKED") {
-      setPartQuantities((prev) => ({ ...prev, [partKey]: 0 }));
-    }
-  };
-
-  const handleQuantityChange = (partKey, value) => {
-    const num = Number.parseInt(value) || 0;
-    if (num >= 0) setPartQuantities((prev) => ({ ...prev, [partKey]: num }));
   };
 
   const allPartsSelected =
     partsList.length > 0 && partsList.every((p) => !!partSelections[p.namePart]);
 
-  // Hoàn tất kiểm tra (Tạo claim-part-check + upload ảnh)
+  // -------------------- COMPLETE CHECK ---------------------
   const handleCompleteCheck = async () => {
     if (!claimId) return;
-
     setUploading(true);
 
-    console.log("=== DEBUG COMPLETE CHECK ===");
-    console.log("claimId:", claimId);
-    console.log("claimInfo:", claimInfo);
-    console.log("partsList:", partsList);
-    console.log("partSelections:", partSelections);
-    console.log("partQuantities:", partQuantities);
-    console.log("partImages:", partImages);
-    console.log("=============================");
-
     try {
-      // 1. Upload ảnh cho từng part (nếu có)
-      for (const partKey in partImages) {
-        if (partImages[partKey].length > 0) {
+      console.log("[CheckForm] Auth info:", auth);
+
+      // ✅ Chuẩn bị payload claim-part-check
+      const payloads = partsList
+        .filter((p) => partSelections[p.namePart])
+        .map((p) => ({
+          partNumber: p.partNumber,
+          warrantyId: claimId,
+          vin: claimInfo?.vin || "UNKNOWN",
+          quantity: partQuantities[p.namePart] || 1,
+          isRepair: partSelections[p.namePart] === "REPAIR",
+        }));
+
+      const hasRepair = payloads.some((p) => p.isRepair);
+
+      // 🔹 1. Gửi danh sách part check
+      for (const payload of payloads) {
+        console.log("%c[Claim-Part-Check] Payload:", "color: cyan;", payload);
+        await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
+      }
+
+      // 🔹 2. Nếu có part cần sửa (REPAIR) → upload ảnh theo claimId
+      if (hasRepair) {
+        for (const key in partImages) {
+          const imgs = partImages[key];
+          if (!imgs.length) continue;
+
           const formData = new FormData();
-          formData.append("fileId", claimId);
-          formData.append("claimId", claimId);
+          imgs.forEach((img) => img.file && formData.append("files", img.file));
 
-          // Append files (sử dụng file object thay vì URL)
-          partImages[partKey].forEach((img) => {
-            if (img.file) {
-              formData.append("files", img.file);
-            }
+          const uploadUrl = API_ENDPOINTS.FILE_UPLOAD(claimId);
+          console.log("[CheckForm] Uploading images for:", key, "→", uploadUrl);
+
+          await axiosPrivate.post(uploadUrl, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
           });
-
-          // Nếu không có file mới, bỏ qua
-          if (formData.getAll("files").length === 0) continue;
-
-          try {
-            await axiosPrivate.post(API_ENDPOINTS.FILE_UPLOAD, formData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
-            console.log(`✅ Upload ảnh cho ${partKey} thành công.`);
-          } catch (err) {
-            console.error("❌ Upload ảnh lỗi:", err.response || err);
-            alert(`Upload ảnh cho ${partKey} thất bại. Vui lòng thử lại.`);
-            // Không throw, cho phép tiếp tục với các part khác
-          }
         }
+      } else {
+        // 🔹 3. Nếu KHÔNG có part cần sửa, gọi skip-repair
+        const skipURL = API_ENDPOINTS.SKIP_REPAIR(claimId, technicianId);
+        console.log("[CheckForm] Skip-Repair URL:", skipURL);
+        await axiosPrivate.post(skipURL);
       }
 
-      // 2. Gửi Part Check cho mỗi part được chọn
-      for (const [index, part] of partsList.entries()) {
-        const partKey = `${part.partNumber}_${part.vin}_${part.quantity}`;
-        const selection = partSelections[partKey] || partSelections[part.namePart] || "";
-        const isRepair = selection === "REPAIR" || selection === "repair" || selection === "Repair";
-
-        if (!selection) continue; // Bỏ qua phần chưa chọn
-
-        // Nếu backend yêu cầu trường partSerial, bạn có thể lấy từ UI — hiện đặt rỗng
-        const partSerialValue = "";
-
-        const payload = {
-          partNumber: part.partNumber || part.namePart || `PART-${index + 1}`,
-          claimId, // dùng đúng field mà backend cần
-          vin: claimInfo?.vehicle?.vin || "UNKNOWN",
-          quantity: partQuantities[partKey] || 1,
-          partSerial: "Null",
-          repair: isRepair,
-        };
-
-        console.log(
-          "%c📦 Payload gửi lên /api/claim-part-check/create:",
-          "color: cyan; font-weight: bold;"
-        );
-        console.log(JSON.stringify(payload, null, 2));
-
-        try {
-          await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
-          console.log(`✅ Tạo part-check cho ${part.namePart} thành công.`);
-        } catch (err) {
-          console.error("❌ Error at part", part.namePart, err.response || err);
-          alert(
-            `Lỗi khi tạo part-check cho ${part.namePart}: ${
-              err.response?.data?.message || err.message
-            }\nMã lỗi HTTP: ${err.response?.status || "Unknown"}`
-          );
-          throw err; // Dừng toàn bộ nếu tạo part-check lỗi
-        }
-      }
-
-      // 3. (Tùy) cập nhật trạng thái claim — bạn có thể gọi API nếu cần
-      // await axiosPrivate.put(`${API_ENDPOINTS.CLAIMS}/${claimId}/complete-check`);
-
-      alert("Hoàn tất kiểm tra thành công!");
-      onComplete(claimId);
-      onClose();
+      console.log("[CheckForm] ✅ Complete success for claim:", claimId);
+      onComplete?.(claimId);
+      onClose?.();
     } catch (err) {
-      console.error("[CheckForm] Complete failed:", err.response || err);
-      const status = err.response?.status;
-      const data = err.response?.data;
-
-      let message = "Lỗi khi hoàn tất kiểm tra.";
-      if (status) message += `\nMã lỗi: HTTP ${status}`;
-      if (data && typeof data === "object") {
-        message += `\nChi tiết: ${JSON.stringify(data, null, 2)}`;
-      } else if (data) {
-        message += `\nChi tiết: ${data}`;
-      }
-      alert(message);
+      console.error("[CheckForm] ❌ Complete failed:", err.response || err);
+      alert("Hoàn tất kiểm tra thất bại! Kiểm tra console để xem chi tiết.");
     } finally {
       setUploading(false);
     }
   };
 
+  // -------------------- UI ---------------------
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200">
@@ -229,36 +182,26 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
           {claimInfo ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
               <div>
-                <Label className="text-gray-500 text-sm">VIN</Label>
-                <p className="text-base font-semibold">{claimInfo.vehicle?.vin}</p>
+                <Label>VIN</Label>
+                <p>{claimInfo.vin}</p>
               </div>
               <div>
-                <Label className="text-gray-500 text-sm">Model</Label>
-                <p className="text-base font-semibold">{claimInfo.vehicle?.model}</p>
-              </div>
-              <div>
-                <Label className="text-gray-500 text-sm">Claim Date</Label>
-                <p className="text-base font-semibold">{claimInfo.claimDate}</p>
-              </div>
-              <div>
-                <Label className="text-gray-500 text-sm">SC Staff</Label>
-                <p className="text-base font-semibold">
-                  {claimInfo.serviceCenterStaff?.fullName}
-                </p>
+                <Label>Claim Date</Label>
+                <p>{claimInfo.claimDate}</p>
               </div>
               <div className="md:col-span-2">
-                <Label className="text-gray-500 text-sm">Description</Label>
+                <Label>Description</Label>
                 <div className="p-3 bg-gray-50 border rounded-md text-sm">
                   {claimInfo.description || "No description"}
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 mb-4">Loading claim information...</p>
+            <p className="text-sm text-gray-500 mb-4">Loading claim info...</p>
           )}
         </div>
 
-        {/* Body */}
+        {/* Check Form */}
         <div className="p-6 space-y-6">
           {!checkStarted ? (
             <div className="flex justify-center py-8">
@@ -272,17 +215,16 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
             </div>
           ) : (
             <>
-              {/* Danh sách parts */}
+              {/* Parts List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {partsList.map((part) => {
-                  const partKey = part.namePart;
-                  const selection = partSelections[partKey];
+                  const key = part.namePart;
+                  const selection = partSelections[key];
                   const isRepair = selection === "REPAIR";
-                  const images = partImages[partKey] || [];
-
+                  const imgs = partImages[key] || [];
                   return (
                     <div
-                      key={partKey}
+                      key={key}
                       className={cn(
                         "rounded-lg border p-5 transition-all shadow-sm",
                         isRepair
@@ -299,8 +241,8 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                           accept="image/*"
                           multiple
                           className="text-xs"
-                          onChange={(e) => handleImageUpload(partKey, e)}
-                          disabled={images.length >= 3}
+                          onChange={(e) => handleImageUpload(key, e)}
+                          disabled={imgs.length >= 3}
                         />
                       </div>
 
@@ -308,7 +250,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                         <Label>Status</Label>
                         <select
                           value={selection || ""}
-                          onChange={(e) => handleSelectionChange(partKey, e.target.value)}
+                          onChange={(e) => handleSelectionChange(key, e.target.value)}
                           className="border rounded px-2 py-1 text-sm w-32"
                         >
                           <option value="">Select...</option>
@@ -323,23 +265,20 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                           <Input
                             type="number"
                             min="1"
-                            value={partQuantities[partKey] || ""}
-                            onChange={(e) =>
-                              handleQuantityChange(partKey, e.target.value)
-                            }
+                            value={partQuantities[key] || ""}
+                            onChange={(e) => handleQuantityChange(key, e.target.value)}
                             className="h-8 w-20 text-sm"
                           />
                         </div>
                       )}
 
-                      {/* Preview ảnh */}
-                      {images.length > 0 && (
+                      {imgs.length > 0 && (
                         <div className="mt-2">
                           <div className="text-xs text-gray-500 mb-1">
-                            {images.length}/3 image(s)
+                            {imgs.length}/3 image(s)
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            {images.map((img, idx) => (
+                            {imgs.map((img, idx) => (
                               <div key={idx} className="relative">
                                 <img
                                   src={img.url}
@@ -347,7 +286,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                                   className="w-16 h-16 object-cover rounded border"
                                 />
                                 <button
-                                  onClick={() => handleDeleteImage(partKey, idx)}
+                                  onClick={() => handleDeleteImage(key, idx)}
                                   className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-[5px]"
                                 >
                                   ×
@@ -362,6 +301,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                 })}
               </div>
 
+              {/* Footer */}
               <div className="flex justify-end mt-6 gap-3">
                 <Button variant="outline" onClick={onClose}>
                   Cancel

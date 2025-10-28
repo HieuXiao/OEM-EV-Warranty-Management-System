@@ -38,11 +38,10 @@ export default function SCTechnicianDashboard() {
 
       const technicianClaims = allClaims.filter(
         (claim) =>
-          claim.serviceCenterTechnician?.accountId?.toUpperCase() ===
+          claim.serviceCenterTechnicianId?.toUpperCase() ===
           techId.toUpperCase()
       );
 
-      
       setClaims(technicianClaims);
 
     } catch (err) {
