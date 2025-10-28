@@ -244,7 +244,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                 <SelectContent>
                   {vehicles.map((v) => (
                     <SelectItem key={v.vin} value={v.vin}>
-                      {v.vin} - {v.model}
+                      {v.vin}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -268,7 +268,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                 <SelectContent className="max-h-[200px] overflow-y-auto">
                   {technicians.map((t) => (
                     <SelectItem key={t.accountId} value={t.accountId}>
-                      {t.fullName} ({t.username})
+                      {t.fullName}
                     </SelectItem>
                   ))}
                 </SelectContent>

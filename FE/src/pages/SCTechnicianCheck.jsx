@@ -11,6 +11,8 @@ import useAuth from "@/hook/useAuth";
 
 const API_ENDPOINTS = {
   WARRANTY_CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
 };
 
 export default function SCTechnicianCheck() {
@@ -45,35 +47,56 @@ export default function SCTechnicianCheck() {
 
   const fetchClaimsAndEnrich = async () => {
     try {
-      const res = await axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS);
-      const data = Array.isArray(res?.data) ? res.data : [];
+      // 🔹 Gọi song song 3 API
+      const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
+        axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS),
+        axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+        axiosPrivate.get(API_ENDPOINTS.ACCOUNTS),
+      ]);
 
-      // 🔹 Chỉ hiện claim có status CHECK & technician trùng accountId
-      const checkClaims = data.filter(
-        (c) =>
+      const claims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
+      const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+      const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
+
+      // 🔹 Tạo map nhanh cho vehicle và account
+      const vehicleMap = Object.fromEntries(vehicles.map(v => [v.vin, v]));
+      const accountMap = Object.fromEntries(accounts.map(a => [a.accountId, a]));
+
+      // 🔹 Lọc claim dành cho technician hiện tại
+      const filteredClaims = claims.filter(
+        c =>
           c.status === "CHECK" &&
-          c.serviceCenterTechnician?.accountId?.toUpperCase() ===
-            techId?.toUpperCase()
+          c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
       );
 
-      const enriched = checkClaims.map((claim) => ({
-        id: claim.claimId,
-        claimId: claim.claimId,
-        jobNumber: `CLM-${claim.claimId}`,
-        vin: claim.vehicle?.vin || "N/A",
-        vehicleModel: claim.vehicle?.model || "N/A",
-        claimDate: claim.claimDate,
-        createdAt: claim.claimDate,
-        comment: claim.description || claim.vehicle?.campaign?.serviceDescription || "",
-        status: claim.status,
-        scStaff: claim.serviceCenterStaff || {},
-        scTechnician: claim.serviceCenterTechnician || {},
-        rawClaim: claim,
-      }));
+      // 🔹 Gắn dữ liệu vehicle & account tương ứng
+      const enriched = filteredClaims.map((claim) => {
+        const vehicle = vehicleMap[claim.vin];
+        const scStaff = accountMap[claim.serviceCenterStaffId];
+        const scTechnician = accountMap[claim.serviceCenterTechnicianId];
+
+        return {
+          id: claim.claimId,
+          claimId: claim.claimId,
+          jobNumber: `CLM-${claim.claimId}`,
+          vin: claim.vin || "N/A",
+          vehicleModel: vehicle?.model || "N/A",
+          claimDate: claim.claimDate,
+          createdAt: claim.claimDate,
+          comment:
+            claim.description ||
+            vehicle?.campaign?.serviceDescription ||
+            "",
+          status: claim.status,
+          scStaff,
+          scTechnician,
+          rawClaim: claim,
+        };
+      });
 
       setJobs(enriched);
     } catch (e) {
-      console.error("[SCTechnicianCheck] fetchClaims failed:", e);
+      console.error("[SCTechnicianCheck] fetchClaimsAndEnrich failed:", e);
     }
   };
 
@@ -85,7 +108,6 @@ export default function SCTechnicianCheck() {
       prev.map((j) => (j.id === selectedJob.id ? { ...j, status: "completed" } : j))
     );
     setSelectedJob(null);
-    // 🔄 Reload toàn trang sau khi hoàn tất
     window.location.reload();
   };
 
@@ -180,7 +202,8 @@ export default function SCTechnicianCheck() {
                                 <span className="font-medium">Date:</span> {formatDateTime(job.claimDate || job.createdAt)}
                               </p>
                               <p className="text-muted-foreground">
-                                <span className="font-medium">SC Staff:</span> {job.scStaff?.fullName || job.scStaff?.username || "N/A"}
+                                <span className="font-medium">SC Staff:</span>{" "}
+                                {job.scStaff?.fullName || job.scStaff?.username || "N/A"}
                               </p>
                             </div>
                           </div>
