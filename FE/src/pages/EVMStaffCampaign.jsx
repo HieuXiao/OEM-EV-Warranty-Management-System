@@ -14,21 +14,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // import Badge removed; using inline border-only pill for status consistency
 import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
 import axiosPrivate from "@/api/axios";
 
-const CAMPAIGN_URL = "/api/campaign/";
+const CAMPAIGN_URL = "/api/campaigns/all";
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [viewCampaign, setViewCampaign] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 5;
 
   useEffect(() => {
     async function fetchCampaigns() {
@@ -42,22 +50,49 @@ export default function EVMStaffCampaign() {
     fetchCampaigns();
   }, []);
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    return campaign.campaignName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-  });
+  const getCampaignStatus = (startDate, endDate) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày hôm nay
 
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày bắt đầu
+
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày kết thúc
+
+    if (now > end) {
+      return "completed";
+    } else if (now >= start && now <= end) {
+      return "on going";
+    } else {
+      // now < start
+      return "not yet";
+    }
+  };
+
+  const filteredCampaigns = campaigns
+    .filter((campaign) => {
+      return campaign.campaignName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    })
+    .filter((campaign) => {
+      // 2. Filter theo status
+      if (statusFilter === "all") {
+        return true; // Trả về tất cả nếu chọn "all"
+      }
+      const status = getCampaignStatus(campaign.startDate, campaign.endDate);
+      return status === statusFilter;
+    });
+
+  const totalPages =
+    Math.ceil(filteredCampaigns.length / itemsPerPage) === 0
+      ? 1
+      : Math.ceil(filteredCampaigns.length / itemsPerPage);
   const paginatedCampaigns = filteredCampaigns.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const handleEditCampaign = (campaign) => {
-    setEditingCampaign(campaign);
-    setShowCampaignDialog(true);
-  };
 
   const handleSaveCampaign = (campaignData) => {
     if (editingCampaign) {
@@ -76,20 +111,17 @@ export default function EVMStaffCampaign() {
   };
 
   // border-only pill; keep original casing (do not uppercase)
-  const getStatusBadge = (decision) => {
-    const s = String(decision || "").toLowerCase();
+  const getStatusBadge = (status) => {
+    const s = String(status || "").toLowerCase();
     const map = {
-      done: "text-green-700 border-green-400",
-      cancel: "text-red-700 border-red-400",
-      process: "text-yellow-700 border-yellow-400",
-      to_do: "text-blue-700 border-blue-400",
-      "to do": "text-blue-700 border-blue-400",
-      "on going": "text-yellow-700 border-yellow-400",
+      completed: "text-white bg-green-400 border-green-400",
+      "not yet": "text-white bg-blue-400 border-blue-400",
+      "on going": "text-white bg-yellow-600 border-yellow-600",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
       <span
-        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border min-w-[100px] ${cls}`}
       >
         {String(status || "").replace(/_/g, " ")}
       </span>
@@ -115,6 +147,25 @@ export default function EVMStaffCampaign() {
                   className="pl-10"
                 />
               </div>
+              {/* Thêm Filter Dropdown */}
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1); // Reset trang khi filter
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="not yet">Not Yet</SelectItem>
+                  <SelectItem value="on going">On Going</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 onClick={() => {
                   setEditingCampaign(null);
@@ -138,14 +189,11 @@ export default function EVMStaffCampaign() {
                       <TableHead className="max-w-[360px] text-left">
                         Description
                       </TableHead>
-                      {/* <TableHead className="w-40 text-left">
-                        Collected
-                      </TableHead> */}
                       <TableHead className="w-40 text-left">
                         Start Date
                       </TableHead>
                       <TableHead className="w-32 text-left">Due Date</TableHead>
-                      {/* <TableHead className="w-32 text-center">Status</TableHead> */}
+                      <TableHead className="w-32 text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -164,50 +212,20 @@ export default function EVMStaffCampaign() {
                         <TableCell className="max-w-[360px] whitespace-normal break-words text-left">
                           {(campaign.serviceDescription || "").slice(0, 60)}
                         </TableCell>
-                        {/* <TableCell className="w-40 text-left align-top">
-                          show percentage bar if data available
-                          {campaign.completedVehicles &&
-                          campaign.affectedVehicles ? (
-                            (() => {
-                              const pct = Math.round(
-                                (campaign.completedVehicles /
-                                  campaign.affectedVehicles) *
-                                  100
-                              );
-                              return (
-                                <div>
-                                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                    <div
-                                      className="h-2 bg-primary"
-                                      style={{
-                                        width: `${Math.min(
-                                          Math.max(pct, 0),
-                                          100
-                                        )}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mt-1">
-                                    {pct}%
-                                  </div>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              -
-                            </div>
-                          )}
-                        </TableCell> */}
                         <TableCell className="text-left">
                           {campaign.startDate}
                         </TableCell>
                         <TableCell className="text-left">
                           {campaign.endDate}
                         </TableCell>
-                        {/* <TableCell className="text-center align-middle">
-                          {getStatusBadge(campaign.status)}
-                        </TableCell> */}
+                        <TableCell className="text-center align-middle">
+                          {getStatusBadge(
+                            getCampaignStatus(
+                              campaign.startDate,
+                              campaign.endDate
+                            ).toUpperCase()
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -247,6 +265,7 @@ export default function EVMStaffCampaign() {
         onOpenChange={setShowCampaignDialog}
         onSave={handleSaveCampaign}
         campaign={editingCampaign}
+        allCampaigns={campaigns}
       />
       <EVMStaffDetailCampaign
         open={!!viewCampaign}

@@ -44,12 +44,8 @@ export default function EVMStaffWarehouseDetail() {
     {
       const s = String(decision || "").toLowerCase();
       const map = {
-        done: "text-green-700 border-green-400",
-        cancel: "text-red-700 border-red-400",
-        'on going': "text-yellow-700 border-yellow-400",
-        'to do': "text-blue-700 border-blue-400",
-        normal: "text-green-700 border-green-400",
-        low: "text-red-700 border-red-400",
+        normal: "text-green-500 border-green-500",
+        low: "text-red-900 border-red-900",
       };
       const cls = map[s] || "text-gray-700 border-gray-300";
       return (
