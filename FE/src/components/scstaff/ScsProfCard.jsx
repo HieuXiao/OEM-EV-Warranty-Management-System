@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axiosPrivate from "@/api/axios";
 import { Loader2, Save, Edit, X } from "lucide-react";
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+} from "@/components/ui/select";
 
 const VEHICLE_UPDATE_URL = "/api/vehicles";
 
@@ -101,12 +108,28 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
         </div>
         <div>
           <label className="text-sm font-medium">Type</label>
-          <Input
-            name="type"
+          <Select
             value={form.type}
-            onChange={handleChange}
+            onValueChange={(value) =>
+              setForm({
+                ...form,
+                type: value,
+              })
+            }
             disabled={!editMode || status.loading}
-          />
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem key="car" value="Car">
+                Car
+              </SelectItem>
+              <SelectItem key="bike" value="Electric Motorbike">
+                Electric Motorbike
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="text-sm font-medium">Color</label>
