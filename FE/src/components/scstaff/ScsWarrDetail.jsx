@@ -71,22 +71,32 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
     fetchAll();
   }, [selectedClaim, isOpen]);
 
-  // 🔹 Đánh dấu technician hoàn tất
+  // 🔹 Đánh dấu staff hoàn tất
   const handleMarkComplete = async () => {
     if (!claim || claim.status !== "HANDOVER") return;
 
     try {
       setLoading(true);
+      const staffId = claim.serviceCenterStaffId;
+
+      // ✅ Gọi API staff/done với query params
       await axiosPrivate.post(
-        `${API_CLAIMS}/workflow/${claim.claimId}/technician/done`,
+        `${API_CLAIMS}/workflow/${claim.claimId}/staff/done`,
+        null,
         {
-          claimId: claim.claimId,
-          technicianId: claim.serviceCenterTechnicianId,
-          done: true,
+          params: {
+            staffId: staffId,
+            done: true,
+          },
         }
       );
-      setClaim({ ...claim, status: "DONE", technicianDone: true });
+
+      // ✅ Cập nhật state sau khi hoàn tất
+      setClaim({ ...claim, status: "DONE", staffDone: true });
       onOpenChange(false);
+
+      // ✅ Reset trang sau khi hoàn tất
+      window.location.reload();
     } catch (error) {
       console.error("Error marking claim complete:", error);
     } finally {

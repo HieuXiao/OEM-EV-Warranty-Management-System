@@ -2,121 +2,118 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Wrench, CheckCircle } from "lucide-react";
+import { X, Wrench } from "lucide-react";
 import axiosPrivate from "@/api/axios";
 
 const API_ENDPOINTS = {
-  FILE_UPLOAD: "/api/warranty-files/combined/upload-create",
+  CLAIM_PART_CHECK: "/api/claim-part-check/search/warranty",
+  ADD_SERIALS: "/api/claim-part-check/add-serials",
   CLAIM_WORKFLOW: "/api/warranty-claims/workflow",
+  PARTS: "/api/parts",
 };
 
-const ScTechnicianRepairForm = ({ job, onClose, onComplete }) => {
+export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
   const [repairParts, setRepairParts] = useState([]);
   const [serialInputs, setSerialInputs] = useState({});
   const [loading, setLoading] = useState(false);
-  const [file, setFile] = useState(null);
 
-  // Lấy danh sách part cần sửa và thông tin part kho (chỉ whId = 1)
+  // 🧩 Lấy danh sách part có repair:true và quantity từ claim_part_check
   useEffect(() => {
-    const fetchData = async () => {
+    if (!job?.claimId) return;
+
+    const fetchRepairParts = async () => {
       try {
-        const [claimPartsRes, partsRes] = await Promise.all([
-          axiosPrivate.get("/api/claim-part-check/all"),
-          axiosPrivate.get("/api/parts"),
-        ]);
-
-        const allClaimParts = Array.isArray(claimPartsRes?.data)
-          ? claimPartsRes.data
-          : [];
-
-        const allParts = Array.isArray(partsRes?.data) ? partsRes.data : [];
-
-        // Lọc các part repair thuộc claimId hiện tại
-        const filtered = allClaimParts.filter(
-          (p) => p.warrantyClaim === job?.claimId && p.repair === true
+        const res = await axiosPrivate.get(
+          `${API_ENDPOINTS.CLAIM_PART_CHECK}/${job.claimId}`
         );
+        const claimParts = Array.isArray(res.data) ? res.data : [];
 
-        // Lọc kho whId = 1
-        const validParts = allParts.filter((p) => p?.warehouse?.whId === 1);
+        // lọc part có repair:true
+        const repairList = claimParts.filter((p) => p.isRepair === true);
+        if (repairList.length === 0) {
+          setRepairParts([]);
+          return;
+        }
 
-        // Ghép tên part
-        const merged = filtered.map((r) => {
-          const match = validParts.find((p) => p.partSerial === r.partNumber);
+        // lấy thêm partName từ /api/parts
+        const partRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const allParts = Array.isArray(partRes.data) ? partRes.data : [];
+
+        const merged = repairList.map((p) => {
+          const found = allParts.find(
+            (x) =>
+              x.partNumber?.toUpperCase() === p.partNumber?.toUpperCase()
+          );
           return {
-            ...r,
-            namePart: match?.namePart || r.partNumber,
+            ...p,
+            partName: found?.namePart || found?.partName || p.partNumber,
           };
         });
 
         setRepairParts(merged);
       } catch (err) {
-        console.error("[RepairForm] Load parts failed:", err);
+        console.error("[RepairForm] Fetch repair parts failed:", err);
       }
     };
-    fetchData();
+
+    fetchRepairParts();
   }, [job]);
 
-  // Xử lý nhập serial numbers (ngăn cách bằng ;)
-  const handleSerialChange = (partNumber, value) => {
-    setSerialInputs((prev) => ({ ...prev, [partNumber]: value }));
+  // 🧩 Nhập serial theo partNumber + index
+  const handleSerialChange = (partNumber, index, value) => {
+    setSerialInputs((prev) => ({
+      ...prev,
+      [partNumber]: {
+        ...(prev[partNumber] || {}),
+        [index]: value,
+      },
+    }));
   };
 
-  // Gửi API hoàn tất Repair
+  // 🧩 Hoàn tất repair
   const handleCompleteRepair = async () => {
+    if (!job?.claimId) return;
+
     try {
-      const claimId = job?.claimId || job?.id;
-      const technicianId = job?.serviceCenterTechnician?.accountId;
+      setLoading(true);
+      const claimId = job.claimId;
+      const technicianId =
+        job?.serviceCenterTechnicianId ||
+        job?.rawClaim?.serviceCenterTechnicianId;
 
-      // Kiểm tra nhập serial hợp lệ
+      // kiểm tra đủ serial
       for (const part of repairParts) {
-        const input = serialInputs[part.partNumber]?.trim();
-        const serials = input ? input.split(";").map((s) => s.trim()) : [];
-
+        const serials = Object.values(serialInputs[part.partNumber] || {}).filter(
+          (s) => s && s.trim() !== ""
+        );
         if (serials.length < part.quantity) {
           alert(
-            `Bộ phận ${part.namePart} yêu cầu nhập đủ ${part.quantity} serial number (ngăn cách bằng dấu ;)`
+            `❌ Part "${part.partName}" cần nhập đủ ${part.quantity} serial number.`
           );
+          setLoading(false);
           return;
         }
       }
 
-      setLoading(true);
-
-      // Upload evidence file nếu có
-      if (file) {
-        const formData = new FormData();
-        formData.append("claimId", claimId);
-        formData.append("files", file);
-        try {
-          await axiosPrivate.post(API_ENDPOINTS.FILE_UPLOAD, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-        } catch (e) {
-          console.error("[RepairForm] file upload failed:", e);
-          // không bắt dừng — vẫn tiếp tục workflow
-        }
+      // gửi serials cho từng part
+      for (const part of repairParts) {
+        const serialArray = Object.values(serialInputs[part.partNumber] || {});
+        await axiosPrivate.post(
+          `${API_ENDPOINTS.ADD_SERIALS}/${claimId}/${part.partNumber}`,
+          serialArray
+        );
       }
 
-      // Gọi API cập nhật workflow: technician done
+      // cập nhật workflow: technician done
       await axiosPrivate.post(
-        `${API_ENDPOINTS.CLAIM_WORKFLOW}/${claimId}/technician/done`,
-        {
-          claimId,
-          technicianId,
-          done: true,
-        }
+        `${API_ENDPOINTS.CLAIM_WORKFLOW}/${claimId}/technician/done?staffId=${technicianId}&done=true`
       );
 
-      alert("Đã hoàn tất Repair. Trạng thái claim chuyển sang HANDOVER.");
+      alert("✅ Hoàn tất Repair thành công!");
       onComplete?.();
     } catch (e) {
-      console.error("[RepairForm] Complete Repair failed:", e.response || e);
-      alert(
-        "Lỗi khi hoàn tất Repair.\n" +
-          (e.response?.status ? `Mã lỗi: ${e.response.status}` : "") +
-          "\n" +
-          (e.response?.data ? JSON.stringify(e.response.data) : "")
-      );
+      console.error("[RepairForm] Complete Repair failed:", e);
+      alert("❌ Có lỗi xảy ra khi hoàn tất Repair. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -124,11 +121,11 @@ const ScTechnicianRepairForm = ({ job, onClose, onComplete }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-amber-600 flex items-center gap-2">
-            <Wrench className="h-5 w-5" /> REPAIR TASK - Claim #{job?.claimId}
+            <Wrench className="h-5 w-5" /> Repair Form — Claim #{job?.claimId}
           </h2>
           <Button variant="destructive" size="sm" onClick={onClose}>
             <X className="h-4 w-4 mr-1" /> Close
@@ -138,49 +135,49 @@ const ScTechnicianRepairForm = ({ job, onClose, onComplete }) => {
         {/* Body */}
         <div className="p-6 space-y-6">
           {repairParts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Không có bộ phận nào cần sửa cho claim này.
+            <p className="text-muted-foreground text-sm">
+              Không có bộ phận nào cần repair trong claim này.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {repairParts.map((part) => (
-                <div
-                  key={part.partNumber}
-                  className="border border-border rounded-lg p-4 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-sm">{part.namePart}</h4>
-                    <span className="text-xs text-muted-foreground">
-                      Qty: {part.quantity}
-                    </span>
-                  </div>
-
-                  <Label className="text-xs text-muted-foreground mb-1 block">
-                    Serial Numbers (ngăn cách bằng dấu ;)
-                  </Label>
-                  <Input
-                    value={serialInputs[part.partNumber] || ""}
-                    onChange={(e) =>
-                      handleSerialChange(part.partNumber, e.target.value)
-                    }
-                    placeholder="VD: A123; B456; C789"
-                    className="text-sm"
-                  />
+            repairParts.map((part) => (
+              <div
+                key={part.partNumber}
+                className="border border-border rounded-lg p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-base">{part.partName}</h4>
+                  <span className="text-sm text-muted-foreground">
+                    Quantity: {part.quantity}
+                  </span>
                 </div>
-              ))}
-            </div>
+
+                {/* Input serial theo quantity */}
+                <div className="space-y-2 mt-2">
+                  {Array.from({ length: part.quantity }).map((_, idx) => (
+                    <div key={idx}>
+                      <Label className="text-xs text-muted-foreground">
+                        Serial #{idx + 1}
+                      </Label>
+                      <Input
+                        value={serialInputs[part.partNumber]?.[idx] || ""}
+                        onChange={(e) =>
+                          handleSerialChange(
+                            part.partNumber,
+                            idx,
+                            e.target.value
+                          )
+                        }
+                        placeholder={`Nhập serial ${idx + 1}`}
+                        className="text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
           )}
 
-          <div>
-            <Label className="text-sm">Upload evidence (optional)</Label>
-            <input
-              type="file"
-              accept="image/*,video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="mt-2"
-            />
-          </div>
-
+          {/* Actions */}
           {repairParts.length > 0 && (
             <div className="flex justify-end mt-6 gap-3">
               <Button variant="outline" onClick={onClose}>
@@ -199,6 +196,4 @@ const ScTechnicianRepairForm = ({ job, onClose, onComplete }) => {
       </div>
     </div>
   );
-};
-
-export default ScTechnicianRepairForm;
+}
