@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Calendar, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -12,32 +12,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScheduleAppointmentDialog } from "@/components/scstaff/ScsCampAppSchedule";
 import axiosPrivate from "@/api/axios";
 
 const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
+const APPOINTMENT_URL = "/api/service-appointments";
 
 export default function CampaignsSection() {
   // THAY ĐỔI 1: Khởi tạo là null
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [campaignPage, setCampaignPage] = useState(0);
   const [vehiclePage, setVehiclePage] = useState(0);
-  const [contactedVehicles, setContactedVehicles] = useState(new Set());
+  const [appointments, setAppointments] = useState([]);
 
   const CAMPAIGNS_PER_PAGE = 3;
   const VEHICLES_PER_PAGE = 10;
@@ -63,48 +56,47 @@ export default function CampaignsSection() {
   useEffect(() => {
     async function fetchAllData() {
       try {
-        // Bước 1: Gọi cả hai API.
-        const [campaignResponse, vehicleResponse] = await Promise.all([
-          axiosPrivate.get(CAMPAIGN_URL),
-          axiosPrivate.get(VEHICLE_URL),
-        ]);
+        // <-- THAY ĐỔI: Gọi cả 3 API
+        const [campaignResponse, vehicleResponse, appointmentResponse] =
+          await Promise.all([
+            axiosPrivate.get(CAMPAIGN_URL),
+            axiosPrivate.get(VEHICLE_URL),
+            axiosPrivate.get(APPOINTMENT_URL), // <-- THAY ĐỔI: Lấy appointments
+          ]);
 
         const rawCampaigns = campaignResponse.data;
         const allVehicles = vehicleResponse.data;
+        const allAppointments = appointmentResponse.data; // <-- THAY ĐỔI
 
-        // Bước 2 & 3: Xử lý dữ liệu campaigns
+        setAppointments(allAppointments); // <-- THAY ĐỔI: Lưu appointments
+        setVehicles(allVehicles);
+
+        // Xử lý dữ liệu campaigns (giữ nguyên logic của bạn)
         const transformedData = rawCampaigns.map((campaign) => {
           const status = getCampaignDateStatus(
             campaign.startDate,
             campaign.endDate
           );
-
           const campaignModelSet = new Set(campaign.model);
-
           const matchingVehicleCount = allVehicles.filter((vehicle) =>
             campaignModelSet.has(vehicle.model)
           ).length;
 
+          // Đếm số xe đã hoàn thành (scheduled) cho chiến dịch này
+          const completedVehicles = allAppointments.filter(
+            (appt) => appt.campaign?.campaignId === campaign.campaignId
+          ).length;
+
           return {
             ...campaign,
-            campaignId: campaign.campaignId,
-            campaignName: campaign.campaignName,
-            serviceDescription: campaign.serviceDescription,
-            startDate: campaign.startDate,
-            endDate: campaign.endDate,
-            model: campaign.model,
             status: status,
             matchingVehicleCount: matchingVehicleCount,
-            // Giả định API trả về 'completedVehicles', nếu không hãy để là 0
-            completedVehicles: campaign.completedVehicles || 0,
+            completedVehicles: completedVehicles, // Cập nhật số lượng
           };
         });
 
-        // Bước 4: Set state với dữ liệu đã xử lý
         setCampaigns(transformedData);
-        setVehicles(allVehicles);
 
-        // THAY ĐỔI 2: Tự động chọn campaign đầu tiên làm mặc định
         if (transformedData.length > 0) {
           setSelectedCampaign(transformedData[0]);
         }
@@ -116,8 +108,18 @@ export default function CampaignsSection() {
     fetchAllData();
   }, []);
 
-  // THAY ĐỔI 3: Cập nhật logic lọc vehicles
-  // Tạo Set model từ campaign đã chọn (thêm ?. để tránh lỗi khi selectedCampaign là null)
+  const scheduledVehiclePlates = useMemo(() => {
+    if (!selectedCampaign) return new Set();
+
+    // Lọc các cuộc hẹn chỉ thuộc chiến dịch đang chọn
+    const campaignAppointments = appointments.filter(
+      (appt) => appt.campaign?.campaignId === selectedCampaign.campaignId
+    );
+
+    // Trả về một Set chứa các biển số xe (plate) từ các cuộc hẹn đó
+    return new Set(campaignAppointments.map((appt) => appt.vehicle?.plate));
+  }, [appointments, selectedCampaign]);
+
   const selectedCampaignModelSet = new Set(selectedCampaign?.model || []);
 
   const filteredVehicles = vehicles.filter(
@@ -163,16 +165,6 @@ export default function CampaignsSection() {
   const handleScheduleAppointment = (vehicle) => {
     setSelectedVehicle(vehicle);
     setScheduleDialogOpen(true);
-  };
-
-  const handleContactedToggle = (vehicleId) => {
-    const newContacted = new Set(contactedVehicles);
-    if (newContacted.has(vehicleId)) {
-      newContacted.delete(vehicleId);
-    } else {
-      newContacted.add(vehicleId);
-    }
-    setContactedVehicles(newContacted);
   };
 
   function getStatusColor(status) {
@@ -345,10 +337,8 @@ export default function CampaignsSection() {
                       <TableCell className="px-4 py-3">
                         <div className="m-[5px]">
                           <Checkbox
-                            checked={contactedVehicles.has(vehicle.vehicleId)}
-                            onCheckedChange={() =>
-                              handleContactedToggle(vehicle.vehicleId)
-                            }
+                            checked={scheduledVehiclePlates.has(vehicle.plate)}
+                            disabled={true}
                           />
                         </div>
                       </TableCell>
@@ -357,9 +347,12 @@ export default function CampaignsSection() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleScheduleAppointment(vehicle)}
+                          disabled={scheduledVehiclePlates.has(vehicle.plate)}
                         >
                           <Calendar className="w-4 h-4 mr-2" />
-                          Schedule
+                          {scheduledVehiclePlates.has(vehicle.plate)
+                            ? "Scheduled"
+                            : "Schedule"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -376,6 +369,7 @@ export default function CampaignsSection() {
         open={scheduleDialogOpen}
         onOpenChange={setScheduleDialogOpen}
         vehicle={selectedVehicle}
+        campaign={selectedCampaign}
       />
     </div>
   );

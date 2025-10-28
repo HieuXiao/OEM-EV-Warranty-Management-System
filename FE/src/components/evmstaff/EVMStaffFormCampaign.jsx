@@ -26,12 +26,31 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const CAMPAIGN_CREATE_URL = "/api/campaigns/create";
+const CAMPAIGN_URL = "/api/campaigns/all";
+
+// --- HÀM HELPER MỚI ---
+// Hàm kiểm tra sự chồng chéo của hai khoảng ngày
+// Logic: (Bắt đầu A <= Kết thúc B) VÀ (Kết thúc A >= Bắt đầu B)
+const checkDateOverlap = (startA, endA, startB, endB) => {
+  if (!startA || !endA || !startB || !endB) return false;
+  const sA = new Date(startA);
+  const eA = new Date(endA);
+  const sB = new Date(startB);
+  const eB = new Date(endB);
+  sA.setHours(0, 0, 0, 0);
+  eA.setHours(0, 0, 0, 0);
+  sB.setHours(0, 0, 0, 0);
+  eB.setHours(0, 0, 0, 0);
+  return sA <= eB && eA >= sB;
+};
+// --- KẾT THÚC HÀM HELPER ---
 
 export default function EVMStaffFormCampaign({
   open,
   onOpenChange,
   onSave,
   campaign,
+  allCampaigns = [], // <-- NHẬN PROP MỚI (mặc định là mảng rỗng)
 }) {
   const [formData, setFormData] = useState({
     campaignName: "",
@@ -46,8 +65,6 @@ export default function EVMStaffFormCampaign({
   // State lỗi API (backend, ví dụ: trùng tên)
   const [apiError, setApiError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Xóa state 'dateError' và 'startError' không còn dùng
 
   const validateForm = () => {
     const newErrors = {};
@@ -92,6 +109,50 @@ export default function EVMStaffFormCampaign({
           "Due date must be at least five days after Start date.";
       }
     }
+
+    // --- LOGIC VALIDATION MỚI ---
+    // 6. Kiểm tra Model trùng lặp thời gian
+    // (Chỉ chạy nếu các trường model và ngày tháng cơ bản đã hợp lệ)
+    if (
+      formData.model.length > 0 &&
+      formData.startDate &&
+      formData.endDate &&
+      !newErrors.model &&
+      !newErrors.startDate &&
+      !newErrors.endDate
+    ) {
+      for (const modelToCheck of formData.model) {
+        // Tìm bất kỳ chiến dịch nào *khác* đang dùng model này
+        const overlappingCampaign = allCampaigns.find((existingCampaign) => {
+          // Bỏ qua nếu đang so sánh với chính nó (trường hợp edit)
+          // if (campaign && existingCampaign.id === campaign.id) {
+          //   return false;
+          // }
+
+          // Kiểm tra xem chiến dịch hiện có chứa model này không
+          const modelMatch =
+            Array.isArray(existingCampaign.model) &&
+            existingCampaign.model.includes(modelToCheck);
+
+          if (modelMatch) {
+            // Nếu có, kiểm tra xem ngày có bị chồng chéo không
+            return checkDateOverlap(
+              formData.startDate,
+              formData.endDate,
+              existingCampaign.startDate,
+              existingCampaign.endDate
+            );
+          }
+          return false;
+        });
+
+        if (overlappingCampaign) {
+          newErrors.model = `Model "${modelToCheck}" exist in campaign ("${overlappingCampaign.campaignName}") with date overlap.`;
+          break; // Dừng ngay khi tìm thấy lỗi đầu tiên
+        }
+      }
+    }
+    // --- KẾT THÚC LOGIC MỚI ---
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -244,9 +305,6 @@ export default function EVMStaffFormCampaign({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.model && (
-                <p className="text-sm text-destructive mt-1">{errors.model}</p>
-              )}
 
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.model.map((model) => (
@@ -341,6 +399,10 @@ export default function EVMStaffFormCampaign({
                 </p>
               )}
             </div>
+            {/* Lỗi trùng lặp model/thời gian sẽ hiển thị ở đây */}
+            {errors.model && (
+              <p className="text-sm text-destructive mt-1">{errors.model}</p>
+            )}
           </div>
 
           {/* THÊM MỚI: Hiển thị lỗi từ BE */}

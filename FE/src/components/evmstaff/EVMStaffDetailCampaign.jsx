@@ -46,11 +46,6 @@ export default function EVMStaffDetailCampaign({
 
         <div className="space-y-4">
           <div>
-            <Label>Campaign ID</Label>
-            <div className="mt-1 font-medium">{campaign.campaignId || "-"}</div>
-          </div>
-
-          <div>
             <Label>Campaign Name</Label>
             <div className="mt-1">{campaign.campaignName || "-"}</div>
           </div>

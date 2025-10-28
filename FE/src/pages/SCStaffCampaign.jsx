@@ -20,12 +20,6 @@ export default function SCStaffProfile() {
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            {/* <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Profile Management
-              </h1>
-            </div> */}
-
             <Tabs defaultValue="overview" className="space-y-6">
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>

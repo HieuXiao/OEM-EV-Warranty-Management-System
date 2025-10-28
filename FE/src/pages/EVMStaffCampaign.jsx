@@ -265,6 +265,7 @@ export default function EVMStaffCampaign() {
         onOpenChange={setShowCampaignDialog}
         onSave={handleSaveCampaign}
         campaign={editingCampaign}
+        allCampaigns={campaigns}
       />
       <EVMStaffDetailCampaign
         open={!!viewCampaign}
