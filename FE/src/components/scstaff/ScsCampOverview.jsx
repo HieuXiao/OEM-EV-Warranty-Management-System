@@ -32,15 +32,6 @@ import axiosPrivate from "@/api/axios";
 const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
 
-const getSeverityColor = (severity) => {
-  const colors = {
-    low: "bg-gray-100 text-gray-700 border-gray-300",
-    medium: "bg-orange-100 text-orange-700 border-orange-300",
-    high: "bg-red-100 text-red-700 border-red-300",
-  };
-  return colors[severity] || "bg-gray-100 text-gray-700 border-gray-300";
-};
-
 export default function SCStaffCampaignSummary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [campaigns, setCampaigns] = useState([]);
@@ -86,13 +77,9 @@ export default function SCStaffCampaignSummary() {
             campaign.endDate
           );
 
-          // --- LOGIC MỚI ĐỂ ĐẾM VEHICLES ---
-          // Giả sử campaign.model là một mảng, ví dụ: ["Corolla", "Camry"]
-          // Tạo một Set để tra cứu model nhanh (hiệu năng tốt hơn)
+          // --- LOGIC ĐỂ ĐẾM VEHICLES ---
           const campaignModelSet = new Set(campaign.model);
 
-          // Lọc danh sách 'allVehicles'
-          // Giả sử mỗi vehicle có thuộc tính 'model', ví dụ: vehicle.model = "Corolla"
           const matchingVehicleCount = allVehicles.filter((vehicle) =>
             campaignModelSet.has(vehicle.model)
           ).length;
@@ -312,17 +299,13 @@ export default function SCStaffCampaignSummary() {
                       <div className="mt-3">
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>Progress</span>
-                          <span>{campaign.matchingVehicleCount}</span>
+                          <span>32%</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary transition-all"
                             style={{
-                              width: `${
-                                (campaign.completedVehicles /
-                                  campaign.affectedVehicles) *
-                                100
-                              }%`,
+                              width: `${(32 / 100) * 100}%`,
                             }}
                           />
                         </div>
@@ -364,7 +347,7 @@ export default function SCStaffCampaignSummary() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <h3 className="text-2xl font-bold">
-                    {viewingCampaign.campaignNumber}
+                    {viewingCampaign.campaignName}
                   </h3>
                   <Badge
                     variant="outline"
@@ -372,23 +355,14 @@ export default function SCStaffCampaignSummary() {
                   >
                     {viewingCampaign.status}
                   </Badge>
-                  <Badge
-                    variant="outline"
-                    className={getSeverityColor(viewingCampaign.severity)}
-                  >
-                    {viewingCampaign.severity}
-                  </Badge>
                 </div>
-                <h4 className="text-lg font-semibold text-muted-foreground">
-                  {viewingCampaign.title}
-                </h4>
               </div>
 
               {/* Description */}
               <div className="space-y-2">
                 <h5 className="font-semibold text-sm">Description</h5>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {viewingCampaign.description}
+                  {viewingCampaign.serviceDescription}
                 </p>
               </div>
 
@@ -427,7 +401,7 @@ export default function SCStaffCampaignSummary() {
                     Affected Vehicles
                   </p>
                   <p className="font-medium text-lg">
-                    {viewingCampaign.affectedVehicles.toLocaleString()}
+                    {viewingCampaign.matchingVehicleCount}
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -435,7 +409,7 @@ export default function SCStaffCampaignSummary() {
                     Completed Repairs
                   </p>
                   <p className="font-medium text-lg">
-                    {viewingCampaign.completedVehicles.toLocaleString()}
+                    {/* {viewingCampaign.completedVehicles.toLocaleString()} */}
                   </p>
                 </div>
               </div>
@@ -444,7 +418,7 @@ export default function SCStaffCampaignSummary() {
               <div className="space-y-2">
                 <h5 className="font-semibold text-sm">Affected Models</h5>
                 <div className="flex flex-wrap gap-2">
-                  {viewingCampaign.affectedModels.map((model, index) => (
+                  {viewingCampaign.model.map((model, index) => (
                     <Badge key={index} variant="secondary">
                       {model}
                     </Badge>
@@ -479,7 +453,7 @@ export default function SCStaffCampaignSummary() {
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
-                    {viewingCampaign.completedVehicles.toLocaleString()}{" "}
+                    {/* {viewingCampaign.completedVehicles.toLocaleString()}{" "} */}
                     completed
                   </span>
                   <span>

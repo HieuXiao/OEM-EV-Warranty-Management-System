@@ -1,6 +1,6 @@
 //FE/src/components/scstaff/ScsCampAppSchedule.jsx
-import { useState } from "react"
-import { AlertTriangle, Calendar } from "lucide-react"
+import { useState } from "react";
+import { AlertTriangle, Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,52 +8,54 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Mock existing appointments for conflict detection
 const existingAppointments = [
   { date: "2024-01-20", time: "09:00", customer: "Nguyen Van D" },
   { date: "2024-01-20", time: "14:00", customer: "Tran Thi E" },
-]
+];
 
 export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
-  const [notes, setNotes] = useState("")
-  const [conflict, setConflict] = useState(null)
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [notes, setNotes] = useState("");
+  const [conflict, setConflict] = useState(null);
 
   const checkConflict = (selectedDate, selectedTime) => {
     const conflictingAppointment = existingAppointments.find(
       (apt) => apt.date === selectedDate && apt.time === selectedTime
-    )
-    setConflict(conflictingAppointment || null)
-  }
+    );
+    setConflict(conflictingAppointment || null);
+  };
 
   const handleDateChange = (newDate) => {
-    setDate(newDate)
-    if (time) checkConflict(newDate, time)
-  }
+    setDate(newDate);
+    if (time) checkConflict(newDate, time);
+  };
 
   const handleTimeChange = (newTime) => {
-    setTime(newTime)
-    if (date) checkConflict(date, newTime)
-  }
+    setTime(newTime);
+    if (date) checkConflict(date, newTime);
+  };
 
   const handleSchedule = () => {
-    alert(`Appointment scheduled for ${vehicle?.owner} on ${date} at ${time}`)
-    onOpenChange(false)
-    setDate("")
-    setTime("")
-    setNotes("")
-    setConflict(null)
-  }
+    alert(
+      `Appointment scheduled for ${vehicle?.customer?.customerName} on ${date} at ${time}`
+    );
+    onOpenChange(false);
+    setDate("");
+    setTime("");
+    setNotes("");
+    setConflict(null);
+  };
 
-  if (!vehicle) return null
+  if (!vehicle) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,16 +72,20 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
             <Label>Customer Information</Label>
             <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
               <p>
-                <span className="text-muted-foreground">Owner:</span> {vehicle.owner}
+                <span className="text-muted-foreground">Owner:</span>{" "}
+                {vehicle.customer.customerName}
               </p>
               <p>
-                <span className="text-muted-foreground">Phone:</span> {vehicle.phone}
+                <span className="text-muted-foreground">Phone:</span>{" "}
+                {vehicle.customer.customerPhone}
               </p>
               <p>
-                <span className="text-muted-foreground">VIN:</span> {vehicle.vin}
+                <span className="text-muted-foreground">VIN:</span>{" "}
+                {vehicle.vin}
               </p>
               <p>
-                <span className="text-muted-foreground">License:</span> {vehicle.licensePlate}
+                <span className="text-muted-foreground">License:</span>{" "}
+                {vehicle.plate}
               </p>
             </div>
           </div>
@@ -109,9 +115,9 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Time slot conflict! {conflict.customer} already has an appointment at{" "}
-                {conflict.time} on {conflict.date}. You can still proceed or choose a different
-                time.
+                Time slot conflict! {conflict.customer} already has an
+                appointment at {conflict.time} on {conflict.date}. You can still
+                proceed or choose a different time.
               </AlertDescription>
             </Alert>
           )}
@@ -139,5 +145,5 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
