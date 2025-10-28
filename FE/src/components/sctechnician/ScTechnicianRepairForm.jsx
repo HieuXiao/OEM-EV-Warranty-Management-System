@@ -78,8 +78,15 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
       setLoading(true);
       const claimId = job.claimId;
       const technicianId =
+        job?.rawClaim?.serviceCenterTechnicianId ||
         job?.serviceCenterTechnicianId ||
-        job?.rawClaim?.serviceCenterTechnicianId;
+        job?.technicianId;
+
+      if (!technicianId) {
+        alert("❌ Không tìm thấy technicianId hợp lệ để cập nhật workflow!");
+        setLoading(false);
+        return;
+      }
 
       // kiểm tra đủ serial
       for (const part of repairParts) {
@@ -104,16 +111,23 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         );
       }
 
-      // cập nhật workflow: technician done
-      await axiosPrivate.post(
-        `${API_ENDPOINTS.CLAIM_WORKFLOW}/${claimId}/technician/done?staffId=${technicianId}&done=true`
-      );
+      // ✅ Gọi API workflow đúng format
+      const url = `${API_ENDPOINTS.CLAIM_WORKFLOW}/${claimId}/technician/done?technicianId=${encodeURIComponent(
+        technicianId
+      )}&done=true`;
+
+      console.log("[RepairForm] Workflow URL:", url);
+      await axiosPrivate.post(url);
 
       alert("✅ Hoàn tất Repair thành công!");
       onComplete?.();
     } catch (e) {
       console.error("[RepairForm] Complete Repair failed:", e);
-      alert("❌ Có lỗi xảy ra khi hoàn tất Repair. Vui lòng thử lại.");
+      alert(
+        `❌ Lỗi khi hoàn tất Repair.\n${
+          e.response?.status ? `Mã lỗi: ${e.response.status}` : ""
+        }`
+      );
     } finally {
       setLoading(false);
     }
