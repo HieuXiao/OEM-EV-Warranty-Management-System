@@ -200,7 +200,7 @@ export default function CustomerDetail() {
       type: formVinData.type,
       color: formVinData.color,
       model: formVinData.model,
-      customerPhone: parseInt(id),
+      customerId: parseInt(id),
     };
 
     try {
@@ -257,7 +257,7 @@ export default function CustomerDetail() {
       type: "",
       color: "",
       model: "",
-      customerId: id,
+      customerId: parseInt(id),
     });
   };
 
