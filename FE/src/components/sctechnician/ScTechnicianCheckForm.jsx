@@ -152,11 +152,18 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         await axiosPrivate.post(skipURL);
       }
 
-      console.log("[CheckForm] ✅ Complete success for claim:", claimId);
+      try {
+        await axiosPrivate.post("/api/warranty-claims/assign-evm/auto");
+        console.log("[CheckForm] Auto-assign EVM success");
+      } catch (autoErr) {
+        console.warn("[CheckForm] Auto-assign EVM failed:", autoErr);
+      }
+
+      console.log("[CheckForm] Complete success for claim:", claimId);
       onComplete?.(claimId);
       onClose?.();
     } catch (err) {
-      console.error("[CheckForm] ❌ Complete failed:", err.response || err);
+      console.error("[CheckForm] Complete failed:", err.response || err);
       alert("Hoàn tất kiểm tra thất bại! Kiểm tra console để xem chi tiết.");
     } finally {
       setUploading(false);

@@ -1,61 +1,126 @@
+// <<< BEGIN EVMStaffDetailWarranty.jsx (FINAL - full UI preserved, correct API logic) >>>
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import axiosPrivate from "@/api/axios";
+import useAuth from "@/hook/useAuth";
+
+// 🔹 API CONFIG — tất cả endpoint được gom lên đầu cho dễ quản lý
+const API_ENDPOINTS = {
+  CLAIMS: "/api/warranty-claims",
+  PARTS: "/api/parts",
+  VEHICLES: "/api/vehicles",
+  CLAIM_PART_CHECK_SEARCH: (claimId) => `/api/claim-part-check/search/warranty/${claimId}`,
+  CLAIM_PART_CHECK_UPDATE: (claimId, partNumber) =>
+    `/api/claim-part-check/update/${claimId}/${partNumber}`,
+  EVMDESCRIPTION: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/description`,
+  DECISION_HANDOVER: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/decision-handover`,
+};
 
 export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
-  const [comment, setComment] = useState("")
-  const [isFormValid, setIsFormValid] = useState(false)
-  const [partApprovals, setPartApprovals] = useState({})
-  const [approveAllActive, setApproveAllActive] = useState(false)
-  const [rejectAllActive, setRejectAllActive] = useState(false)
+  const { auth } = useAuth();
+  const evmId = auth?.accountId || auth?.id || "";
 
-  // derive parts for the current warranty; support legacy string entries
-  const normalizeParts = (parts) => {
-    if (!parts) return []
-    return parts.map((p) => {
-      if (typeof p === "string") return { name: p, quantity: 1, cost: 0 }
-      // assume object with { name, quantity, cost }
-      return {
-        name: p.name || p.partName || "Part",
-        quantity: typeof p.quantity === "number" ? p.quantity : p.qty || 1,
-        cost: typeof p.cost === "number" ? p.cost : p.unitPrice || 0,
+  // 🔸 State quản lý form và dữ liệu
+  const [comment, setComment] = useState(""); // Nội dung comment (description)
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [partApprovals, setPartApprovals] = useState({});
+  const [approveAllActive, setApproveAllActive] = useState(false);
+  const [rejectAllActive, setRejectAllActive] = useState(false);
+  const [claimDetails, setClaimDetails] = useState(null);
+  const [vehicle, setVehicle] = useState(null);
+  const [mergedParts, setMergedParts] = useState([]);
+  const claimId = warranty?.claimId;
+
+  // -------------------- FETCH DATA --------------------
+  useEffect(() => {
+    const loadAll = async () => {
+      if (!claimId) return;
+      try {
+        console.log("[EVMDetail] Loading claim:", claimId);
+
+        // Song song các API
+        const [claimRes, checkRes, partsRes, vehiclesRes] = await Promise.all([
+          axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
+          axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
+          axiosPrivate.get(API_ENDPOINTS.PARTS),
+          axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+        ]);
+
+        const claimData = claimRes?.data ?? null;
+        setClaimDetails(claimData);
+        if (claimData?.evmDescription) setComment(claimData.evmDescription);
+
+        const checks = Array.isArray(checkRes?.data) ? checkRes.data : [];
+        const partsList = Array.isArray(partsRes?.data)
+          ? partsRes.data.filter((p) => p?.warehouse?.whId === 1)
+          : [];
+
+        // Chỉ lấy part có isRepair === true
+        const repairChecks = checks.filter((c) => c.isRepair === true);
+        const merged = repairChecks.map((c) => {
+          const found = partsList.find((p) => p.partNumber === c.partNumber);
+          return {
+            ...c,
+            namePart: found?.namePart || c.partNumber,
+            price: found?.price ?? 0,
+          };
+        });
+        setMergedParts(merged);
+
+        const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+        const matchedVehicle = vehicles.find((v) => v.vin === (claimData?.vin || warranty?.vin));
+        setVehicle(matchedVehicle || null);
+
+        const initialApprovals = {};
+        merged.forEach((_, idx) => {
+          initialApprovals[idx] = { approved: false, rejected: false };
+        });
+        setPartApprovals(initialApprovals);
+
+        console.log("[EVMDetail] Fetch done:", {
+          claimId,
+          parts: merged.length,
+          vehicle: matchedVehicle?.vin,
+        });
+      } catch (err) {
+        console.error("[EVMDetail] Fetch error:", err?.response || err);
       }
-    })
-  }
+    };
 
-  const partCosts = normalizeParts(warranty?.parts)
+    if (open) loadAll();
+  }, [claimId, open, warranty]);
 
+  // Kiểm tra form hợp lệ
   useEffect(() => {
-    if (warranty && comment.trim().length > 0) {
-      setIsFormValid(true)
-    } else {
-      setIsFormValid(false)
-    }
-  }, [comment, warranty])
+    setIsFormValid(Boolean(claimDetails && comment && comment.trim().length > 0));
+  }, [comment, claimDetails]);
 
-  useEffect(() => {
-    if (!open) {
-      setComment("")
-      setPartApprovals({})
-      setApproveAllActive(false)
-      setRejectAllActive(false)
-    }
-  }, [open])
+  // -------------------- UI UTIL --------------------
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount ?? 0);
 
-  useEffect(() => {
-    if (warranty) {
-      const initialApprovals = {}
-      partCosts.forEach((_, index) => {
-        initialApprovals[index] = { approved: false, rejected: false }
-      })
-      setPartApprovals(initialApprovals)
-    }
-  }, [warranty])
-
-  if (!warranty) return null
+  const getStatusBadge = (status) => {
+    const s = String(status || "").toUpperCase();
+    const map = {
+      CHECK: "text-blue-700 border-blue-400",
+      REPAIR: "text-amber-700 border-amber-400",
+      DECIDE: "text-indigo-700 border-indigo-400",
+      HANDOVER: "text-cyan-700 border-cyan-400",
+      DONE: "text-green-700 border-green-400",
+    };
+    const cls = map[s] || "text-gray-700 border-gray-300";
+    return (
+      <span
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[110px] ${cls}`}
+      >
+        {status}
+      </span>
+    );
+  };
 
   const handleApprovalChange = (index, type) => {
     setPartApprovals((prev) => ({
@@ -64,72 +129,110 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         approved: type === "approved" ? !prev[index]?.approved : false,
         rejected: type === "rejected" ? !prev[index]?.rejected : false,
       },
-    }))
-  }
+    }));
+  };
 
   const handleApproveAll = () => {
-    const newState = !approveAllActive
-    setApproveAllActive(newState)
-    setRejectAllActive(false)
-
-    const updated = {}
-    partCosts.forEach((_, i) => {
-      updated[i] = { approved: newState, rejected: false }
-    })
-    setPartApprovals(updated)
-  }
+    const newState = !approveAllActive;
+    setApproveAllActive(newState);
+    setRejectAllActive(false);
+    const updated = {};
+    mergedParts.forEach((_, i) => (updated[i] = { approved: newState, rejected: false }));
+    setPartApprovals(updated);
+  };
 
   const handleRejectAll = () => {
-    const newState = !rejectAllActive
-    setRejectAllActive(newState)
-    setApproveAllActive(false)
+    const newState = !rejectAllActive;
+    setRejectAllActive(newState);
+    setApproveAllActive(false);
+    const updated = {};
+    mergedParts.forEach((_, i) => (updated[i] = { approved: false, rejected: newState }));
+    setPartApprovals(updated);
+  };
 
-    const updated = {}
-    partCosts.forEach((_, i) => {
-      updated[i] = { approved: false, rejected: newState }
-    })
-    setPartApprovals(updated)
-  }
+  const totalCost = mergedParts.reduce((sum, p, idx) => {
+    if (partApprovals[idx]?.approved) return sum + (p.price ?? 0) * (p.quantity ?? 1);
+    return sum;
+  }, 0);
 
-  const totalCost = partCosts.reduce((sum, part, index) => {
-    if (partApprovals[index]?.approved) {
-      return sum + part.cost * part.quantity
+  // -------------------- HANDLE DONE --------------------
+  /**
+   * Quy trình:
+   * 1️⃣ Cập nhật tất cả part bị reject thành isRepair = false
+   * 2️⃣ Nếu có ít nhất 1 part được approve → POST /evm/description?evmId=&description=
+   * 3️⃣ Nếu không có part nào approve → POST /decision-handover?evmId=&description=
+   */
+  const handleDone = async () => {
+    if (!claimId || !evmId) {
+      console.error("[EVMDetail] Missing claimId or evmId");
+      return;
     }
-    return sum
-  }, 0)
 
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount)
+    console.log("[EVMDetail] Handle Done pressed:", { claimId, evmId });
 
-  const getStatusBadge = (decision) => {
-    const s = String(decision || "").toLowerCase();
-    const map = {
-      done: "text-green-700 border-green-400",
-      cancel: "text-red-700 border-red-400",
-      'on going': "text-yellow-700 border-yellow-400",
-      'to do': "text-blue-700 border-blue-400",
-    };
-    const cls = map[s] || "text-gray-700 border-gray-300";
-    return (
-      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}>
-        {decision}
-      </span>
-    )
-  }
+    try {
+      const approvedIndexes = [];
+      const rejectedIndexes = [];
+      mergedParts.forEach((_, idx) => {
+        if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
+        else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
+      });
 
-  const handleDone = () => {
-    console.log("Warranty completed:", warranty.claimId, "Comment:", comment)
-    onOpenChange(false)
-  }
+      // 1️⃣ PUT rejected parts
+      for (const idx of rejectedIndexes) {
+        const part = mergedParts[idx];
+        const body = {
+          partNumber: part.partNumber,
+          warrantyId: claimId,
+          vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
+          quantity: part.quantity || 0,
+          isRepair: false,
+          partId: part.partId || "",
+        };
+        try {
+          console.log("[EVMDetail] PUT update:", body);
+          await axiosPrivate.put(
+            API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+              encodeURIComponent(claimId),
+              encodeURIComponent(part.partNumber)
+            ),
+            body
+          );
+        } catch (err) {
+          console.error("[EVMDetail] PUT failed:", err?.response || err);
+        }
+      }
+
+      // 2️⃣ Nếu có approve
+      if (approvedIndexes.length > 0) {
+        const url = `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+          evmId
+        )}&description=${encodeURIComponent(comment || "")}`;
+        console.log("[EVMDetail] POST evm/description:", url);
+        await axiosPrivate.post(url);
+      } else {
+        // 3️⃣ Không có approve
+        const url = `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
+          evmId
+        )}&description=${encodeURIComponent(comment || "")}`;
+        console.log("[EVMDetail] POST decision-handover:", url);
+        await axiosPrivate.post(url);
+      }
+
+      console.log("[EVMDetail] ✅ Done completed for claim:", claimId);
+      onOpenChange(false);
+    } catch (err) {
+      console.error("[EVMDetail] ❌ Done failed:", err?.response || err);
+    }
+  };
 
   const handleCancel = () => {
-    // Close the dialog without submitting
-    onOpenChange(false)
-  }
+    console.log("[EVMDetail] Cancel pressed");
+    onOpenChange(false);
+  };
 
+  // -------------------- UI (KHÔNG THAY ĐỔI GÌ) --------------------
   return (
-    // Disable the close icon and overlay click-to-close by hiding the close button
-    // The Dialog primitive still closes via the controlled `open` and `onOpenChange` props.
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -137,51 +240,48 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Info */}
+          {/* 🔹 Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Claim ID</p>
-              <p className="font-semibold">{warranty.claimId}</p>
+              <p className="font-semibold">{claimDetails?.claimId || warranty?.claimId}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              {getStatusBadge(warranty.decision)}
+              {getStatusBadge(claimDetails?.status || warranty?.status)}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Vehicle</p>
-              <p className="font-semibold">{""}</p>
+              <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
+              <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Model</p>
-              <p className="font-semibold">{warranty.vehicle}</p>
+              <p className="font-semibold">{vehicle?.model || ""}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Vehicle Plate</p>
-              <p className="font-semibold">{warranty.vehiclePlate}</p>
+              <p className="font-semibold">{vehicle?.plate || ""}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Customer</p>
-              <p className="font-semibold">{warranty.customerName}</p>
+              <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Issue Number</p>
-              <p className="font-semibold">{warranty.issueNumber}</p>
+              <p className="text-sm text-muted-foreground">Description</p>
+              <p className="font-semibold">{claimDetails?.description || ""}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Submitted Date</p>
-              <p className="font-semibold">{warranty.submittedDate}</p>
+              <p className="font-semibold">{claimDetails?.claimDate || ""}</p>
             </div>
           </div>
 
           <Separator />
 
-          {/* Cost Breakdown */}
+          {/* 🔹 Cost Breakdown */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
-
             <div className="border rounded-md">
-              {/* Header */}
-              {/* add same horizontal padding as rows (px-4) so columns align */}
               <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2 px-4">
                 <div className="text-left">Part Information</div>
                 <div className="flex justify-center items-center">
@@ -214,10 +314,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                 </div>
               </div>
 
-              {/* Rows */}
-              {partCosts.map((part, index) => {
-                const approved = partApprovals[index]?.approved || false
-                const rejected = partApprovals[index]?.rejected || false
+              {mergedParts.map((part, index) => {
+                const approved = partApprovals[index]?.approved || false;
+                const rejected = partApprovals[index]?.rejected || false;
                 return (
                   <div
                     key={index}
@@ -229,18 +328,16 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         : "bg-transparent"
                     }`}
                   >
-                    {/* Column 1 */}
                     <div className="space-y-1 text-left">
-                      <p className="font-semibold text-base">{part.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Qty: {part.quantity}
+                      <p className="font-semibold text-base">
+                        {part.namePart || part.partNumber}
                       </p>
+                      <p className="text-sm text-muted-foreground">Qty: {part.quantity}</p>
                       <p className="text-base font-semibold text-primary">
-                        {formatCurrency(part.cost)}
+                        {formatCurrency(part.price)}
                       </p>
                     </div>
 
-                    {/* Approve */}
                     <div className="flex justify-center items-center">
                       <input
                         type="checkbox"
@@ -250,7 +347,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                       />
                     </div>
 
-                    {/* Reject */}
                     <div className="flex justify-center items-center">
                       <input
                         type="checkbox"
@@ -260,22 +356,20 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                       />
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
 
-            {/* Total Cost */}
+            {/* Total */}
             <div className="flex justify-between items-center text-lg pt-4">
               <p className="font-bold">Total Cost</p>
-              <p className="font-bold text-primary text-xl">
-                {formatCurrency(totalCost)}
-              </p>
+              <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
             </div>
           </div>
 
           <Separator />
 
-          {/* Comment */}
+          {/* 🔹 Comment */}
           <div className="space-y-2">
             <Label htmlFor="comment">Comment</Label>
             <Textarea
@@ -288,7 +382,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             />
           </div>
 
-          {/* Actions */}
+          {/* 🔹 Actions */}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="destructive" onClick={handleCancel}>
               Cancel
@@ -300,5 +394,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
+// <<< END EVMStaffDetailWarranty.jsx >>>
