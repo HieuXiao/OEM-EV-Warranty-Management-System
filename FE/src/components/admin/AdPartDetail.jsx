@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Trash2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch" // Import Switch cho isEnable
 
 export default function PartDetailModal({ part, open, onOpenChange, onUpdate, onDelete }) {
   const [formData, setFormData] = useState(null)
@@ -15,7 +16,15 @@ export default function PartDetailModal({ part, open, onOpenChange, onUpdate, on
 
   useEffect(() => {
     if (part) {
-      setFormData(part)
+      setFormData({
+        partId: part.partId,
+        partName: part.partName,
+        partBrand: part.partBrand,
+        price: part.price,
+        vehicleModel: part.vehicleModel,
+        description: part.description,
+        isEnable: part.isEnable,
+      })
       setIsEditing(false)
       setHasChanges(false)
     }
@@ -26,17 +35,38 @@ export default function PartDetailModal({ part, open, onOpenChange, onUpdate, on
   const handleChange = (field, value) => {
     const updated = { ...formData, [field]: value }
     setFormData(updated)
-    setHasChanges(JSON.stringify(updated) !== JSON.stringify(part))
+    const originalPartData = {
+      partId: part.partId,
+      partName: part.partName,
+      partBrand: part.partBrand,
+      price: part.price,
+      vehicleModel: part.vehicleModel,
+      description: part.description,
+      isEnable: part.isEnable,
+    }
+    setHasChanges(JSON.stringify(updated) !== JSON.stringify(originalPartData))
   }
 
   const handleSave = () => {
-    onUpdate(formData)
+    const updatedPartWithAdmin = {
+      ...part,
+      ...formData,
+    }
+    onUpdate(updatedPartWithAdmin)
     setIsEditing(false)
     setHasChanges(false)
   }
 
   const handleCancel = () => {
-    setFormData(part)
+    setFormData({
+      partId: part.partId,
+      partName: part.partName,
+      partBrand: part.partBrand,
+      price: part.price,
+      vehicleModel: part.vehicleModel,
+      description: part.description,
+      isEnable: part.isEnable,
+    })
     setIsEditing(false)
     setHasChanges(false)
   }
@@ -45,7 +75,7 @@ export default function PartDetailModal({ part, open, onOpenChange, onUpdate, on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Part Details</DialogTitle>
+          <DialogTitle>Part Details - ID: {formData.partId}</DialogTitle>
           <DialogDescription>View and manage part information</DialogDescription>
         </DialogHeader>
 
@@ -63,10 +93,10 @@ export default function PartDetailModal({ part, open, onOpenChange, onUpdate, on
                 />
               </div>
               <div className="space-y-2">
-                <Label>Part Branch</Label>
+                <Label>Part Brand</Label>
                 <Input
-                  value={formData.partBranch}
-                  onChange={(e) => handleChange("partBranch", e.target.value)}
+                  value={formData.partBrand}
+                  onChange={(e) => handleChange("partBrand", e.target.value)}
                   disabled={!isEditing}
                 />
               </div>
@@ -100,42 +130,34 @@ export default function PartDetailModal({ part, open, onOpenChange, onUpdate, on
 
           <Separator />
 
-          {/* Policy Information */}
+          {/* Status and Admin Information */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Policy Information</h3>
+            <h3 className="font-semibold">Status and Administration</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Policy Name</Label>
-                <Input
-                  value={formData.policyName}
-                  onChange={(e) => handleChange("policyName", e.target.value)}
+              <div className="flex items-center justify-between col-span-1">
+                <Label htmlFor="detail-isEnable">Enabled</Label>
+                <Switch
+                  id="detail-isEnable"
+                  checked={formData.isEnable}
+                  onCheckedChange={(checked) => handleChange("isEnable", checked)}
                   disabled={!isEditing}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Policy ID</Label>
+              <div className="space-y-2 col-span-1">
+                <Label>Created By (Admin)</Label>
                 <Input
-                  value={formData.policyId}
-                  onChange={(e) => handleChange("policyId", e.target.value)}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Available Time</Label>
-                <Input
-                  value={formData.availableTime}
-                  onChange={(e) => handleChange("availableTime", e.target.value)}
-                  disabled={!isEditing}
+                  value={part.admin.fullName || part.admin.accountId}
+                  disabled
+                  readOnly
                 />
               </div>
             </div>
           </div>
-
           <Separator />
 
           {/* Action Buttons */}
           <div className="flex justify-between items-center">
-            <Button variant="destructive" size="sm" onClick={() => onDelete(formData.id)}>
+            <Button variant="destructive" size="sm" onClick={() => onDelete(formData.partId)}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </Button>
