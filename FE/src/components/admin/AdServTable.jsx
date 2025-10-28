@@ -79,7 +79,7 @@ export default function AdServTable({
                   <TableHead className="w-[100px]">ID</TableHead>
                   <TableHead className="w-1/3">Center Name</TableHead>
                   <TableHead>Location Details</TableHead>
-                  <TableHead className="text-right w-[150px]">Action</TableHead>
+                  <TableHead className="text-right w-[150px]">Edit</TableHead>
                 </TableRow>
               </TableHeader>
 
