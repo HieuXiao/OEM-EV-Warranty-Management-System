@@ -1,10 +1,6 @@
+// <<< BEGIN EVMStaffWarrantyClaim.jsx (filtered by status="DECIDE") >>>
 import { useState, useEffect } from "react";
-import {
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
@@ -41,7 +37,7 @@ export default function EVMStaffWarrantyClaim() {
   const [warranties, setWarranties] = useState([]);
   const itemsPerPage = 10;
 
-  // 🔹 Fetch data từ nhiều nguồn và enrich
+  // 🔹 Fetch dữ liệu và enrich với vehicle
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,25 +49,30 @@ export default function EVMStaffWarrantyClaim() {
         const claims = Array.isArray(resClaims.data) ? resClaims.data : [];
         const vehicles = Array.isArray(resVehicles.data) ? resVehicles.data : [];
 
-        // ✅ Ghép thông tin vehicle vào claim (dựa trên VIN)
-        const enrichedClaims = claims
-          .filter((claim) => claim?.evmId?.toLowerCase() === evmId.toLowerCase())
-          .map((claim) => {
-            const vehicle = vehicles.find((v) => v.vin === claim.vin);
-            return {
-              ...claim,
-              vehicleModel: vehicle?.model || "Unknown",
-              vehicleType: vehicle?.type || "Unknown",
-              customerName: vehicle?.customer?.customerName || "Unknown",
-              customerPhone: vehicle?.customer?.customerPhone || "Unknown",
-              serviceCenter:
-                vehicle?.customer?.serviceCenter?.centerName || "Unknown",
-            };
-          });
+        // ✅ Chỉ lấy claim có evmId khớp và status === "DECIDE"
+        const filteredClaims = claims.filter(
+          (claim) =>
+            claim?.evmId?.toLowerCase() === evmId.toLowerCase() &&
+            claim?.status?.toUpperCase() === "DECIDE"
+        );
+
+        // ✅ Ghép thêm thông tin vehicle
+        const enrichedClaims = filteredClaims.map((claim) => {
+          const vehicle = vehicles.find((v) => v.vin === claim.vin);
+          return {
+            ...claim,
+            vehicleModel: vehicle?.model || "Unknown",
+            vehicleType: vehicle?.type || "Unknown",
+            customerName: vehicle?.customer?.customerName || "Unknown",
+            customerPhone: vehicle?.customer?.customerPhone || "Unknown",
+            serviceCenter:
+              vehicle?.customer?.serviceCenter?.centerName || "Unknown",
+          };
+        });
 
         setWarranties(enrichedClaims);
         console.log(
-          `[EVMClaim] Loaded ${enrichedClaims.length} claims for evmId: ${evmId}`
+          `[EVMClaim] Loaded ${enrichedClaims.length} DECIDE claims for evmId: ${evmId}`
         );
       } catch (err) {
         console.error("[EVMClaim] Fetch failed:", err?.response || err);
@@ -81,7 +82,7 @@ export default function EVMStaffWarrantyClaim() {
     if (evmId) fetchData();
   }, [evmId]);
 
-  // 🔹 Bộ lọc
+  // 🔹 Bộ lọc (giữ nguyên, nhưng mặc định chỉ hiển thị những claim DECIDE)
   const filteredWarranties = warranties.filter((claim) => {
     const matchesSearch =
       (claim.claimId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,6 +134,7 @@ export default function EVMStaffWarrantyClaim() {
     );
   };
 
+  // -------------------- UI (KHÔNG ĐỔI GÌ) --------------------
   return (
     <div className="flex h-screen bg-background">
       <EVMStaffSideBar />
@@ -177,10 +179,7 @@ export default function EVMStaffWarrantyClaim() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={filterStatus}
-                onValueChange={setFilterStatus}
-              >
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="All Status" />
@@ -205,7 +204,9 @@ export default function EVMStaffWarrantyClaim() {
                     <TableHead className="w-[140px]">VIN</TableHead>
                     <TableHead className="w-[160px]">Model</TableHead>
                     <TableHead className="w-[240px]">Description</TableHead>
-                    <TableHead className="w-[120px] text-center">Status</TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Status
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -218,9 +219,7 @@ export default function EVMStaffWarrantyClaim() {
                       <TableCell className="font-medium align-middle">
                         {claim.claimId}
                       </TableCell>
-                      <TableCell className="align-middle">
-                        {claim.vin}
-                      </TableCell>
+                      <TableCell className="align-middle">{claim.vin}</TableCell>
                       <TableCell className="align-middle">
                         {claim.vehicleModel}
                       </TableCell>
@@ -252,7 +251,9 @@ export default function EVMStaffWarrantyClaim() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -270,3 +271,4 @@ export default function EVMStaffWarrantyClaim() {
     </div>
   );
 }
+// <<< END EVMStaffWarrantyClaim.jsx >>>
