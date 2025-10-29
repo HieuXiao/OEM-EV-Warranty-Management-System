@@ -24,9 +24,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { CreateAppointmentDialog } from "@/components/scstaff/ScsCampAppCreate";
 import { EditAppointmentDialog } from "@/components/scstaff/ScsCampAppEdit";
-// <-- THAY ĐỔI: Xóa mock data
-// import { mockAppointments } from "@/lib/Mock-data";
-// import { campaigns } from "@/lib/Mock-data";
 import axiosPrivate from "@/api/axios"; // <-- THAY ĐỔI: Thêm axios
 
 // <-- THAY ĐỔI: Thêm URLs
@@ -91,8 +88,8 @@ export default function AppointmentsSection() {
     const aptDate = new Date(apt.date); // Giả sử 'apt.date' là chuỗi ISO datetime
 
     // Kiểm tra các trường dữ liệu trước khi gọi toLowerCase()
-    const customerName = apt.customer?.customerName || "";
-    const phone = apt.customer?.customerPhone || "";
+    const customerName = apt.vehicle?.customer?.customerName || "";
+    const phone = apt.vehicle?.customer?.customerPhone || "";
     const vin = apt.vehicle?.vin || "";
     const licensePlate = apt.vehicle?.plate || "";
 
@@ -238,11 +235,11 @@ export default function AppointmentsSection() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no-show">No Show</SelectItem>
-                <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                <SelectItem value="Scheduled">Scheduled</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectItem value="No Show">No Show</SelectItem>
+                <SelectItem value="Rescheduled">Rescheduled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -358,7 +355,6 @@ export default function AppointmentsSection() {
                               </div>
                               {appointment.description && ( // Dùng 'description' thay vì 'notes'
                                 <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
-                                  <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5" />
                                   <p className="text-muted-foreground">
                                     {appointment.description}
                                   </p>
