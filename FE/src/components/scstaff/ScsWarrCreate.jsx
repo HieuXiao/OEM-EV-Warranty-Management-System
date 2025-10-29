@@ -34,6 +34,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [campaigns, setCampaigns] = useState([])
   const [selectedCampaign, setSelectedCampaign] = useState("")
   const [campaignFound, setCampaignFound] = useState(false)
+  const [isCampaignChecked, setIsCampaignChecked] = useState(false)
 
   // 🔹 Reset form mỗi khi mở dialog
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     setClaimId("")
     setSelectedCampaign("")
     setCampaignFound(false)
+    setIsCampaignChecked(false)
   }
 
   // 🔹 Sinh claimId theo format WC-{centerId}-{date}-{serial}
@@ -155,14 +157,17 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         const matched = campaigns.find((c) => c.model.includes(selected.model))
         setCampaignFound(!!matched)
         setSelectedCampaign(matched ? matched.campaignId.toString() : "")
+        setIsCampaignChecked(!!matched)
       } else {
         setCampaignFound(false)
         setSelectedCampaign("")
+        setIsCampaignChecked(false)
       }
     } else {
       setVehicleModel("")
       setCampaignFound(false)
       setSelectedCampaign("")
+      setIsCampaignChecked(false)
     }
   }, [selectedVin, vehicles, campaigns])
 
@@ -182,12 +187,15 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
         description,
-        campaignId: selectedCampaign || null,
+        campaignId: isCampaignChecked ? selectedCampaign || null : null, // ✅ chỉ gửi khi checkbox được tick
       })
 
       resetForm()
       onOpenChange(false)
       onClaimCreated?.()
+
+      window.location.reload();
+
     } catch (err) {
       console.error("Error creating claim:", err)
     } finally {
@@ -280,7 +288,11 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <label className="text-sm font-medium">Campaign (if available)</label>
               {campaignFound ? (
                 <div className="flex items-center justify-between gap-3">
-                  <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                  <Select
+                    value={selectedCampaign}
+                    onValueChange={setSelectedCampaign}
+                    disabled={!isCampaignChecked}
+                  >
                     <SelectTrigger className="h-10 w-full">
                       <SelectValue placeholder="Select campaign" />
                     </SelectTrigger>
@@ -293,8 +305,10 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <Checkbox checked={campaignFound} readOnly />
-                    <span className="text-sm">Match found</span>
+                    <Checkbox
+                      checked={isCampaignChecked}
+                      onCheckedChange={(checked) => setIsCampaignChecked(checked)}
+                    />
                   </div>
                 </div>
               ) : (

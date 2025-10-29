@@ -9,8 +9,7 @@ import useAuth from "@/hook/useAuth";
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   PARTS: "/api/parts",
-  FILE_UPLOAD: (claimId) =>
-    `/api/warranty-files/combined/upload-create?fileId=${claimId}&claimId=${claimId}`,
+  FILE_UPLOAD: () => `/api/warranty-files/combined/upload-create`,
   CLAIM_PART_CHECK_CREATE: "/api/claim-part-check/create",
   SKIP_REPAIR: (claimId, technicianId) =>
     `/api/warranty-claims/workflow/${claimId}/technician/skip-repair?technicianId=${technicianId}`,
@@ -77,16 +76,26 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const handleImageUpload = (key, e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const current = partImages[key] || [];
-    if (current.length + files.length > 3) {
-      alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
-      return;
-    }
-    const newFiles = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
-    setPartImages((prev) => ({
-      ...prev,
-      [key]: [...current, ...newFiles].slice(0, 3),
-    }));
+
+    setPartImages((prev) => {
+      const current = prev[key] || [];
+      if (current.length + files.length > 3) {
+        alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
+        return prev;
+      }
+
+      const newFiles = files.map((f) => ({
+        file: f,
+        url: URL.createObjectURL(f),
+      }));
+
+      return {
+        ...prev,
+        [key]: [...current, ...newFiles].slice(0, 3),
+      };
+    });
+
+    e.target.value = "";
   };
 
   const handleDeleteImage = (key, idx) => {
@@ -102,6 +111,46 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const allPartsSelected =
     partsList.length > 0 && partsList.every((p) => !!partSelections[p.namePart]);
 
+  // -------------------- UPLOAD ALL PARTS ---------------------
+  const handleUploadAllParts = async () => {
+    if (!claimId) return;
+
+    try {
+      // 🧩 Gom tất cả file ảnh vào 1 FormData
+      const formData = new FormData();
+      const allFiles = [];
+
+      Object.entries(partImages).forEach(([partName, imgs]) => {
+        imgs.forEach((img) => {
+          if (img.file) {
+            formData.append("files", img.file); // ✅ chỉ append file
+            allFiles.push(img.file.name);
+          }
+        });
+      });
+
+      const uploadUrl = `/api/warranty-files/combined/upload-create?fileId=${claimId}&claimId=${claimId}`;
+
+      // 🧩 Log input thật
+      console.group("📤 [UPLOAD INPUT]");
+      console.log("➡️ Endpoint:", uploadUrl);
+      console.log("➡️ FormData:");
+      for (let [key, value] of formData.entries()) {
+        console.log(`   ${key}:`, value.name);
+      }
+      console.groupEnd();
+
+      // 🔹 Gửi request đúng định dạng
+      const res = await axiosPrivate.post(uploadUrl, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      console.log("✅ [UPLOAD SUCCESS]", res.data);
+    } catch (err) {
+      console.error("❌ [UPLOAD ERROR]", err.response?.data || err.message);
+    }
+  };
+
   // -------------------- COMPLETE CHECK ---------------------
   const handleCompleteCheck = async () => {
     if (!claimId) return;
@@ -110,7 +159,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     try {
       console.log("[CheckForm] Auth info:", auth);
 
-      // ✅ Chuẩn bị payload claim-part-check
       const payloads = partsList
         .filter((p) => partSelections[p.namePart])
         .map((p) => ({
@@ -125,45 +173,31 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
       // 🔹 1. Gửi danh sách part check
       for (const payload of payloads) {
-        console.log("%c[Claim-Part-Check] Payload:", "color: cyan;", payload);
         await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
       }
 
-      // 🔹 2. Nếu có part cần sửa (REPAIR) → upload ảnh theo claimId
+      // 🔹 2. Nếu có part REPAIR → upload toàn bộ ảnh
       if (hasRepair) {
-        for (const key in partImages) {
-          const imgs = partImages[key];
-          if (!imgs.length) continue;
-
-          const formData = new FormData();
-          imgs.forEach((img) => img.file && formData.append("files", img.file));
-
-          const uploadUrl = API_ENDPOINTS.FILE_UPLOAD(claimId);
-          console.log("[CheckForm] Uploading images for:", key, "→", uploadUrl);
-
-          await axiosPrivate.post(uploadUrl, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-        }
+        await handleUploadAllParts();
       } else {
-        // 🔹 3. Nếu KHÔNG có part cần sửa, gọi skip-repair
+        // 🔹 3. Nếu không → gọi skip-repair
         const skipURL = API_ENDPOINTS.SKIP_REPAIR(claimId, technicianId);
-        console.log("[CheckForm] Skip-Repair URL:", skipURL);
         await axiosPrivate.post(skipURL);
       }
 
+      // 🔹 4. Gọi auto assign EVM
       try {
         await axiosPrivate.post("/api/warranty-claims/assign-evm/auto");
-        console.log("[CheckForm] Auto-assign EVM success");
       } catch (autoErr) {
         console.warn("[CheckForm] Auto-assign EVM failed:", autoErr);
       }
 
-      console.log("[CheckForm] Complete success for claim:", claimId);
+      console.log("[CheckForm] ✅ Complete success for claim:", claimId);
       onComplete?.(claimId);
       onClose?.();
+      window.location.reload();
     } catch (err) {
-      console.error("[CheckForm] Complete failed:", err.response || err);
+      console.error("[CheckForm] ❌ Complete failed:", err.response || err);
       alert("Hoàn tất kiểm tra thất bại! Kiểm tra console để xem chi tiết.");
     } finally {
       setUploading(false);
@@ -174,7 +208,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200">
-        {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center">
           <h2 className="text-xl font-bold text-cyan-600">
             REPORT CHECK — Claim #{claimInfo?.claimId || claimId}
@@ -222,7 +255,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
             </div>
           ) : (
             <>
-              {/* Parts List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {partsList.map((part) => {
                   const key = part.namePart;
@@ -257,7 +289,9 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                         <Label>Status</Label>
                         <select
                           value={selection || ""}
-                          onChange={(e) => handleSelectionChange(key, e.target.value)}
+                          onChange={(e) =>
+                            handleSelectionChange(key, e.target.value)
+                          }
                           className="border rounded px-2 py-1 text-sm w-32"
                         >
                           <option value="">Select...</option>
@@ -273,7 +307,9 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                             type="number"
                             min="1"
                             value={partQuantities[key] || ""}
-                            onChange={(e) => handleQuantityChange(key, e.target.value)}
+                            onChange={(e) =>
+                              handleQuantityChange(key, e.target.value)
+                            }
                             className="h-8 w-20 text-sm"
                           />
                         </div>
@@ -308,7 +344,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                 })}
               </div>
 
-              {/* Footer */}
               <div className="flex justify-end mt-6 gap-3">
                 <Button variant="outline" onClick={onClose}>
                   Cancel
