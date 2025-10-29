@@ -27,6 +27,8 @@ import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign
 import axiosPrivate from "@/api/axios";
 
 const CAMPAIGN_URL = "/api/campaigns/all";
+const VEHICLE_URL = "/api/vehicles";
+const APPOINTMENT_URL = "/api/service-appointments";
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,15 +41,58 @@ export default function EVMStaffCampaign() {
   const itemsPerPage = 5;
 
   useEffect(() => {
-    async function fetchCampaigns() {
+    async function fetchAllData() {
       try {
-        const response = await axiosPrivate.get(CAMPAIGN_URL);
-        setCampaigns(response.data);
+        // Bước 1: Gọi cả 3 API
+        const [campaignResponse, vehicleResponse, appointmentResponse] =
+          await Promise.all([
+            axiosPrivate.get(CAMPAIGN_URL),
+            axiosPrivate.get(VEHICLE_URL),
+            axiosPrivate.get(APPOINTMENT_URL),
+          ]);
+
+        const rawCampaigns = campaignResponse.data;
+        const allVehicles = vehicleResponse.data;
+        const allAppointments = appointmentResponse.data;
+
+        // Bước 2: Xử lý và tính toán dữ liệu
+        const transformedData = rawCampaigns.map((campaign) => {
+          // Tính Status
+          const status = getCampaignStatus(
+            campaign.startDate,
+            campaign.endDate
+          );
+
+          // Tính Affected Vehicles
+          const campaignModelSet = new Set(campaign.model || []);
+          const affectedVehiclesCount = allVehicles.filter((vehicle) =>
+            campaignModelSet.has(vehicle.model)
+          ).length;
+
+          // Tính Completed Vehicles (Giả định appointment có campaignId và status)
+          const completedVehiclesCount = allAppointments.filter(
+            (app) =>
+              app.campaign.campaignId === campaign.campaignId &&
+              app.status === "Completed"
+          ).length;
+
+          // Bước 3: Trả về object campaign đã được thêm thông tin
+          return {
+            ...campaign,
+            status: status, // Thêm status đã tính
+            affectedVehicles: affectedVehiclesCount, // Thêm số lượng bị ảnh hưởng
+            completedVehicles: completedVehiclesCount, // Thêm số lượng đã hoàn thành
+          };
+        });
+
+        // Bước 4: Set state với dữ liệu đã xử lý
+        setCampaigns(transformedData);
       } catch (error) {
         console.error("API Error: " + error.message);
       }
     }
-    fetchCampaigns();
+
+    fetchAllData();
   }, []);
 
   const getCampaignStatus = (startDate, endDate) => {
@@ -77,12 +122,11 @@ export default function EVMStaffCampaign() {
         .includes(searchTerm.toLowerCase());
     })
     .filter((campaign) => {
-      // 2. Filter theo status
+      // 2. Filter theo status đã tính toán sẵn
       if (statusFilter === "all") {
-        return true; // Trả về tất cả nếu chọn "all"
+        return true;
       }
-      const status = getCampaignStatus(campaign.startDate, campaign.endDate);
-      return status === statusFilter;
+      return campaign.status === statusFilter;
     });
 
   const totalPages =

@@ -31,6 +31,7 @@ import axiosPrivate from "@/api/axios";
 
 const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
+const APPOINTMENT_URL = "/api/service-appointments";
 
 export default function SCStaffCampaignSummary() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,43 +61,45 @@ export default function SCStaffCampaignSummary() {
   useEffect(() => {
     async function fetchAllData() {
       try {
-        // Bước 1: Gọi cả hai API. Có thể dùng Promise.all để gọi song song
-        const [campaignResponse, vehicleResponse] = await Promise.all([
-          axiosPrivate.get(CAMPAIGN_URL),
-          axiosPrivate.get(VEHICLE_URL),
-        ]);
+        // Bước 1: Gọi cả ba API
+        const [campaignResponse, vehicleResponse, appointmentResponse] =
+          await Promise.all([
+            axiosPrivate.get(CAMPAIGN_URL),
+            axiosPrivate.get(VEHICLE_URL),
+            axiosPrivate.get(APPOINTMENT_URL), // <-- THÊM MỚI
+          ]);
 
         const rawCampaigns = campaignResponse.data;
         const allVehicles = vehicleResponse.data;
+        const allAppointments = appointmentResponse.data; // <-- THÊM MỚI
 
         // Bước 2: Xử lý dữ liệu campaigns
         const transformedData = rawCampaigns.map((campaign) => {
-          // Tính toán status (như code cũ)
+          // Tính toán status
           const status = getCampaignDateStatus(
             campaign.startDate,
             campaign.endDate
           );
 
-          // --- LOGIC ĐỂ ĐẾM VEHICLES ---
+          // Tính Affected Vehicles
           const campaignModelSet = new Set(campaign.model);
-
-          const matchingVehicleCount = allVehicles.filter((vehicle) =>
+          const affectedVehiclesCount = allVehicles.filter((vehicle) =>
             campaignModelSet.has(vehicle.model)
           ).length;
-          // --- KẾT THÚC LOGIC MỚI ---
+
+          // Tính Completed Vehicles (Giả định)
+          const completedVehiclesCount = allAppointments.filter(
+            (app) =>
+              app.campaign.campaignId === campaign.campaignId &&
+              app.status === "Completed"
+          ).length;
 
           // Bước 3: Trả về object campaign đã được thêm thông tin
           return {
             ...campaign,
-            campaignId: campaign.campaignId,
-            campaignName: campaign.campaignName,
-            serviceDescription: campaign.serviceDescription,
-            startDate: campaign.startDate,
-            endDate: campaign.endDate,
-            model: campaign.model,
             status: status,
-            // Thêm thuộc tính mới chứa số lượng đã đếm
-            matchingVehicleCount: matchingVehicleCount,
+            affectedVehicles: affectedVehiclesCount, // <-- ĐỔI TÊN/THÊM MỚI
+            completedVehicles: completedVehiclesCount, // <-- THÊM MỚI
           };
         });
 
@@ -179,7 +182,7 @@ export default function SCStaffCampaignSummary() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Not yet Campaign
+              Upcoming Campaign
             </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -299,13 +302,20 @@ export default function SCStaffCampaignSummary() {
                       <div className="mt-3">
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>Progress</span>
-                          <span>32%</span>
+                          <span>
+                            {campaign.completedVehicles}/
+                            {campaign.affectedVehicles} vehicles
+                          </span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary transition-all"
                             style={{
-                              width: `${(32 / 100) * 100}%`,
+                              width: `${Math.round(
+                                (campaign.completedVehicles /
+                                  campaign.affectedVehicles) *
+                                  100
+                              )}%`,
                             }}
                           />
                         </div>
@@ -401,7 +411,7 @@ export default function SCStaffCampaignSummary() {
                     Affected Vehicles
                   </p>
                   <p className="font-medium text-lg">
-                    {viewingCampaign.matchingVehicleCount}
+                    {viewingCampaign.affectedVehicles}
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -409,7 +419,7 @@ export default function SCStaffCampaignSummary() {
                     Completed Repairs
                   </p>
                   <p className="font-medium text-lg">
-                    {/* {viewingCampaign.completedVehicles.toLocaleString()} */}
+                    {viewingCampaign.completedVehicles}
                   </p>
                 </div>
               </div>

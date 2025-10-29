@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { mockParts } from "@/lib/Mock-data";
 
 export default function EVMStaffDetailCampaign({
   open,
@@ -23,10 +22,6 @@ export default function EVMStaffDetailCampaign({
     percent = Math.round(
       (campaign.completedVehicles / campaign.affectedVehicles) * 100
     );
-  } else if (campaign.collected && campaign.total) {
-    percent = Math.round((campaign.collected / campaign.total) * 100);
-  } else if (campaign.collectedPercent) {
-    percent = Math.round(campaign.collectedPercent);
   }
 
   const modelDisplay =
@@ -73,6 +68,17 @@ export default function EVMStaffDetailCampaign({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Affected Model</Label>
+              <div className="mt-1">{campaign.affectedVehicles}</div>
+            </div>
+            <div>
+              <Label>Completed Model</Label>
+              <div className="mt-1">{campaign.completedVehicles}</div>
+            </div>
+          </div>
+
           <div>
             <Label>Collected</Label>
             <div className="mt-2 w-full bg-muted rounded-full h-3 overflow-hidden">
@@ -81,9 +87,7 @@ export default function EVMStaffDetailCampaign({
                 style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
               />
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {percent}% collected
-            </div>
+            <div className="text-sm text-muted-foreground mt-1">{percent}%</div>
           </div>
         </div>
 
