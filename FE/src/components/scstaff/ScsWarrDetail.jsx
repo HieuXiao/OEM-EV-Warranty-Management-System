@@ -9,10 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import axiosPrivate from "@/api/axios";
 
-// 🔹 Khai báo endpoint gốc
+// 🔹 API endpoints
 const API_CLAIMS = "/api/warranty-claims";
 const API_VEHICLES = "/api/vehicles";
 const API_ACCOUNTS = "/api/accounts/";
+const API_APPOINTMENTS = "/api/service-appointments";
 
 const getStatusColor = (status) => {
   const colors = {
@@ -39,7 +40,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       try {
         setFetching(true);
 
-        // Gọi song song các API
         const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
           axiosPrivate.get(API_CLAIMS),
           axiosPrivate.get(API_VEHICLES),
@@ -53,13 +53,11 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
         setClaim(foundClaim);
 
-        // 🔹 Gắn thêm thông tin vehicle theo VIN
         const foundVehicle = vehiclesRes.data.find(
           (v) => v.vin === foundClaim.vin
         );
         setVehicle(foundVehicle || null);
 
-        // 🔹 Gắn danh sách accounts để tra tên
         setAccounts(accountsRes.data);
       } catch (error) {
         console.error("Error fetching details:", error);
@@ -79,23 +77,59 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       setLoading(true);
       const staffId = claim.serviceCenterStaffId;
 
-      // ✅ Gọi API staff/done với query params
+      // ✅ Gọi API staff/done
       await axiosPrivate.post(
         `${API_CLAIMS}/workflow/${claim.claimId}/staff/done`,
         null,
         {
-          params: {
-            staffId: staffId,
-            done: true,
-          },
+          params: { staffId, done: true },
         }
       );
 
-      // ✅ Cập nhật state sau khi hoàn tất
+      // ✅ Nếu claim có campaignId → cập nhật appointment tương ứng
+      if (claim.campaignIds?.length > 0 && claim.vin) {
+        try {
+          const campaignId = claim.campaignIds[0];
+          const appointmentsRes = await axiosPrivate.get(API_APPOINTMENTS);
+
+          console.log("📦 [API_APPOINTMENTS] Response data:", appointmentsRes.data);
+
+          const matchedAppointment = appointmentsRes.data.find(
+            (a) =>
+              a?.vehicle?.vin === claim.vin &&
+              a?.campaign?.campaignId === campaignId
+          );
+
+          console.log("🔍 [Matched Appointment]:", matchedAppointment);
+
+          if (matchedAppointment) {
+            if (matchedAppointment.status === "Scheduled") {
+              await axiosPrivate.put(
+                `${API_APPOINTMENTS}/${matchedAppointment.appointmentId}/status`,
+                null,
+                {
+                  params: { status: "Completed" },
+                }
+              );
+              console.log(
+                `✅ Appointment ${matchedAppointment.appointmentId} marked as Completed`
+              );
+            } else {
+              console.log(
+                `⚠️ Appointment ${matchedAppointment.appointmentId} not updated (status = ${matchedAppointment.status})`
+              );
+            }
+          } else {
+            console.warn("⚠️ No appointment found for VIN and campaignId.");
+          }
+        } catch (err) {
+          console.error("Error updating appointment status:", err);
+        }
+      }
+
+      // ✅ Cập nhật claim state
       setClaim({ ...claim, status: "DONE", staffDone: true });
       onOpenChange(false);
-
-      // ✅ Reset trang sau khi hoàn tất
       window.location.reload();
     } catch (error) {
       console.error("Error marking claim complete:", error);
@@ -104,7 +138,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
     }
   };
 
-  // 🔹 Hàm lấy tên tài khoản theo ID
   const getAccountName = (accountId) => {
     const acc = accounts.find((a) => a.accountId === accountId);
     return acc ? acc.fullName : "—";
@@ -135,7 +168,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
           </p>
         ) : claim ? (
           <div className="space-y-6">
-            {/* General info */}
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">
@@ -185,7 +217,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <h4 className="text-sm font-medium text-muted-foreground mb-1">
                 Description
@@ -193,7 +224,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               <p className="text-sm">{claim.description || "—"}</p>
             </div>
 
-            {/* EVM Description */}
             <div>
               <h4 className="text-sm font-medium text-muted-foreground mb-1">
                 EVM Description
@@ -201,16 +231,12 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               <p className="text-sm">{claim.evmDescription || "—"}</p>
             </div>
 
-            {/* Campaign */}
-            {vehicle?.campaign ? (
+            {claim.campaignIds?.length > 0 ? (
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">
                   Campaign
                 </h4>
-                <p className="text-sm">
-                  <strong>{vehicle.campaign.campaignName}</strong> —{" "}
-                  {vehicle.campaign.serviceDescription}
-                </p>
+                <p className="text-sm">Campaign ID: {claim.campaignIds[0]}</p>
               </div>
             ) : (
               <p className="text-sm italic text-muted-foreground">
@@ -218,7 +244,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               </p>
             )}
 
-            {/* Button */}
             <Button
               onClick={handleMarkComplete}
               disabled={claim.status !== "HANDOVER" || loading}

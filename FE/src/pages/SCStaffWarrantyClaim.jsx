@@ -53,15 +53,13 @@ export default function SCStaffWarrantyClaim() {
   const [dateTo, setDateTo] = useState(getDefaultDateTo())
   const [sortBy, setSortBy] = useState("date-desc")
 
+  // 🔹 Fetch claims list
   useEffect(() => {
     const fetchClaims = async () => {
       try {
         setLoading(true)
         const response = await axiosPrivate.get("/api/warranty-claims", {
-          params: {
-            dateFrom,
-            dateTo,
-          },
+          params: { dateFrom, dateTo },
         })
         setClaims(Array.isArray(response.data) ? response.data : [])
       } catch (error) {
@@ -80,6 +78,7 @@ export default function SCStaffWarrantyClaim() {
     setDateTo(getDefaultDateTo())
   }
 
+  // 🔹 Filter + Sort logic
   const filteredClaims = claims
     .filter((claim) => {
       const matchesSearch =
@@ -95,18 +94,37 @@ export default function SCStaffWarrantyClaim() {
       return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo
     })
     .sort((a, b) => {
+      const dateA = new Date(a.claimDate)
+      const dateB = new Date(b.claimDate)
+
+      // 🔹 Lấy serial từ claimId (3 số cuối)
+      const serialA = parseInt(a.claimId?.split("-").pop()) || 0
+      const serialB = parseInt(b.claimId?.split("-").pop()) || 0
+
       switch (sortBy) {
         case "date-desc":
-          return new Date(b.claimDate) - new Date(a.claimDate)
+          if (dateB.getTime() === dateA.getTime()) {
+            // Nếu cùng ngày → claim có serial cao hơn lên trên
+            return serialB - serialA
+          }
+          return dateB - dateA
+
         case "date-asc":
-          return new Date(a.claimDate) - new Date(b.claimDate)
+          if (dateA.getTime() === dateB.getTime()) {
+            // Nếu cùng ngày → claim có serial thấp hơn lên trên
+            return serialA - serialB
+          }
+          return dateA - dateB
+
         case "status":
           return a.status.localeCompare(b.status)
+
         default:
           return 0
       }
     })
 
+  // 🔹 Summary counters
   const totalClaims = claims.length
   const checkClaims = claims.filter((claim) => claim.status === "CHECK").length
   const decideClaims = claims.filter((claim) => claim.status === "DECIDE").length
@@ -118,15 +136,12 @@ export default function SCStaffWarrantyClaim() {
     setIsDetailDialogOpen(true)
   }
 
+  // 🔹 Refresh after claim created
   const handleClaimCreated = () => {
-    // Refresh claims list after creating new claim
     const fetchClaims = async () => {
       try {
-        const response = await axiosPrivate.get("/api/warranty_claims/", {
-          params: {
-            dateFrom,
-            dateTo,
-          },
+        const response = await axiosPrivate.get("/api/warranty-claims", {
+          params: { dateFrom, dateTo },
         })
         setClaims(Array.isArray(response.data) ? response.data : [])
       } catch (error) {
@@ -146,53 +161,27 @@ export default function SCStaffWarrantyClaim() {
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
+            {/* Dashboard Counters */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalClaims}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Check</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{checkClaims}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Decide</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{decideClaims}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Repair</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{repairClaims}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Done</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{doneClaims}</div>
-                </CardContent>
-              </Card>
+              {[
+                { label: "Total Claims", value: totalClaims },
+                { label: "Check", value: checkClaims },
+                { label: "Decide", value: decideClaims },
+                { label: "Repair", value: repairClaims },
+                { label: "Done", value: doneClaims },
+              ].map((item) => (
+                <Card key={item.label}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{item.label}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{item.value}</div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
+            {/* Filter + Search */}
             <div className="flex gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -203,6 +192,7 @@ export default function SCStaffWarrantyClaim() {
                   className="pl-10"
                 />
               </div>
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="h-4 w-4 mr-2" />
@@ -217,12 +207,17 @@ export default function SCStaffWarrantyClaim() {
                   <SelectItem value="DONE">Done</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-black hover:bg-gray-800 text-white">
+
+              <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="bg-black hover:bg-gray-800 text-white"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
             </div>
 
+            {/* Date Range + Sort */}
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
                 <Label htmlFor="date-from" className="text-sm font-medium whitespace-nowrap">
@@ -268,12 +263,14 @@ export default function SCStaffWarrantyClaim() {
               </Select>
             </div>
 
+            {/* Summary info */}
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing {filteredClaims.length} of {totalClaims} claims
               </p>
             </div>
 
+            {/* Claims list */}
             <div className="space-y-4">
               {loading ? (
                 <Card>
@@ -312,7 +309,12 @@ export default function SCStaffWarrantyClaim() {
                           </div>
                         </div>
 
-                        <Button variant="ghost" size="sm" onClick={() => handleViewClaim(claim)} className="ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewClaim(claim)}
+                          className="ml-4"
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           View
                         </Button>
@@ -333,7 +335,11 @@ export default function SCStaffWarrantyClaim() {
         onClaimCreated={handleClaimCreated}
       />
 
-      <ScsWarrDetail isOpen={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen} selectedClaim={selectedClaim} />
+      <ScsWarrDetail
+        isOpen={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        selectedClaim={selectedClaim}
+      />
     </div>
   )
 }

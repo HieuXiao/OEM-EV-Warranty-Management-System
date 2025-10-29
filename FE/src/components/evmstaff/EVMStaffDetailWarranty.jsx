@@ -1,4 +1,4 @@
-// <<< BEGIN EVMStaffDetailWarranty.jsx (FINAL - full UI preserved, correct API logic) >>>
+// <<< BEGIN EVMStaffDetailWarranty.jsx (FINAL + FULLSCREEN IMAGE PREVIEW) >>>
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
+import { Folder, X } from "lucide-react";
 
 // 🔹 API CONFIG — tất cả endpoint được gom lên đầu cho dễ quản lý
 const API_ENDPOINTS = {
@@ -18,14 +19,14 @@ const API_ENDPOINTS = {
     `/api/claim-part-check/update/${claimId}/${partNumber}`,
   EVMDESCRIPTION: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/description`,
   DECISION_HANDOVER: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/decision-handover`,
+  WARRANTY_FILES: (claimId) => `/api/warranty-files/search/claim?value=${claimId}`,
 };
 
 export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
 
-  // 🔸 State quản lý form và dữ liệu
-  const [comment, setComment] = useState(""); // Nội dung comment (description)
+  const [comment, setComment] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const [partApprovals, setPartApprovals] = useState({});
   const [approveAllActive, setApproveAllActive] = useState(false);
@@ -33,21 +34,22 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [claimDetails, setClaimDetails] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [mergedParts, setMergedParts] = useState([]);
+  const [warrantyFiles, setWarrantyFiles] = useState([]);
   const claimId = warranty?.claimId;
 
-  // -------------------- FETCH DATA --------------------
+  const [imagesModalOpen, setImagesModalOpen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+
   useEffect(() => {
     const loadAll = async () => {
       if (!claimId) return;
       try {
-        console.log("[EVMDetail] Loading claim:", claimId);
-
-        // Song song các API
-        const [claimRes, checkRes, partsRes, vehiclesRes] = await Promise.all([
+        const [claimRes, checkRes, partsRes, vehiclesRes, filesRes] = await Promise.all([
           axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
           axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
           axiosPrivate.get(API_ENDPOINTS.PARTS),
           axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+          axiosPrivate.get(API_ENDPOINTS.WARRANTY_FILES(claimId)),
         ]);
 
         const claimData = claimRes?.data ?? null;
@@ -59,7 +61,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
           ? partsRes.data.filter((p) => p?.warehouse?.whId === 1)
           : [];
 
-        // Chỉ lấy part có isRepair === true
         const repairChecks = checks.filter((c) => c.isRepair === true);
         const merged = repairChecks.map((c) => {
           const found = partsList.find((p) => p.partNumber === c.partNumber);
@@ -75,17 +76,14 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         const matchedVehicle = vehicles.find((v) => v.vin === (claimData?.vin || warranty?.vin));
         setVehicle(matchedVehicle || null);
 
+        const files = Array.isArray(filesRes?.data) ? filesRes.data : [];
+        setWarrantyFiles(files);
+
         const initialApprovals = {};
         merged.forEach((_, idx) => {
           initialApprovals[idx] = { approved: false, rejected: false };
         });
         setPartApprovals(initialApprovals);
-
-        console.log("[EVMDetail] Fetch done:", {
-          claimId,
-          parts: merged.length,
-          vehicle: matchedVehicle?.vin,
-        });
       } catch (err) {
         console.error("[EVMDetail] Fetch error:", err?.response || err);
       }
@@ -94,12 +92,10 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     if (open) loadAll();
   }, [claimId, open, warranty]);
 
-  // Kiểm tra form hợp lệ
   useEffect(() => {
     setIsFormValid(Boolean(claimDetails && comment && comment.trim().length > 0));
   }, [comment, claimDetails]);
 
-  // -------------------- UI UTIL --------------------
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount ?? 0);
 
@@ -155,20 +151,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     return sum;
   }, 0);
 
-  // -------------------- HANDLE DONE --------------------
-  /**
-   * Quy trình:
-   * 1️⃣ Cập nhật tất cả part bị reject thành isRepair = false
-   * 2️⃣ Nếu có ít nhất 1 part được approve → POST /evm/description?evmId=&description=
-   * 3️⃣ Nếu không có part nào approve → POST /decision-handover?evmId=&description=
-   */
   const handleDone = async () => {
-    if (!claimId || !evmId) {
-      console.error("[EVMDetail] Missing claimId or evmId");
-      return;
-    }
-
-    console.log("[EVMDetail] Handle Done pressed:", { claimId, evmId });
+    if (!claimId || !evmId) return;
 
     try {
       const approvedIndexes = [];
@@ -178,7 +162,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
       });
 
-      // 1️⃣ PUT rejected parts
       for (const idx of rejectedIndexes) {
         const part = mergedParts[idx];
         const body = {
@@ -189,49 +172,35 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
           isRepair: false,
           partId: part.partId || "",
         };
-        try {
-          console.log("[EVMDetail] PUT update:", body);
-          await axiosPrivate.put(
-            API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
-              encodeURIComponent(claimId),
-              encodeURIComponent(part.partNumber)
-            ),
-            body
-          );
-        } catch (err) {
-          console.error("[EVMDetail] PUT failed:", err?.response || err);
-        }
+        await axiosPrivate.put(
+          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+            encodeURIComponent(claimId),
+            encodeURIComponent(part.partNumber)
+          ),
+          body
+        );
       }
 
-      // 2️⃣ Nếu có approve
       if (approvedIndexes.length > 0) {
-        const url = `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
-          evmId
-        )}&description=${encodeURIComponent(comment || "")}`;
-        console.log("[EVMDetail] POST evm/description:", url);
-        await axiosPrivate.post(url);
+        await axiosPrivate.post(
+          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
+        );
       } else {
-        // 3️⃣ Không có approve
-        const url = `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
-          evmId
-        )}&description=${encodeURIComponent(comment || "")}`;
-        console.log("[EVMDetail] POST decision-handover:", url);
-        await axiosPrivate.post(url);
+        await axiosPrivate.post(
+          `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
+        );
       }
 
-      console.log("[EVMDetail] ✅ Done completed for claim:", claimId);
       onOpenChange(false);
+      window.location.reload();
     } catch (err) {
       console.error("[EVMDetail] ❌ Done failed:", err?.response || err);
     }
   };
-
-  const handleCancel = () => {
-    console.log("[EVMDetail] Cancel pressed");
-    onOpenChange(false);
-  };
-
-  // -------------------- UI (KHÔNG THAY ĐỔI GÌ) --------------------
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -240,7 +209,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* 🔹 Basic Info */}
+          {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Claim ID</p>
@@ -278,7 +247,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
           <Separator />
 
-          {/* 🔹 Cost Breakdown */}
+          {/* Cost Breakdown */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
             <div className="border rounded-md">
@@ -360,16 +329,96 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               })}
             </div>
 
-            {/* Total */}
             <div className="flex justify-between items-center text-lg pt-4">
               <p className="font-bold">Total Cost</p>
               <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
             </div>
           </div>
 
+          {/* 🔹 Attached Images */}
+          {warrantyFiles.length > 0 && (
+            <div>
+              <Separator className="my-4" />
+              <h3 className="text-lg font-semibold mb-3">Attached Images</h3>
+
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setImagesModalOpen(true)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" || e.key === " " ? setImagesModalOpen(true) : null
+                }
+                className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
+              >
+                <Folder className="w-8 h-8 text-amber-600" />
+                <div className="flex flex-col">
+                  <span className="font-medium">{claimId || "Claim images"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {warrantyFiles.reduce(
+                      (acc, f) => acc + (f.mediaUrls?.length || 0),
+                      0
+                    )}{" "}
+                    image(s)
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    Click to view images
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal hiển thị ảnh */}
+          <Dialog open={imagesModalOpen} onOpenChange={setImagesModalOpen}>
+            <DialogContent className="max-w-6xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Claim Images</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {warrantyFiles
+                  .flatMap((f) => f.mediaUrls || [])
+                  .map((url, i) => (
+                    <div
+                      key={`all-${i}`}
+                      className="relative border rounded-lg overflow-hidden cursor-pointer"
+                      onClick={() => setFullscreenImage(url)}
+                    >
+                      <img
+                        src={url}
+                        alt={`claim-image-${i}`}
+                        className="w-full h-64 object-cover hover:scale-105 transition-transform"
+                      />
+                    </div>
+                  ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* 🔸 Fullscreen overlay khi click ảnh */}
+          {fullscreenImage && (
+            <div
+              className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
+              onClick={() => setFullscreenImage(null)}
+            >
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setFullscreenImage(null)}
+                className="absolute right-6 top-6 z-50"
+              >
+                <X className="w-6 h-6 text-white" />
+              </Button>
+              <img
+                src={fullscreenImage}
+                alt="fullscreen"
+                className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg"
+              />
+            </div>
+          )}
+
           <Separator />
 
-          {/* 🔹 Comment */}
+          {/* Comment */}
           <div className="space-y-2">
             <Label htmlFor="comment">Comment</Label>
             <Textarea
@@ -382,9 +431,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             />
           </div>
 
-          {/* 🔹 Actions */}
+          {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="destructive" onClick={handleCancel}>
+            <Button variant="destructive" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button onClick={handleDone} disabled={!isFormValid}>

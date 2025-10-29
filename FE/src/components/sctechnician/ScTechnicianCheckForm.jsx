@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import axiosPrivate from "@/api/axios";
 import { cn } from "@/lib/utils";
 import useAuth from "@/hook/useAuth";
+import { ImagePlus } from "lucide-react"; 
 
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
@@ -116,31 +117,17 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     if (!claimId) return;
 
     try {
-      // 🧩 Gom tất cả file ảnh vào 1 FormData
       const formData = new FormData();
-      const allFiles = [];
-
       Object.entries(partImages).forEach(([partName, imgs]) => {
         imgs.forEach((img) => {
           if (img.file) {
-            formData.append("files", img.file); // ✅ chỉ append file
-            allFiles.push(img.file.name);
+            formData.append("files", img.file);
           }
         });
       });
 
       const uploadUrl = `/api/warranty-files/combined/upload-create?fileId=${claimId}&claimId=${claimId}`;
 
-      // 🧩 Log input thật
-      console.group("📤 [UPLOAD INPUT]");
-      console.log("➡️ Endpoint:", uploadUrl);
-      console.log("➡️ FormData:");
-      for (let [key, value] of formData.entries()) {
-        console.log(`   ${key}:`, value.name);
-      }
-      console.groupEnd();
-
-      // 🔹 Gửi request đúng định dạng
       const res = await axiosPrivate.post(uploadUrl, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -157,8 +144,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     setUploading(true);
 
     try {
-      console.log("[CheckForm] Auth info:", auth);
-
       const payloads = partsList
         .filter((p) => partSelections[p.namePart])
         .map((p) => ({
@@ -171,28 +156,23 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
       const hasRepair = payloads.some((p) => p.isRepair);
 
-      // 🔹 1. Gửi danh sách part check
       for (const payload of payloads) {
         await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
       }
 
-      // 🔹 2. Nếu có part REPAIR → upload toàn bộ ảnh
       if (hasRepair) {
         await handleUploadAllParts();
       } else {
-        // 🔹 3. Nếu không → gọi skip-repair
         const skipURL = API_ENDPOINTS.SKIP_REPAIR(claimId, technicianId);
         await axiosPrivate.post(skipURL);
       }
 
-      // 🔹 4. Gọi auto assign EVM
       try {
         await axiosPrivate.post("/api/warranty-claims/assign-evm/auto");
       } catch (autoErr) {
         console.warn("[CheckForm] Auto-assign EVM failed:", autoErr);
       }
 
-      console.log("[CheckForm] ✅ Complete success for claim:", claimId);
       onComplete?.(claimId);
       onClose?.();
       window.location.reload();
@@ -273,16 +253,25 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                           : "border-gray-200 hover:border-cyan-300"
                       )}
                     >
-                      <div className="flex justify-between mb-3">
-                        <span className="font-semibold text-sm">{part.namePart}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="text-xs"
-                          onChange={(e) => handleImageUpload(key, e)}
-                          disabled={imgs.length >= 3}
-                        />
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-semibold text-sm">
+                          {part.namePart}
+                        </span>
+
+                        {/* ✅ Chỉ hiện nút upload nếu là REPAIR */}
+                        {isRepair && (
+                          <label className="cursor-pointer flex items-center gap-1 text-cyan-600 hover:text-cyan-700">
+                            <ImagePlus className="w-5 h-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={(e) => handleImageUpload(key, e)}
+                              disabled={imgs.length >= 3}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
                       </div>
 
                       <div className="flex gap-3 mb-2 items-center">
@@ -315,7 +304,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                         </div>
                       )}
 
-                      {imgs.length > 0 && (
+                      {isRepair && imgs.length > 0 && (
                         <div className="mt-2">
                           <div className="text-xs text-gray-500 mb-1">
                             {imgs.length}/3 image(s)
