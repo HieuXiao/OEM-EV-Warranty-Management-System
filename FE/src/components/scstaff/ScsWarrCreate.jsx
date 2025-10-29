@@ -36,7 +36,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [campaignFound, setCampaignFound] = useState(false)
   const [isCampaignChecked, setIsCampaignChecked] = useState(false)
 
-  // 🔹 Reset form mỗi khi mở dialog
   useEffect(() => {
     if (isOpen) {
       resetForm()
@@ -60,7 +59,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     setIsCampaignChecked(false)
   }
 
-  // 🔹 Sinh claimId theo format WC-{centerId}-{date}-{serial}
   const generateClaimId = async () => {
     const dateStr = new Date().toISOString().split("T")[0]
     const centerId = currentUser?.serviceCenter?.centerId || "NA"
@@ -80,22 +78,41 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     }
   }
 
-  // 🔹 Lấy danh sách technician
   const fetchTechnicians = async () => {
     try {
       setLoadingTechnicians(true)
+      // 🔹 Lấy account hiện tại đầy đủ
+      const accountDetailRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
+      const fullAccount = accountDetailRes.data
+      const currentCenterId = fullAccount?.serviceCenter?.centerId
+
+      if (!currentCenterId) {
+        console.warn("⚠️ Current user has no service center info.")
+        setTechnicians([])
+        return
+      }
+
+      // 🔹 Lấy tất cả accounts
       const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
       const list = Array.isArray(res.data) ? res.data : []
-      const techs = list.filter((a) => a.roleName === "SC_TECHNICIAN" && a.enabled)
+
+      const techs = list.filter(
+        (a) =>
+          a.roleName === "SC_TECHNICIAN" &&
+          a.enabled &&
+          String(a.serviceCenter?.centerId) === String(currentCenterId)
+      )
+
+      console.log("✅ Filtered technicians:", techs)
       setTechnicians(techs)
     } catch (e) {
       console.error("Error fetching technicians:", e)
+      setTechnicians([])
     } finally {
       setLoadingTechnicians(false)
     }
   }
 
-  // 🔹 Lấy danh sách campaign
   const fetchCampaigns = async () => {
     try {
       const res = await axiosPrivate.get(API_ENDPOINTS.CAMPAIGNS)
@@ -106,7 +123,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     }
   }
 
-  // 🔹 Lấy customer + vehicles theo phone
   useEffect(() => {
     if (!customerPhone) {
       setCustomerName("")
@@ -127,9 +143,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
           setCustomerName(foundCustomer.customerName)
           const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
           const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
-          const related = allVehicles.filter(
-            (v) => v.customer?.customerId === foundCustomer.customerId
-          )
+          const related = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
           setVehicles(related)
         } else {
           setCustomerName("")
@@ -147,7 +161,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     fetchData()
   }, [customerPhone])
 
-  // 🔹 Model tự điền theo VIN và kiểm tra campaign
   useEffect(() => {
     if (selectedVin) {
       const selected = vehicles.find((v) => v.vin === selectedVin)
@@ -171,31 +184,52 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     }
   }, [selectedVin, vehicles, campaigns])
 
-  // 🔹 Submit claim
   const handleSubmitNewClaim = async (e) => {
     e.preventDefault()
-    if (!selectedVin || !selectedTechnician || !description) return
+    if (!selectedVin) return alert("Please select a vehicle VIN.")
+    if (!technicians.length) return alert("No technicians available in this service center.")
+    if (!selectedTechnician) return alert("Please assign a technician.")
+    if (!description) return alert("Please enter a description.")
 
     try {
       setLoading(true)
       const finalClaimId = claimId || (await generateClaimId())
 
-      await axiosPrivate.post(API_ENDPOINTS.CLAIMS, {
+      // ✅ Payload chỉ chứa campaign được tick
+      const payload = {
         claimId: finalClaimId,
         vin: selectedVin,
         scStaffId: currentUser.accountId?.toUpperCase(),
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
         description,
-        campaignId: isCampaignChecked ? selectedCampaign || null : null, // ✅ chỉ gửi khi checkbox được tick
-      })
+        campaignIds:
+          isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : [],
+      }
+
+      console.log("📦 Creating warranty claim payload:", payload)
+
+      await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
+
+      // ✅ Nếu có campaign thì tạo appointment
+      if (isCampaignChecked && selectedCampaign) {
+        try {
+          await axiosPrivate.post("/api/service-appointments", {
+            vin: selectedVin,
+            campaignId: Number(selectedCampaign),
+            date: new Date().toISOString(),
+            description: null,
+          })
+          console.log("✅ Service appointment created successfully.")
+        } catch (err) {
+          console.error("Error creating service appointment:", err)
+        }
+      }
 
       resetForm()
       onOpenChange(false)
       onClaimCreated?.()
-
-      window.location.reload();
-
+      window.location.reload()
     } catch (err) {
       console.error("Error creating claim:", err)
     } finally {
@@ -213,19 +247,16 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
         <form onSubmit={handleSubmitNewClaim} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Claim ID */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Claim ID</label>
               <Input value={claimId} readOnly className="bg-muted h-10" />
             </div>
 
-            {/* Created By */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Created By (SC Staff)</label>
               <Input value={currentUser.fullName} disabled className="bg-muted h-10" />
             </div>
 
-            {/* Customer Info */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Customer Phone *</label>
               <Input
@@ -242,7 +273,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <Input placeholder="Auto-filled" value={customerName} disabled className="bg-muted h-10" />
             </div>
 
-            {/* Vehicle */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Vehicle VIN *</label>
               <Select value={selectedVin} onValueChange={setSelectedVin} required>
@@ -267,23 +297,29 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             {/* Technician */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Assign to Technician *</label>
-              <Select value={selectedTechnician} onValueChange={setSelectedTechnician} required>
-                <SelectTrigger className="h-10">
-                  <SelectValue
-                    placeholder={loadingTechnicians ? "Loading..." : "Select technician"}
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {technicians.map((t) => (
-                    <SelectItem key={t.accountId} value={t.accountId}>
-                      {t.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {technicians.length > 0 ? (
+                <Select value={selectedTechnician} onValueChange={setSelectedTechnician} required>
+                  <SelectTrigger className="h-10">
+                    <SelectValue
+                      placeholder={loadingTechnicians ? "Loading..." : "Select technician"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                    {technicians.map((t) => (
+                      <SelectItem key={t.accountId} value={t.accountId}>
+                        {t.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm italic text-red-500">
+                  ⚠ No technician available in your service center.
+                </p>
+              )}
             </div>
 
-            {/* 🔹 Campaign Section */}
+            {/* Campaign */}
             <div className="col-span-2 space-y-2 border-t pt-3">
               <label className="text-sm font-medium">Campaign (if available)</label>
               {campaignFound ? (
@@ -317,7 +353,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             </div>
           </div>
 
-          {/* Description */}
           <div className="space-y-1">
             <label className="text-sm font-medium">Issue Description *</label>
             <textarea
@@ -329,7 +364,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             />
           </div>
 
-          {/* Buttons */}
           <div className="flex justify-end gap-3 sticky bottom-0 bg-white py-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel

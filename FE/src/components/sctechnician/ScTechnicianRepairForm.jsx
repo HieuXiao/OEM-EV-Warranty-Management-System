@@ -17,7 +17,6 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
   const [serialInputs, setSerialInputs] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // 🧩 Lấy danh sách part có repair:true và quantity từ claim_part_check
   useEffect(() => {
     if (!job?.claimId) return;
 
@@ -59,7 +58,6 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
     fetchRepairParts();
   }, [job]);
 
-  // 🧩 Nhập serial theo partNumber + index
   const handleSerialChange = (partNumber, index, value) => {
     setSerialInputs((prev) => ({
       ...prev,
@@ -70,7 +68,6 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
     }));
   };
 
-  // 🧩 Hoàn tất repair
   const handleCompleteRepair = async () => {
     if (!job?.claimId) return;
 
@@ -111,7 +108,6 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         );
       }
 
-      // ✅ Gọi API workflow đúng format
       const url = `${API_ENDPOINTS.CLAIM_WORKFLOW}/${claimId}/technician/done?technicianId=${encodeURIComponent(
         technicianId
       )}&done=true`;
@@ -119,8 +115,9 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
       console.log("[RepairForm] Workflow URL:", url);
       await axiosPrivate.post(url);
 
-      alert("✅ Hoàn tất Repair thành công!");
       onComplete?.();
+      window.location.reload();
+
     } catch (e) {
       console.error("[RepairForm] Complete Repair failed:", e);
       alert(
