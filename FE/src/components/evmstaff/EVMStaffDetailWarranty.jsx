@@ -1,5 +1,6 @@
-// <<< BEGIN EVMStaffDetailWarranty.jsx (FINAL + FULLSCREEN IMAGE PREVIEW) >>>
+// <<< BEGIN EVMStaffDetailWarranty.jsx (UPDATED - IMAGE OUTSIDE FORM) >>>
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 import { Folder, X } from "lucide-react";
 
-// 🔹 API CONFIG — tất cả endpoint được gom lên đầu cho dễ quản lý
+// 🔹 API CONFIG
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   PARTS: "/api/parts",
@@ -25,7 +26,6 @@ const API_ENDPOINTS = {
 export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
-
   const [comment, setComment] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const [partApprovals, setPartApprovals] = useState({});
@@ -35,12 +35,22 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [vehicle, setVehicle] = useState(null);
   const [mergedParts, setMergedParts] = useState([]);
   const [warrantyFiles, setWarrantyFiles] = useState([]);
-  const claimId = warranty?.claimId;
-
   const [imagesModalOpen, setImagesModalOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
 
+  const claimId = warranty?.claimId;
+
+  // 🔸 Load data
   useEffect(() => {
+    if (open) {
+      setComment("");
+      setPartApprovals({});
+      setApproveAllActive(false);
+      setRejectAllActive(false);
+      setImagesModalOpen(false);
+      setFullscreenImage(null);
+    }
+    
     const loadAll = async () => {
       if (!claimId) return;
       try {
@@ -88,7 +98,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         console.error("[EVMDetail] Fetch error:", err?.response || err);
       }
     };
-
     if (open) loadAll();
   }, [claimId, open, warranty]);
 
@@ -153,7 +162,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
   const handleDone = async () => {
     if (!claimId || !evmId) return;
-
     try {
       const approvedIndexes = [];
       const rejectedIndexes = [];
@@ -201,186 +209,220 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       console.error("[EVMDetail] ❌ Done failed:", err?.response || err);
     }
   };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} modal={false}>
+        <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Claim ID</p>
-              <p className="font-semibold">{claimDetails?.claimId || warranty?.claimId}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              {getStatusBadge(claimDetails?.status || warranty?.status)}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
-              <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Model</p>
-              <p className="font-semibold">{vehicle?.model || ""}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Vehicle Plate</p>
-              <p className="font-semibold">{vehicle?.plate || ""}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Customer</p>
-              <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Description</p>
-              <p className="font-semibold">{claimDetails?.description || ""}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Submitted Date</p>
-              <p className="font-semibold">{claimDetails?.claimDate || ""}</p>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Cost Breakdown */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
-            <div className="border rounded-md">
-              <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2 px-4">
-                <div className="text-left">Part Information</div>
-                <div className="flex justify-center items-center">
-                  <Button
-                    variant={approveAllActive ? "default" : "outline"}
-                    size="sm"
-                    className={`transition-all ${
-                      approveAllActive
-                        ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
-                        : "text-green-700 border-green-600 hover:bg-green-100"
-                    }`}
-                    onClick={handleApproveAll}
-                  >
-                    Approve
-                  </Button>
-                </div>
-                <div className="flex justify-center items-center">
-                  <Button
-                    variant={rejectAllActive ? "default" : "outline"}
-                    size="sm"
-                    className={`transition-all ${
-                      rejectAllActive
-                        ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
-                        : "text-red-700 border-red-600 hover:bg-red-100"
-                    }`}
-                    onClick={handleRejectAll}
-                  >
-                    Reject
-                  </Button>
-                </div>
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Claim ID</p>
+                <p className="font-semibold">{claimDetails?.claimId || warranty?.claimId}</p>
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                {getStatusBadge(claimDetails?.status || warranty?.status)}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
+                <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Model</p>
+                <p className="font-semibold">{vehicle?.model || ""}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Vehicle Plate</p>
+                <p className="font-semibold">{vehicle?.plate || ""}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Customer</p>
+                <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-semibold">{claimDetails?.description || ""}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Submitted Date</p>
+                <p className="font-semibold">{claimDetails?.claimDate || ""}</p>
+              </div>
+            </div>
 
-              {mergedParts.map((part, index) => {
-                const approved = partApprovals[index]?.approved || false;
-                const rejected = partApprovals[index]?.rejected || false;
-                return (
-                  <div
-                    key={index}
-                    className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${
-                      approved
-                        ? "bg-green-50"
-                        : rejected
-                        ? "bg-red-50"
-                        : "bg-transparent"
-                    }`}
-                  >
-                    <div className="space-y-1 text-left">
-                      <p className="font-semibold text-base">
-                        {part.namePart || part.partNumber}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Qty: {part.quantity}</p>
-                      <p className="text-base font-semibold text-primary">
-                        {formatCurrency(part.price)}
-                      </p>
-                    </div>
+            <Separator />
 
-                    <div className="flex justify-center items-center">
-                      <input
-                        type="checkbox"
-                        className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
-                        checked={approved}
-                        onChange={() => handleApprovalChange(index, "approved")}
-                      />
-                    </div>
-
-                    <div className="flex justify-center items-center">
-                      <input
-                        type="checkbox"
-                        className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
-                        checked={rejected}
-                        onChange={() => handleApprovalChange(index, "rejected")}
-                      />
-                    </div>
+            {/* Cost Breakdown */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
+              <div className="border rounded-md">
+                <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2 px-4">
+                  <div className="text-left">Part Information</div>
+                  <div className="flex justify-center items-center">
+                    <Button
+                      variant={approveAllActive ? "default" : "outline"}
+                      size="sm"
+                      className={`transition-all ${
+                        approveAllActive
+                          ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
+                          : "text-green-700 border-green-600 hover:bg-green-100"
+                      }`}
+                      onClick={handleApproveAll}
+                    >
+                      Approve
+                    </Button>
                   </div>
-                );
-              })}
+                  <div className="flex justify-center items-center">
+                    <Button
+                      variant={rejectAllActive ? "default" : "outline"}
+                      size="sm"
+                      className={`transition-all ${
+                        rejectAllActive
+                          ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
+                          : "text-red-700 border-red-600 hover:bg-red-100"
+                      }`}
+                      onClick={handleRejectAll}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+
+                {mergedParts.map((part, index) => {
+                  const approved = partApprovals[index]?.approved || false;
+                  const rejected = partApprovals[index]?.rejected || false;
+                  return (
+                    <div
+                      key={index}
+                      className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${
+                        approved
+                          ? "bg-green-50"
+                          : rejected
+                          ? "bg-red-50"
+                          : "bg-transparent"
+                      }`}
+                    >
+                      <div className="space-y-1 text-left">
+                        <p className="font-semibold text-base">
+                          {part.namePart || part.partNumber}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Qty: {part.quantity}</p>
+                        <p className="text-base font-semibold text-primary">
+                          {formatCurrency(part.price)}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-center items-center">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
+                          checked={approved}
+                          onChange={() => handleApprovalChange(index, "approved")}
+                        />
+                      </div>
+
+                      <div className="flex justify-center items-center">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
+                          checked={rejected}
+                          onChange={() => handleApprovalChange(index, "rejected")}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between items-center text-lg pt-4">
+                <p className="font-bold">Total Cost</p>
+                <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
+              </div>
             </div>
 
-            <div className="flex justify-between items-center text-lg pt-4">
-              <p className="font-bold">Total Cost</p>
-              <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
+            {/* 🔹 Attached Images */}
+            {warrantyFiles.length > 0 && (
+              <div>
+                <Separator className="my-4" />
+                <h3 className="text-lg font-semibold mb-3">Attached Images</h3>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setImagesModalOpen(true)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" || e.key === " " ? setImagesModalOpen(true) : null
+                  }
+                  className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
+                >
+                  <Folder className="w-8 h-8 text-amber-600" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{claimId || "Claim images"}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {warrantyFiles.reduce(
+                        (acc, f) => acc + (f.mediaUrls?.length || 0),
+                        0
+                      )}{" "}
+                      image(s)
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">
+                      Click to view images
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Comment */}
+            <div className="space-y-2">
+              <Label htmlFor="comment">Comment</Label>
+              <Textarea
+                id="comment"
+                placeholder="Enter your comment here..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="destructive" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleDone} disabled={!isFormValid}>
+                Done
+              </Button>
             </div>
           </div>
 
-          {/* 🔹 Attached Images */}
-          {warrantyFiles.length > 0 && (
-            <div>
-              <Separator className="my-4" />
-              <h3 className="text-lg font-semibold mb-3">Attached Images</h3>
-
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setImagesModalOpen(true)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" || e.key === " " ? setImagesModalOpen(true) : null
-                }
-                className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
+          {/* 🔹 Claim Images Viewer — tách khỏi form */}
+          {imagesModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setImagesModalOpen(false)}
+                className="absolute top-6 right-6 text-white z-50"
               >
-                <Folder className="w-8 h-8 text-amber-600" />
-                <div className="flex flex-col">
-                  <span className="font-medium">{claimId || "Claim images"}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {warrantyFiles.reduce(
-                      (acc, f) => acc + (f.mediaUrls?.length || 0),
-                      0
-                    )}{" "}
-                    image(s)
-                  </span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    Click to view images
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+                <X className="w-6 h-6" />
+              </Button>
 
-          {/* Modal hiển thị ảnh */}
-          <Dialog open={imagesModalOpen} onOpenChange={setImagesModalOpen}>
-            <DialogContent className="max-w-6xl">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Claim Images</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <h2 className="text-white text-2xl font-bold mb-6">Claim Images</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
                 {warrantyFiles
                   .flatMap((f) => f.mediaUrls || [])
                   .map((url, i) => (
                     <div
-                      key={`all-${i}`}
-                      className="relative border rounded-lg overflow-hidden cursor-pointer"
+                      key={`claim-image-${i}`}
+                      className="relative overflow-hidden rounded-lg cursor-pointer"
                       onClick={() => setFullscreenImage(url)}
                     >
                       <img
@@ -391,58 +433,39 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     </div>
                   ))}
               </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* 🔸 Fullscreen overlay khi click ảnh */}
-          {fullscreenImage && (
-            <div
-              className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
-              onClick={() => setFullscreenImage(null)}
-            >
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setFullscreenImage(null)}
-                className="absolute right-6 top-6 z-50"
-              >
-                <X className="w-6 h-6 text-white" />
-              </Button>
-              <img
-                src={fullscreenImage}
-                alt="fullscreen"
-                className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg"
-              />
             </div>
           )}
 
-          <Separator />
+        </DialogContent>
+      </Dialog>
 
-          {/* Comment */}
-          <div className="space-y-2">
-            <Label htmlFor="comment">Comment</Label>
-            <Textarea
-              id="comment"
-              placeholder="Enter your comment here..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="destructive" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleDone} disabled={!isFormValid}>
-              Done
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {fullscreenImage &&
+      createPortal(
+          <div
+              className="fixed inset-0 z-[10000] bg-black/95 flex items-center justify-center"
+              onClick={(e) => {
+                  if (e.target === e.currentTarget) setFullscreenImage(null);
+              }}
+          >
+              <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                      setFullscreenImage(null);
+                  }}
+                  className="absolute top-4 right-4 text-white z-[99999] p-2 w-10 h-10 hover:bg-white/20"
+              >
+                  <X className="w-6 h-6" />
+              </Button>
+              <img
+                  src={fullscreenImage}
+                  alt="fullscreen"
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-lg pointer-events-none" 
+              />
+          </div>,
+          document.body
+      )}
+    </>
   );
 }
 // <<< END EVMStaffDetailWarranty.jsx >>>
