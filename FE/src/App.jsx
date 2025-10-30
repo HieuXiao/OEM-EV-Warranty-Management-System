@@ -28,7 +28,7 @@ import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
 import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 import EVMStaffReportDetail from "./components/evmstaff/EVMStaffReportDetail";
-import EVMStaffWarehouseDetail from "./components/evmstaff/EVMStaffWarehouseDetail";
+import EVMStaffWarehouseDetail from "./components/evmstaff/EvmWareDetail";
 import RequireAuth from "./components/RequireAuth";
 
 function App() {
