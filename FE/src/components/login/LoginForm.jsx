@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import useAuth from "@/hook/useAuth";
 import axiosPrivate from "@/api/axios";
 import { Button } from "../ui/button";
 import { CardContent } from "../ui/card";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
+import { Eye, EyeOff } from "lucide-react";
 
 const LOGIN_URL = "/api/auth/login";
 
@@ -17,6 +18,7 @@ export default function LoginForm({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { setAuth } = useAuth();
 
@@ -81,17 +83,37 @@ export default function LoginForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"} // Thay đổi type động
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="pr-10" // Thêm padding bên phải để icon không đè lên chữ
+            />
+            {/* Thêm nút để bật/tắt hiển thị mật khẩu */}
+            <button
+              type="button" // Quan trọng: để không submit form
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading || !accountId.trim() || !password.trim()}
+        >
           {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </form>
