@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import axiosPrivate from "@/api/axios";
+import ScsWarrPart from "@/components/scstaff/ScsWarrPart"; // ✅ Import phần mới
 
 // 🔹 API endpoints
 const API_CLAIMS = "/api/warranty-claims";
@@ -33,7 +34,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
   const [accounts, setAccounts] = useState([]);
   const [fetching, setFetching] = useState(false);
 
-  // 🔹 Fetch dữ liệu khi mở dialog
   useEffect(() => {
     const fetchAll = async () => {
       if (!selectedClaim?.claimId || !isOpen) return;
@@ -69,7 +69,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
     fetchAll();
   }, [selectedClaim, isOpen]);
 
-  // 🔹 Đánh dấu staff hoàn tất
   const handleMarkComplete = async () => {
     if (!claim || claim.status !== "HANDOVER") return;
 
@@ -77,22 +76,16 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       setLoading(true);
       const staffId = claim.serviceCenterStaffId;
 
-      // ✅ Gọi API staff/done
       await axiosPrivate.post(
         `${API_CLAIMS}/workflow/${claim.claimId}/staff/done`,
         null,
-        {
-          params: { staffId, done: true },
-        }
+        { params: { staffId, done: true } }
       );
 
-      // ✅ Nếu claim có campaignId → cập nhật appointment tương ứng
       if (claim.campaignIds?.length > 0 && claim.vin) {
         try {
           const campaignId = claim.campaignIds[0];
           const appointmentsRes = await axiosPrivate.get(API_APPOINTMENTS);
-
-          console.log("📦 [API_APPOINTMENTS] Response data:", appointmentsRes.data);
 
           const matchedAppointment = appointmentsRes.data.find(
             (a) =>
@@ -100,34 +93,18 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               a?.campaign?.campaignId === campaignId
           );
 
-          console.log("🔍 [Matched Appointment]:", matchedAppointment);
-
-          if (matchedAppointment) {
-            if (matchedAppointment.status === "Scheduled") {
-              await axiosPrivate.put(
-                `${API_APPOINTMENTS}/${matchedAppointment.appointmentId}/status`,
-                null,
-                {
-                  params: { status: "Completed" },
-                }
-              );
-              console.log(
-                `✅ Appointment ${matchedAppointment.appointmentId} marked as Completed`
-              );
-            } else {
-              console.log(
-                `⚠️ Appointment ${matchedAppointment.appointmentId} not updated (status = ${matchedAppointment.status})`
-              );
-            }
-          } else {
-            console.warn("⚠️ No appointment found for VIN and campaignId.");
+          if (matchedAppointment && matchedAppointment.status === "Scheduled") {
+            await axiosPrivate.put(
+              `${API_APPOINTMENTS}/${matchedAppointment.appointmentId}/status`,
+              null,
+              { params: { status: "Completed" } }
+            );
           }
         } catch (err) {
           console.error("Error updating appointment status:", err);
         }
       }
 
-      // ✅ Cập nhật claim state
       setClaim({ ...claim, status: "DONE", staffDone: true });
       onOpenChange(false);
       window.location.reload();
@@ -170,79 +147,56 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  VIN
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">VIN</h4>
                 <p className="font-medium">{claim.vin}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Model
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Model</h4>
                 <p className="font-medium">{vehicle?.model || "—"}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Type
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Type</h4>
                 <p className="font-medium">{vehicle?.type || "—"}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Claim Date
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Claim Date</h4>
                 <p className="font-medium">{claim.claimDate}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Technician
-                </h4>
-                <p className="font-medium">
-                  {getAccountName(claim.serviceCenterTechnicianId)}
-                </p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Technician</h4>
+                <p className="font-medium">{getAccountName(claim.serviceCenterTechnicianId)}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  SC Staff
-                </h4>
-                <p className="font-medium">
-                  {getAccountName(claim.serviceCenterStaffId)}
-                </p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">SC Staff</h4>
+                <p className="font-medium">{getAccountName(claim.serviceCenterStaffId)}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  EVM Staff
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">EVM Staff</h4>
                 <p className="font-medium">{getAccountName(claim.evmId)}</p>
               </div>
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                Description
-              </h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
               <p className="text-sm">{claim.description || "—"}</p>
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                EVM Description
-              </h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">EVM Description</h4>
               <p className="text-sm">{claim.evmDescription || "—"}</p>
             </div>
 
             {claim.campaignIds?.length > 0 ? (
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Campaign
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Campaign</h4>
                 <p className="text-sm">Campaign ID: {claim.campaignIds[0]}</p>
               </div>
             ) : (
-              <p className="text-sm italic text-muted-foreground">
-                No campaign associated.
-              </p>
+              <p className="text-sm italic text-muted-foreground">No campaign associated.</p>
             )}
+
+            {/* ✅ Gọi form ScsWarrPart */}
+            <ScsWarrPart warrantyId={claim?.claimId} />
 
             <Button
               onClick={handleMarkComplete}

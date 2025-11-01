@@ -91,7 +91,8 @@ export default function EVMStaffDetailCampaign({
           </div>
         </div>
 
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-6 gap-3">
+          <Button variant="outline">Export Report</Button>
           <Button onClick={() => onOpenChange(false)}>Close</Button>
         </div>
       </DialogContent>

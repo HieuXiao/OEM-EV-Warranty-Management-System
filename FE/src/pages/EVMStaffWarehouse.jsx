@@ -1,103 +1,90 @@
-// === IMPORTS ===
-import { useState, useEffect } from "react"
-import AdminSidebar from "@/components/admin/AdminSidebar"
-import Header from "@/components/Header"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus } from "lucide-react"
-import EvmWareTable from "@/components/evmstaff/EvmWareTable"
-import EvmWareReceive from "@/components/evmstaff/EvmWareReceive"
-import EvmWareDeta from "@/components/evmstaff/EvmWareDetail" // Import component "Deta"
-import useAuth from "@/hook/useAuth"
-import axios from "axios"
+// FE/src/pages/EVMStaffWarehouse.jsx
 
-// === API ENDPOINTS ===
-const WAREHOUSES_API_URL = "/api/warehouses"
-const PARTS_API_URL = "/api/parts"
-const PART_UNDER_WARRANTY_API_URL = "/api/part-under-warranty-controller"
+import { useState, useEffect } from "react";
+import Header from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+import EvmWareTable from "@/components/evmstaff/EvmWareTable";
+import useAuth from "@/hook/useAuth";
+import axios from "axios";
+import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
+import EvmWareReceive from "@/components/evmstaff/EvmWareReceive";
+import EvmWareDeta from "@/components/evmstaff/EvmWareDeta";
+// ======================== API ENDPOINTS ========================
+const WAREHOUSES_API_URL = "/api/warehouses";
+const PARTS_API_URL = "/api/parts";
 
 // === COMPONENT DEFINITION ===
 export default function EVMStaffWarehouse() {
-  const { auth } = useAuth()
+  const { auth } = useAuth();
 
-  // === DATA STATES ===
-  const [warehouses, setWarehouses] = useState([])
-  const [parts, setParts] = useState([]) // Đây là "Part Inventory"
-  const [partsUnderWarranty, setPartsUnderWarranty] = useState([]) // Đây là "Part Catalog"
-  const [loading, setLoading] = useState(true)
+  const [warehouses, setWarehouses] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // === REFRESH STATE ===
-  const [refreshKey, setRefreshKey] = useState(0)
-  const refreshData = () => setRefreshKey((prev) => prev + 1)
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshData = () => setRefreshKey((prev) => prev + 1);
 
   // === UI STATES ===
-  const [showReceiveStockModal, setShowReceiveStockModal] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false) // Đổi tên thành Deta
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null)
+  const [showReceiveStockModal, setShowReceiveStockModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
 
-  // === DATA FETCHING (EFFECT) ===
+  // === DATA FETCHING ===
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const [warehousesRes, partsRes, partsUwRes] = await Promise.all([
+        setLoading(true);
+        setError(null);
+        const [warehousesRes, partsRes] = await Promise.all([
           axios.get(WAREHOUSES_API_URL, {
             headers: { Authorization: `Bearer ${auth.token}` },
           }),
           axios.get(PARTS_API_URL, {
             headers: { Authorization: `Bearer ${auth.token}` },
           }),
-          axios.get(PART_UNDER_WARRANTY_API_URL, {
-            headers: { Authorization: `Bearer ${auth.token}` },
-          }),
-        ])
-        setWarehouses(warehousesRes.data)
-        setParts(partsRes.data)
-        setPartsUnderWarranty(partsUwRes.data)
+        ]);
+        setWarehouses(warehousesRes.data);
+        setParts(partsRes.data);
       } catch (err) {
-        console.error("Error fetching data:", err)
-        setWarehouses([])
-        setParts([])
-        setPartsUnderWarranty([])
+        console.error("Error fetching data:", err);
+        setError(
+          "Failed to load warehouse data. Please check the API connection and token."
+        );
+        setWarehouses([]);
+        setParts([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
+    fetchData();
+  }, [auth.token, refreshKey]); 
 
-    if (auth.token) {
-      fetchData()
-    } else {
-      setLoading(false)
-      console.log("No auth token available, skipping data fetch.")
-    }
-  }, [auth.token, refreshKey])
-
-  // === HANDLERS ===
-
-  /**
-   * Handles success from BOTH the main receive form AND the mini-receive form.
-   * Closes all modals and refreshes all data.
-   */
+  // === UI STATE MANAGEMENT ===
   const handleReceiveSuccess = () => {
-    setShowReceiveStockModal(false)
-    setShowDetailModal(false) // Đóng modal Deta
-    refreshData()
-  }
+    refreshData();
+    setShowReceiveStockModal(false);
+    setShowDetailModal(false);
+  };
 
-  /**
-   * Handles clicking on a warehouse row in the main table.
-   * Sets the selected warehouse and opens the detail modal.
-   * @param {Object} warehouse - The warehouse object that was clicked.
-   */
   const handleWarehouseRowClick = (warehouse) => {
-    setSelectedWarehouse(warehouse)
-    setShowDetailModal(true)
-  }
+    setSelectedWarehouse(warehouse);
+    setShowDetailModal(true);
+  };
 
   // === RENDER FUNCTION ===
   return (
     <div className="min-h-screen bg-muted/30">
-      <AdminSidebar />
+      <EVMStaffSideBar />
 
       {/* === MAIN CONTENT LAYOUT === */}
       <div className="lg:pl-64">
@@ -106,8 +93,13 @@ export default function EVMStaffWarehouse() {
           <div className="space-y-6">
             {/* Page Header & Action Button */}
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold text-foreground">Warehouse Management</h1>
-              <Button onClick={() => setShowReceiveStockModal(true)} className="flex items-center space-x-2">
+              <h1 className="text-3xl font-bold text-foreground">
+                Warehouse Management
+              </h1>
+              <Button
+                onClick={() => setShowReceiveStockModal(true)}
+                className="flex items-center space-x-2"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Receive Stock</span>
               </Button>
@@ -118,7 +110,7 @@ export default function EVMStaffWarehouse() {
               warehouses={warehouses}
               parts={parts}
               loading={loading}
-              onRowClick={handleWarehouseRowClick} // Truyền handler
+              onRowClick={handleWarehouseRowClick}
             />
           </div>
         </main>
@@ -131,11 +123,13 @@ export default function EVMStaffWarehouse() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Receive Stock</DialogTitle>
-            <DialogDescription>Add new inventory for a part into a selected warehouse.</DialogDescription>
+            <DialogDescription>
+              Record new parts received into a warehouse.
+            </DialogDescription>
           </DialogHeader>
           <EvmWareReceive
             warehouses={warehouses}
-            partCatalog={partsUnderWarranty}
+            partCatalog={parts} 
             partsInventory={parts}
             onSuccess={handleReceiveSuccess}
             onClose={() => setShowReceiveStockModal(false)}
@@ -143,19 +137,17 @@ export default function EVMStaffWarehouse() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 2: Warehouse Deta (Detail) */}
+      {/* MODAL 2: Warehouse Detail */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        {/* Make this modal larger to fit the table */}
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{selectedWarehouse?.name}</DialogTitle>
             <DialogDescription>{selectedWarehouse?.location}</DialogDescription>
           </DialogHeader>
-          {/* Render the detail component only if a warehouse is selected */}
           {selectedWarehouse && (
             <EvmWareDeta
               warehouse={selectedWarehouse}
-              partCatalog={partsUnderWarranty}
+              partCatalog={parts} 
               onClose={() => setShowDetailModal(false)}
               onReceiveSuccess={handleReceiveSuccess}
             />
@@ -163,6 +155,5 @@ export default function EVMStaffWarehouse() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
-
