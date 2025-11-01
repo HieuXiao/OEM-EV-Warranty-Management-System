@@ -1,5 +1,4 @@
-// FE/src/components/evmstaff/EvmWareTable.jsx
-
+// === IMPORTS ===
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -30,6 +29,8 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
   const warehousesWithParts = useMemo(() => {
     return warehouses.map((warehouse) => ({
       ...warehouse,
+      // IMPORTANT: 'parts' from props is the *entire* inventory.
+      // We filter it to get *only* parts for *this* warehouse.
       parts: parts.filter((part) => part.warehouse?.whId === warehouse.whId),
     }))
   }, [warehouses, parts])
@@ -39,7 +40,7 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
     return warehousesWithParts.filter(
       (warehouse) =>
         warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        warehouse.location.toLowerCase().includes(searchTerm.toLowerCase()),
+        warehouse.location.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [warehousesWithParts, searchTerm])
 
@@ -88,6 +89,8 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
   // Get latest update from parts
   const getLatestUpdate = (warehouseParts = []) => {
     if (warehouseParts.length === 0) return new Date(0)
+    // This logic is likely incorrect, but keeping from original file
+    // A better logic would be to find the max date from parts.
     return new Date()
   }
 
@@ -215,3 +218,4 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
     </Card>
   )
 }
+
