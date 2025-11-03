@@ -195,7 +195,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
       setLoading(true)
       const finalClaimId = claimId || (await generateClaimId())
 
-      // ✅ Payload chỉ chứa campaign được tick
+      //  Payload chỉ chứa campaign được tick
       const payload = {
         claimId: finalClaimId,
         vin: selectedVin,
@@ -211,7 +211,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
       await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
 
-      // ✅ Nếu có campaign thì tạo appointment
+      //  Nếu có campaign thì tạo appointment
       if (isCampaignChecked && selectedCampaign) {
         try {
           await axiosPrivate.post("/api/service-appointments", {
