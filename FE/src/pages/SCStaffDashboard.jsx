@@ -13,7 +13,7 @@ const API_ENDPOINTS = {
 };
 
 export default function SCStaffDashboard() {
-  const { auth } = useAuth(); // ✅ lấy user hiện tại
+  const { auth } = useAuth(); 
   const [claims, setClaims] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -28,21 +28,38 @@ export default function SCStaffDashboard() {
           axiosPrivate.get(API_ENDPOINTS.VEHICLES),
           axiosPrivate.get(API_ENDPOINTS.ACCOUNTS),
         ]);
-        setClaims(claimsRes.data || []);
-        setVehicles(vehiclesRes.data || []);
-        setAccounts(accountsRes.data || []);
+
+        setClaims(Array.isArray(claimsRes.data) ? claimsRes.data : []);
+        setVehicles(Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []);
+        setAccounts(Array.isArray(accountsRes.data) ? accountsRes.data : []);
+
+        console.log("[Dashboard] Claims fetched:", claimsRes.data);
+        console.log("[Dashboard] Current Auth:", auth);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("[Dashboard] Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [auth]);
 
-  const filteredClaims = claims.filter(
-    (claim) => claim.serviceCenterStaffId === auth?.accountId
-  );
+  const filteredClaims = claims
+    .filter(
+      (claim) =>
+        claim.serviceCenterStaffId?.toUpperCase() ===
+        auth?.accountId?.toUpperCase()
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.claimDate);
+      const dateB = new Date(b.claimDate);
+
+      const serialA = parseInt(a.claimId?.split("-").pop()) || 0;
+      const serialB = parseInt(b.claimId?.split("-").pop()) || 0;
+
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return serialB - serialA;
+    });
 
   const mergedData = filteredClaims.map((claim) => {
     const vehicle = vehicles.find((v) => v.vin === claim.vin);
@@ -58,6 +75,8 @@ export default function SCStaffDashboard() {
     };
   });
 
+  console.log("[Dashboard] Filtered + Sorted Claims:", filteredClaims);
+
   return (
     <div className="min-h-screen bg-muted/30">
       <SCStaffSibebar />
@@ -67,8 +86,12 @@ export default function SCStaffDashboard() {
           <Card className="p-4">
             {loading ? (
               <p className="text-center text-muted-foreground">Loading...</p>
-            ) : (
+            ) : mergedData.length > 0 ? (
               <ScsDashTable claims={mergedData} />
+            ) : (
+              <p className="text-center text-muted-foreground">
+                No claims found 
+              </p>
             )}
           </Card>
         </div>

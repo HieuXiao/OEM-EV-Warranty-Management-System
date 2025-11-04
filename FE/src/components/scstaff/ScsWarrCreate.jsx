@@ -81,18 +81,18 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const fetchTechnicians = async () => {
     try {
       setLoadingTechnicians(true)
-      // 🔹 Lấy account hiện tại đầy đủ
+      // Lấy account hiện tại đầy đủ
       const accountDetailRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
       const fullAccount = accountDetailRes.data
       const currentCenterId = fullAccount?.serviceCenter?.centerId
 
       if (!currentCenterId) {
-        console.warn("⚠️ Current user has no service center info.")
+        console.warn("Current user has no service center info.")
         setTechnicians([])
         return
       }
 
-      // 🔹 Lấy tất cả accounts
+      // Lấy tất cả accounts
       const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
       const list = Array.isArray(res.data) ? res.data : []
 
@@ -103,7 +103,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
           String(a.serviceCenter?.centerId) === String(currentCenterId)
       )
 
-      console.log("✅ Filtered technicians:", techs)
+      console.log("Filtered technicians:", techs)
       setTechnicians(techs)
     } catch (e) {
       console.error("Error fetching technicians:", e)
@@ -203,26 +203,35 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
         description,
-        campaignIds:
+        campaignIds:  
           isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : [],
       }
 
-      console.log("📦 Creating warranty claim payload:", payload)
+      console.log("Creating warranty claim payload:", payload)
 
       await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
 
       //  Nếu có campaign thì tạo appointment
       if (isCampaignChecked && selectedCampaign) {
         try {
-          await axiosPrivate.post("/api/service-appointments", {
-            vin: selectedVin,
-            campaignId: Number(selectedCampaign),
-            date: new Date().toISOString(),
-            description: null,
-          })
-          console.log("✅ Service appointment created successfully.")
+          const appointmentsRes = await axiosPrivate.get(API_ENDPOINTS.SERVICE_APPOINTMENTS)
+          const appointments = Array.isArray(appointmentsRes.data) ? appointmentsRes.data : []
+
+          const hasActiveAppointment = appointments.some(
+            (a) => a.vehicle?.vin === selectedVin && a.status !== "Complete"
+          )
+
+          if (!hasActiveAppointment) {
+            await axiosPrivate.post(API_ENDPOINTS.SERVICE_APPOINTMENTS, {
+              vin: selectedVin,
+              campaignId: Number(selectedCampaign),
+              date: new Date().toISOString(),
+              description: null,
+            })
+            console.log("Service appointment created successfully.")
+          }
         } catch (err) {
-          console.error("Error creating service appointment:", err)
+          console.error("Error checking or creating service appointment:", err)
         }
       }
 
