@@ -22,13 +22,13 @@ export default function SCTechnicianCheck() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest"); 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const vehicleCache = useRef({});
 
   useEffect(() => {
     if (techId) fetchClaimsAndEnrich();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [techId]);
 
   const formatDateTime = (isoString) => {
@@ -47,7 +47,6 @@ export default function SCTechnicianCheck() {
 
   const fetchClaimsAndEnrich = async () => {
     try {
-      // 🔹 Gọi song song 3 API
       const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
         axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS),
         axiosPrivate.get(API_ENDPOINTS.VEHICLES),
@@ -58,18 +57,15 @@ export default function SCTechnicianCheck() {
       const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
       const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
 
-      // 🔹 Tạo map nhanh cho vehicle và account
       const vehicleMap = Object.fromEntries(vehicles.map(v => [v.vin, v]));
       const accountMap = Object.fromEntries(accounts.map(a => [a.accountId, a]));
 
-      // 🔹 Lọc claim dành cho technician hiện tại
       const filteredClaims = claims.filter(
         c =>
           c.status === "CHECK" &&
           c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
       );
 
-      // 🔹 Gắn dữ liệu vehicle & account tương ứng
       const enriched = filteredClaims.map((claim) => {
         const vehicle = vehicleMap[claim.vin];
         const scStaff = accountMap[claim.serviceCenterStaffId];
@@ -119,10 +115,17 @@ export default function SCTechnicianCheck() {
     return matchesSearch;
   });
 
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  // 🔹 Thêm phần sort
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const dateA = new Date(a.claimDate || a.createdAt);
+    const dateB = new Date(b.claimDate || b.createdAt);
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+  const currentJobs = sortedJobs.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -149,6 +152,24 @@ export default function SCTechnicianCheck() {
                 }}
                 className="pl-10 h-12 text-base"
               />
+            </div>
+
+            {/* 🔹 Thêm chọn sort */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={sortOrder === "newest" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder("newest")}
+              >
+                🕒 Newest
+              </Button>
+              <Button
+                variant={sortOrder === "oldest" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder("oldest")}
+              >
+                ⏳ Oldest
+              </Button>
             </div>
 
             <Card>

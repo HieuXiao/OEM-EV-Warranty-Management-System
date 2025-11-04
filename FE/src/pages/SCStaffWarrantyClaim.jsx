@@ -53,7 +53,7 @@ export default function SCStaffWarrantyClaim() {
   const [dateTo, setDateTo] = useState(getDefaultDateTo())
   const [sortBy, setSortBy] = useState("date-desc")
 
-  // 🔹 Fetch claims list
+  // Fetch claims list
   useEffect(() => {
     const fetchClaims = async () => {
       try {
@@ -62,6 +62,8 @@ export default function SCStaffWarrantyClaim() {
           params: { dateFrom, dateTo },
         })
         setClaims(Array.isArray(response.data) ? response.data : [])
+        console.log("[WarrantyClaim] Claims fetched:", response.data)
+        console.log("[WarrantyClaim] Auth:", auth)
       } catch (error) {
         console.error("Failed to fetch claims:", error)
         setClaims([])
@@ -80,6 +82,11 @@ export default function SCStaffWarrantyClaim() {
 
   // 🔹 Filter + Sort logic
   const filteredClaims = claims
+    // Thêm lọc theo accountId hiện tại (so sánh không phân biệt hoa/thường)
+    .filter(
+      (claim) =>
+        claim.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase()
+    )
     .filter((claim) => {
       const matchesSearch =
         claim.claimId?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +104,7 @@ export default function SCStaffWarrantyClaim() {
       const dateA = new Date(a.claimDate)
       const dateB = new Date(b.claimDate)
 
-      // 🔹 Lấy serial từ claimId (3 số cuối)
+      // Lấy serial từ claimId (3 số cuối)
       const serialA = parseInt(a.claimId?.split("-").pop()) || 0
       const serialB = parseInt(b.claimId?.split("-").pop()) || 0
 
@@ -124,7 +131,7 @@ export default function SCStaffWarrantyClaim() {
       }
     })
 
-  // 🔹 Summary counters
+  // Summary counters
   const totalClaims = claims.length
   const checkClaims = claims.filter((claim) => claim.status === "CHECK").length
   const decideClaims = claims.filter((claim) => claim.status === "DECIDE").length
@@ -136,7 +143,7 @@ export default function SCStaffWarrantyClaim() {
     setIsDetailDialogOpen(true)
   }
 
-  // 🔹 Refresh after claim created
+  // Refresh after claim created
   const handleClaimCreated = () => {
     const fetchClaims = async () => {
       try {
@@ -281,7 +288,9 @@ export default function SCStaffWarrantyClaim() {
               ) : filteredClaims.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">No claims found</p>
+                    <p className="text-muted-foreground">
+                      No claims found
+                    </p>
                   </CardContent>
                 </Card>
               ) : (

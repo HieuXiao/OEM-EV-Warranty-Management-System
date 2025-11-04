@@ -46,6 +46,7 @@ export default function EvmWareReceive({
 
   // === DERIVED STATE ===
   const selectedCatalogPart = useMemo(() => {
+    // Sử dụng partId để tìm part trong catalog
     return partCatalog.find((p) => p.partId === selectedPartId);
   }, [partCatalog, selectedPartId]);
 
@@ -148,11 +149,12 @@ export default function EvmWareReceive({
             />
           </SelectTrigger>
           <SelectContent>
+            {/* Hiển thị phụ tùng từ partCatalog */}
             {partCatalog.map((part) => (
               <SelectItem key={part.partId} value={part.partId}>
                 <div className="flex items-center justify-between w-full">
                   <span>
-                    {part.partName} ({part.partId})
+                    {part.partName} ({part.partId}) 
                   </span>
                 </div>
               </SelectItem>
