@@ -16,10 +16,11 @@ import useAuth from "@/hook/useAuth";
 import axios from "axios";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import EvmWareReceive from "@/components/evmstaff/EvmWareReceive";
-import EvmWareDeta from "@/components/evmstaff/EvmWareDeta";
+import EvmWareDeta from "@/components/evmstaff/EvmWareDetail";
 // ======================== API ENDPOINTS ========================
 const WAREHOUSES_API_URL = "/api/warehouses";
 const PARTS_API_URL = "/api/parts";
+const PARTS_UNDER_WARRANTY_API_URL = "/api/part-under-warranty-controller";
 
 // === COMPONENT DEFINITION ===
 export default function EVMStaffWarehouse() {
