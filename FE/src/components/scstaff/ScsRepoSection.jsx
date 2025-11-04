@@ -1,252 +1,390 @@
 // FE/src/components/scstaff/ScsReportSection.jsx
+"use client";
 
-import { useState } from "react"
-import { FileText, Plus, Edit, Eye, ChevronDown, ChevronUp, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreateReportDialog } from "@/components/scstaff/ScsRepoCreate"
-import { ViewReportDialog } from "@/components/scstaff/ScsRepoView"
-import { EditReportDialog } from "@/components/scstaff/ScsRepoEdit"
-import { mockReports } from "@/lib/Mock-data"
-import { campaigns } from "@/lib/Mock-data"
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input"; // Dùng Input cho file
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, FileText, Send, Loader2, Upload } from "lucide-react";
+import axiosPrivate from "@/api/axios";
 
-export default function ReportsSection() {
-  const [reports, setReports] = useState(mockReports)
-  const [expandedReports, setExpandedReports] = useState(new Set())
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCampaign, setSelectedCampaign] = useState("0")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [selectedReport, setSelectedReport] = useState(null)
+// --- API URLs ---
+const CAMPAIGN_URL = "/api/campaigns/all";
+const APPOINTMENT_URL = "/api/service-appointments";
 
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      report.campaignName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.summary.toLowerCase().includes(searchQuery.toLowerCase())
+// --- Helpers ---
+const getCampaignDateStatus = (startDateStr, endDateStr) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const startDate = new Date(startDateStr);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(endDateStr);
+  endDate.setHours(0, 0, 0, 0);
 
-    const matchesCampaign = selectedCampaign === "0" || report.campaignId === Number.parseInt(selectedCampaign)
-    const matchesStatus = selectedStatus === "all" || report.status === selectedStatus
+  if (startDate && now < startDate) return "not yet";
+  if (endDate && now > endDate) return "completed";
+  return "on going";
+};
 
-    return matchesSearch && matchesCampaign && matchesStatus
-  })
+function getStatusColor(status) {
+  switch (status) {
+    case "not yet":
+      return "bg-yellow-500";
+    case "on going":
+      return "bg-blue-500";
+    case "completed":
+      return "bg-green-500";
+    default:
+      return "bg-gray-500";
+  }
+}
 
-  const toggleExpand = (reportId) => {
-    const newExpanded = new Set(expandedReports)
-    if (newExpanded.has(reportId)) {
-      newExpanded.delete(reportId)
-    } else {
-      newExpanded.add(reportId)
+// --- COMPONENT CHÍNH ---
+export default function ScsReportSection() {
+  const [allCampaigns, setAllCampaigns] = useState([]);
+  const [myAppointments, setMyAppointments] = useState([]);
+  const [mySubmittedReports, setMySubmittedReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+
+  async function fetchData() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [campaignRes, appointmentRes, reportRes] = await Promise.all([
+        axiosPrivate.get(CAMPAIGN_URL),
+        // Giả định: API này tự động lọc các cuộc hẹn cho SC của bạn
+        axiosPrivate.get(APPOINTMENT_URL),
+      ]);
+      setAllCampaigns(campaignRes.data);
+      setMyAppointments(appointmentRes.data);
+    } catch (err) {
+      console.error("Failed to fetch report data:", err);
+      setError("Failed to load data. Please refresh.");
+    } finally {
+      setIsLoading(false);
     }
-    setExpandedReports(newExpanded)
   }
 
-  const handleView = (report) => {
-    setSelectedReport(report)
-    setViewDialogOpen(true)
-  }
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleEdit = (report) => {
-    setSelectedReport(report)
-    setEditDialogOpen(true)
-  }
+  // Xử lý và hợp nhất dữ liệu
+  const campaignReportData = useMemo(() => {
+    // Map các báo cáo đã gửi để tra cứu nhanh
+    const reportMap = new Map(
+      mySubmittedReports.map((r) => [r.campaign.campaignId, r])
+    );
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "default"
-      case "in-progress":
-        return "secondary"
-      case "draft":
-        return "outline"
-      default:
-        return "outline"
+    // Vẫn tính toán stats để SCStaff tham khảo trước khi tạo file PDF
+    const apptStatsMap = new Map();
+    for (const appt of myAppointments) {
+      if (!appt.campaign) continue;
+      const campaignId = appt.campaign.campaignId;
+      if (!apptStatsMap.has(campaignId)) {
+        apptStatsMap.set(campaignId, { affected: new Set(), completed: 0 });
+      }
+      const stats = apptStatsMap.get(campaignId);
+      stats.affected.add(appt.vehicle.vin);
+      if (appt.status === "Completed") {
+        stats.completed++;
+      }
     }
+
+    // Hợp nhất mọi thứ
+    return allCampaigns.map((campaign) => {
+      const submittedReport = reportMap.get(campaign.campaignId);
+      const stats = apptStatsMap.get(campaign.campaignId);
+      const campaignStatus = getCampaignDateStatus(
+        campaign.startDate,
+        campaign.endDate
+      );
+
+      return {
+        ...campaign,
+        campaignStatus: campaignStatus,
+        reportStatus: submittedReport ? "Submitted" : "Not Submitted",
+        submittedReport: submittedReport || null,
+        scStats: {
+          affectedVehicles: stats ? stats.affected.size : 0,
+          completedVehicles: stats ? stats.completed : 0,
+        },
+      };
+    });
+  }, [allCampaigns, myAppointments, mySubmittedReports]);
+
+  // Handlers
+  const handleSubmitClick = (campaign) => {
+    setSelectedCampaign(campaign);
+    setSubmitDialogOpen(true);
+  };
+
+  const onReportSubmitted = () => {
+    fetchData(); // Tải lại toàn bộ dữ liệu sau khi gửi
+    setSubmitDialogOpen(false);
+    setSelectedCampaign(null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  const getCompletionPercentage = (report) => {
-    return Math.round((report.completedServices / report.totalVehicles) * 100)
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign Reports</CardTitle>
+          <CardDescription>
+            Submit your PDF summary report for each campaign to EVMStaff.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Campaign</TableHead>
+                    <TableHead>Campaign Status</TableHead>
+                    <TableHead>Your Stats (Comp/Aff)</TableHead>
+                    <TableHead>Report Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {campaignReportData.map((campaign) => (
+                    <TableRow key={campaign.campaignId}>
+                      <TableCell className="font-medium">
+                        {campaign.campaignName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={getStatusColor(campaign.campaignStatus)}
+                        >
+                          {campaign.campaignStatus.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold">
+                          {campaign.scStats.completedVehicles} /{" "}
+                          {campaign.scStats.affectedVehicles}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            campaign.reportStatus === "Submitted"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {campaign.reportStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {campaign.reportStatus === "Submitted" ? (
+                          <Button
+                            asChild // Dùng asChild để Button hoạt động như Link
+                            variant="outline"
+                            size="sm"
+                          >
+                            <a
+                              href={campaign.submittedReport.reportFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              View Submitted
+                            </a>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleSubmitClick(campaign)}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            Submit Report
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog Gửi Báo Cáo */}
+      <SubmitReportDialog
+        open={submitDialogOpen}
+        onOpenChange={setSubmitDialogOpen}
+        campaign={selectedCampaign}
+        onReportSubmitted={onReportSubmitted}
+      />
+    </>
+  );
+}
+
+// --- COMPONENT DIALOG: GỬI BÁO CÁO (FILE PDF) ---
+function SubmitReportDialog({
+  open,
+  onOpenChange,
+  campaign,
+  onReportSubmitted,
+}) {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === "application/pdf") {
+      setSelectedFile(file);
+      setApiError(null);
+    } else {
+      setSelectedFile(null);
+      setApiError("Please select a valid PDF file.");
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      setApiError("No file selected.");
+      return;
+    }
+
+    setIsLoading(true);
+    setApiError(null);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("campaignId", campaign.campaignId);
+
+    try {
+      await axiosPrivate.post(REPORTS_URL, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      onReportSubmitted();
+    } catch (err) {
+      setApiError(err.response?.data?.message || "Failed to submit report.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset form khi dialog đóng
+  useEffect(() => {
+    if (!open) {
+      setSelectedFile(null);
+      setApiError(null);
+      setIsLoading(false);
+    }
+  }, [open]);
+
+  if (!campaign) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Submit PDF Report: {campaign.campaignName}</DialogTitle>
+          <DialogDescription>
+            Upload the completed PDF report file for this campaign.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="pdfFile">PDF Report File</Label>
             <Input
-              placeholder="Search reports by campaign or content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              id="pdfFile"
+              type="file"
+              accept=".pdf" // Chỉ chấp nhận file PDF
+              onChange={handleFileChange}
+              className="file:text-primary file:font-semibold"
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-2">
-            <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Campaign" />
-              </SelectTrigger>
-              <SelectContent>
-                {campaigns.map((campaign) => (
-                  <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                    {campaign.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {selectedFile && (
+            <div className="text-sm text-muted-foreground">
+              Selected file:{" "}
+              <span className="font-medium text-card-foreground">
+                {selectedFile.name}
+              </span>
+            </div>
+          )}
 
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Report
-            </Button>
-          </div>
+          {apiError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{apiError}</AlertDescription>
+            </Alert>
+          )}
         </div>
-      </div>
-
-      {/* Reports List */}
-      <div className="space-y-4">
-        {filteredReports.length === 0 ? (
-          <Card className="p-8 text-center">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">No reports found</h3>
-            <p className="text-muted-foreground mb-4">Try adjusting your filters or create a new report</p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Report
-            </Button>
-          </Card>
-        ) : (
-          filteredReports.map((report) => {
-            const isExpanded = expandedReports.has(report.id)
-            const completionPercentage = getCompletionPercentage(report)
-
-            return (
-              <Card key={report.id} className="overflow-hidden">
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-card-foreground">{report.campaignName}</h3>
-                        <Badge variant={getStatusColor(report.status)}>{report.status}</Badge>
-                        <Badge variant="outline">{report.reportType}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Created: {new Date(report.createdDate).toLocaleDateString()}</span>
-                        <span>Updated: {new Date(report.updatedDate).toLocaleDateString()}</span>
-                        <span>By: {report.createdBy}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleView(report)}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(report)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Progress Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Total Vehicles</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.totalVehicles}</p>
-                    </div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Completed</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.completedServices}</p>
-                    </div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Pending</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.pendingServices}</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-card-foreground">Completion Progress</span>
-                      <span className="text-sm font-medium text-card-foreground">{completionPercentage}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{ width: `${completionPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Summary Preview */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-card-foreground mb-2">Summary</h4>
-                    <p className="text-sm text-muted-foreground">{report.summary}</p>
-                  </div>
-
-                  {/* Expandable Details */}
-                  {isExpanded && (
-                    <div className="space-y-4 pt-4 border-t border-border">
-                      {report.issues && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-card-foreground mb-2">Issues Identified</h4>
-                          <p className="text-sm text-muted-foreground">{report.issues}</p>
-                        </div>
-                      )}
-                      {report.recommendations && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-card-foreground mb-2">Recommendations</h4>
-                          <p className="text-sm text-muted-foreground">{report.recommendations}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Expand/Collapse Button */}
-                  <Button variant="ghost" size="sm" onClick={() => toggleExpand(report.id)} className="w-full mt-2">
-                    {isExpanded ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-2" />
-                        Show Less
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-4 h-4 mr-2" />
-                        Show More Details
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Card>
-            )
-          })
-        )}
-      </div>
-
-      <CreateReportDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-      <ViewReportDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} report={selectedReport} />
-      <EditReportDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} report={selectedReport} />
-    </div>
-  )
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading || !selectedFile}>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {isLoading ? "Uploading..." : "Upload and Submit"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
