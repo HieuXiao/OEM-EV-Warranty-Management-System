@@ -35,6 +35,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [selectedCampaign, setSelectedCampaign] = useState("")
   const [campaignFound, setCampaignFound] = useState(false)
   const [isCampaignChecked, setIsCampaignChecked] = useState(false)
+  const [manualVinMode, setManualVinMode] = useState(false) // 🔹 Chế độ nhập VIN thủ công
 
   useEffect(() => {
     if (isOpen) {
@@ -57,6 +58,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     setSelectedCampaign("")
     setCampaignFound(false)
     setIsCampaignChecked(false)
+    setManualVinMode(false)
   }
 
   const generateClaimId = async () => {
@@ -81,29 +83,23 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const fetchTechnicians = async () => {
     try {
       setLoadingTechnicians(true)
-      // Lấy account hiện tại đầy đủ
       const accountDetailRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
       const fullAccount = accountDetailRes.data
       const currentCenterId = fullAccount?.serviceCenter?.centerId
 
       if (!currentCenterId) {
-        console.warn("Current user has no service center info.")
         setTechnicians([])
         return
       }
 
-      // Lấy tất cả accounts
       const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
       const list = Array.isArray(res.data) ? res.data : []
-
       const techs = list.filter(
         (a) =>
           a.roleName === "SC_TECHNICIAN" &&
           a.enabled &&
           String(a.serviceCenter?.centerId) === String(currentCenterId)
       )
-
-      console.log("Filtered technicians:", techs)
       setTechnicians(techs)
     } catch (e) {
       console.error("Error fetching technicians:", e)
@@ -129,6 +125,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
       setVehicles([])
       setSelectedVin("")
       setVehicleModel("")
+      setManualVinMode(false)
       return
     }
 
@@ -145,14 +142,17 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
           const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
           const related = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
           setVehicles(related)
+          setManualVinMode(related.length === 0) // 🔹 Nếu không có VIN -> chuyển sang nhập tay
         } else {
           setCustomerName("")
           setVehicles([])
+          setManualVinMode(false)
         }
       } catch (err) {
         console.error("Error fetching data:", err)
         setCustomerName("")
         setVehicles([])
+        setManualVinMode(false)
       } finally {
         setLoadingVehicles(false)
       }
@@ -163,30 +163,40 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
   useEffect(() => {
     if (selectedVin) {
-      const selected = vehicles.find((v) => v.vin === selectedVin)
-      setVehicleModel(selected ? selected.model : "")
-
-      if (selected?.model) {
-        const matched = campaigns.find((c) => c.model.includes(selected.model))
-        setCampaignFound(!!matched)
-        setSelectedCampaign(matched ? matched.campaignId.toString() : "")
-        setIsCampaignChecked(!!matched)
-      } else {
-        setCampaignFound(false)
-        setSelectedCampaign("")
-        setIsCampaignChecked(false)
+      const fetchVinModel = async () => {
+        try {
+          const res = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
+          const allVehicles = Array.isArray(res.data) ? res.data : []
+          const vehicle = allVehicles.find((v) => v.vin === selectedVin)
+          setVehicleModel(vehicle?.model || "")
+        } catch (err) {
+          console.error("Error fetching vehicle model:", err)
+          setVehicleModel("")
+        }
       }
+
+      if (manualVinMode) {
+        fetchVinModel()
+      } else {
+        const selected = vehicles.find((v) => v.vin === selectedVin)
+        setVehicleModel(selected ? selected.model : "")
+      }
+
+      const matched = campaigns.find((c) => c.model.includes(vehicleModel))
+      setCampaignFound(!!matched)
+      setSelectedCampaign(matched ? matched.campaignId.toString() : "")
+      setIsCampaignChecked(!!matched)
     } else {
       setVehicleModel("")
       setCampaignFound(false)
       setSelectedCampaign("")
       setIsCampaignChecked(false)
     }
-  }, [selectedVin, vehicles, campaigns])
+  }, [selectedVin, vehicles, campaigns, manualVinMode, vehicleModel])
 
   const handleSubmitNewClaim = async (e) => {
     e.preventDefault()
-    if (!selectedVin) return alert("Please select a vehicle VIN.")
+    if (!selectedVin) return alert("Please select or enter a vehicle VIN.")
     if (!technicians.length) return alert("No technicians available in this service center.")
     if (!selectedTechnician) return alert("Please assign a technician.")
     if (!description) return alert("Please enter a description.")
@@ -195,7 +205,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
       setLoading(true)
       const finalClaimId = claimId || (await generateClaimId())
 
-      //  Payload chỉ chứa campaign được tick
       const payload = {
         claimId: finalClaimId,
         vin: selectedVin,
@@ -203,37 +212,12 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
         description,
-        campaignIds:  
+        campaignIds:
           isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : [],
       }
 
       console.log("Creating warranty claim payload:", payload)
-
       await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
-
-      //  Nếu có campaign thì tạo appointment
-      if (isCampaignChecked && selectedCampaign) {
-        try {
-          const appointmentsRes = await axiosPrivate.get(API_ENDPOINTS.SERVICE_APPOINTMENTS)
-          const appointments = Array.isArray(appointmentsRes.data) ? appointmentsRes.data : []
-
-          const hasActiveAppointment = appointments.some(
-            (a) => a.vehicle?.vin === selectedVin && a.status !== "Complete"
-          )
-
-          if (!hasActiveAppointment) {
-            await axiosPrivate.post(API_ENDPOINTS.SERVICE_APPOINTMENTS, {
-              vin: selectedVin,
-              campaignId: Number(selectedCampaign),
-              date: new Date().toISOString(),
-              description: null,
-            })
-            console.log("Service appointment created successfully.")
-          }
-        } catch (err) {
-          console.error("Error checking or creating service appointment:", err)
-        }
-      }
 
       resetForm()
       onOpenChange(false)
@@ -282,20 +266,30 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <Input placeholder="Auto-filled" value={customerName} disabled className="bg-muted h-10" />
             </div>
 
+            {/* Vehicle VIN: nếu có VIN thì dùng Select, nếu không thì cho nhập tay */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Vehicle VIN *</label>
-              <Select value={selectedVin} onValueChange={setSelectedVin} required>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder={loadingVehicles ? "Loading..." : "Select vehicle"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.vin} value={v.vin}>
-                      {v.vin}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {manualVinMode ? (
+                <Input
+                  placeholder="Enter VIN manually"
+                  value={selectedVin}
+                  onChange={(e) => setSelectedVin(e.target.value)}
+                  className="h-10"
+                />
+              ) : (
+                <Select value={selectedVin} onValueChange={setSelectedVin} required>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={loadingVehicles ? "Loading..." : "Select vehicle"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.vin} value={v.vin}>
+                        {v.vin}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-1">
