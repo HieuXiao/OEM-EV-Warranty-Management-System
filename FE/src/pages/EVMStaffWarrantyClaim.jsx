@@ -1,4 +1,3 @@
-// <<< BEGIN EVMStaffWarrantyClaim.jsx (filtered by status="DECIDE") >>>
 import { useState, useEffect } from "react";
 import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
@@ -37,7 +36,6 @@ export default function EVMStaffWarrantyClaim() {
   const [warranties, setWarranties] = useState([]);
   const itemsPerPage = 10;
 
-  // 🔹 Fetch dữ liệu và enrich với vehicle
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,14 +47,12 @@ export default function EVMStaffWarrantyClaim() {
         const claims = Array.isArray(resClaims.data) ? resClaims.data : [];
         const vehicles = Array.isArray(resVehicles.data) ? resVehicles.data : [];
 
-        // ✅ Chỉ lấy claim có evmId khớp và status === "DECIDE"
         const filteredClaims = claims.filter(
           (claim) =>
             claim?.evmId?.toLowerCase() === evmId.toLowerCase() &&
             claim?.status?.toUpperCase() === "DECIDE"
         );
 
-        // ✅ Ghép thêm thông tin vehicle
         const enrichedClaims = filteredClaims.map((claim) => {
           const vehicle = vehicles.find((v) => v.vin === claim.vin);
           return {
@@ -70,9 +66,22 @@ export default function EVMStaffWarrantyClaim() {
           };
         });
 
-        setWarranties(enrichedClaims);
+        const sortedClaims = [...enrichedClaims].sort((a, b) => {
+          const dateA = new Date(a.claimDate);
+          const dateB = new Date(b.claimDate);
+
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA;
+          }
+
+          const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+          const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+          return numB - numA;
+        });
+
+        setWarranties(sortedClaims);
         console.log(
-          `[EVMClaim] Loaded ${enrichedClaims.length} DECIDE claims for evmId: ${evmId}`
+          `[EVMClaim] Loaded ${sortedClaims.length} DECIDE claims for evmId: ${evmId}`
         );
       } catch (err) {
         console.error("[EVMClaim] Fetch failed:", err?.response || err);
@@ -82,7 +91,6 @@ export default function EVMStaffWarrantyClaim() {
     if (evmId) fetchData();
   }, [evmId]);
 
-  // 🔹 Bộ lọc (giữ nguyên, nhưng mặc định chỉ hiển thị những claim DECIDE)
   const filteredWarranties = warranties.filter((claim) => {
     const matchesSearch =
       (claim.claimId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,7 +142,6 @@ export default function EVMStaffWarrantyClaim() {
     );
   };
 
-  // -------------------- UI (KHÔNG ĐỔI GÌ) --------------------
   return (
     <div className="flex h-screen bg-background">
       <EVMStaffSideBar />
@@ -144,7 +151,7 @@ export default function EVMStaffWarrantyClaim() {
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Warranty Claim Management</h1>
 
-            {/* 🔍 Bộ lọc */}
+            {/*Bộ lọc*/}
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -195,7 +202,7 @@ export default function EVMStaffWarrantyClaim() {
               </Select>
             </div>
 
-            {/* 📋 Bảng danh sách */}
+            {/*Bảng danh sách*/}
             <div className="w-full overflow-x-auto">
               <Table className="table-fixed w-full border-collapse">
                 <TableHeader>
@@ -235,7 +242,7 @@ export default function EVMStaffWarrantyClaim() {
               </Table>
             </div>
 
-            {/* 📄 Pagination */}
+            {/*Pagination*/}
             <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
@@ -271,4 +278,3 @@ export default function EVMStaffWarrantyClaim() {
     </div>
   );
 }
-// <<< END EVMStaffWarrantyClaim.jsx >>>
