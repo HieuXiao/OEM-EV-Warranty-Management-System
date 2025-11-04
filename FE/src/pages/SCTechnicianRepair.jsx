@@ -21,7 +21,7 @@ export default function SCTechnicianRepair() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("newest"); // 🔹 thêm sort
+  const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const vehicleCache = useRef({});
@@ -92,11 +92,24 @@ export default function SCTechnicianRepair() {
     return matchesSearch;
   });
 
-  // 🔹 Thêm phần sort
+  //sort — theo date và số thứ tự claimId
   const sortedJobs = [...filteredJobs].sort((a, b) => {
     const dateA = new Date(a.claimDate);
     const dateB = new Date(b.claimDate);
-    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+
+    //Nếu ngày khác
+    if (sortOrder === "newest") {
+      if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+      //Nếu cùng ngày
+      const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      return numB - numA;
+    } else {
+      if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+      const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      return numA - numB;
+    }
   });
 
   const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
@@ -131,7 +144,7 @@ export default function SCTechnicianRepair() {
               />
             </div>
 
-            {/* 🔹 Thêm chọn sort */}
+            {/*sort*/}
             <div className="flex gap-2 mb-4">
               <Button
                 variant={sortOrder === "newest" ? "default" : "outline"}

@@ -41,7 +41,20 @@ export default function SCTechnicianDashboard() {
             techId.toUpperCase()
         );
 
-        setClaims(technicianClaims);
+        const sortedClaims = [...technicianClaims].sort((a, b) => {
+          const dateA = new Date(a.claimDate);
+          const dateB = new Date(b.claimDate);
+
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateB - dateA;
+          }
+
+          const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+          const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+          return numB - numA;
+        });
+
+        setClaims(sortedClaims); 
       } catch (err) {
         console.error("Error fetching claims:", err);
         setError("Failed to load technician claims.");
@@ -87,7 +100,7 @@ export default function SCTechnicianDashboard() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              {/* CHECK JOBS */}
+              {/*CHECK JOBS*/}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -133,7 +146,7 @@ export default function SCTechnicianDashboard() {
                                 {job.status}
                               </Badge>
                             </div>
-                            {/* sửa VIN: lấy trực tiếp từ claim.vin */}
+                            {/*VIN*/}
                             <p className="text-sm text-muted-foreground">
                               VIN: {job.vin || "—"}
                             </p>
@@ -148,7 +161,7 @@ export default function SCTechnicianDashboard() {
                 </CardContent>
               </Card>
 
-              {/* REPAIR JOBS */}
+              {/*REPAIR JOBS*/}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -194,7 +207,7 @@ export default function SCTechnicianDashboard() {
                                 {job.status}
                               </Badge>
                             </div>
-                            {/* sửa VIN tương tự */}
+                            {/*VIN*/}
                             <p className="text-sm text-muted-foreground">
                               VIN: {job.vin || "—"}
                             </p>
