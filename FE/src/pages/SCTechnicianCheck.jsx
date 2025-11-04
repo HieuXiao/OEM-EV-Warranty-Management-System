@@ -18,7 +18,6 @@ const API_ENDPOINTS = {
 export default function SCTechnicianCheck() {
   const { auth } = useAuth();
   const techId = auth?.accountId;
-
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");

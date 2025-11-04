@@ -132,9 +132,9 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      console.log("✅ [UPLOAD SUCCESS]", res.data);
+      console.log(" [UPLOAD SUCCESS]", res.data);
     } catch (err) {
-      console.error("❌ [UPLOAD ERROR]", err.response?.data || err.message);
+      console.error(" [UPLOAD ERROR]", err.response?.data || err.message);
     }
   };
 
@@ -152,9 +152,12 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
           vin: claimInfo?.vin || "UNKNOWN",
           quantity: partQuantities[p.namePart] || 1,
           isRepair: partSelections[p.namePart] === "REPAIR",
+          partId: p.partNumber,
         }));
 
       const hasRepair = payloads.some((p) => p.isRepair);
+      
+      console.log("Sending payloads:", payloads);
 
       for (const payload of payloads) {
         await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
@@ -177,7 +180,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
       onClose?.();
       window.location.reload();
     } catch (err) {
-      console.error("[CheckForm] ❌ Complete failed:", err.response || err);
+      console.error("[CheckForm]  Complete failed:", err.response || err);
       alert("Hoàn tất kiểm tra thất bại! Kiểm tra console để xem chi tiết.");
     } finally {
       setUploading(false);
@@ -258,7 +261,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                           {part.namePart}
                         </span>
 
-                        {/* ✅ Chỉ hiện nút upload nếu là REPAIR */}
+                        {/*  Chỉ hiện nút upload nếu là REPAIR */}
                         {isRepair && (
                           <label className="cursor-pointer flex items-center gap-1 text-cyan-600 hover:text-cyan-700">
                             <ImagePlus className="w-5 h-5" />
