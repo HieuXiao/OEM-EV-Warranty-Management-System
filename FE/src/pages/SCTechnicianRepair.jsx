@@ -21,6 +21,7 @@ export default function SCTechnicianRepair() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest"); // 🔹 thêm sort
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const vehicleCache = useRef({});
@@ -42,7 +43,6 @@ export default function SCTechnicianRepair() {
       const allVehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
       const allAccounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
 
-      // Lọc claim theo technician hiện tại + status = REPAIR
       const repairClaims = allClaims.filter(
         (c) =>
           c.status === "REPAIR" &&
@@ -81,7 +81,7 @@ export default function SCTechnicianRepair() {
   const handleCloseReport = () => setSelectedJob(null);
   const handleCompleteRepair = () => {
     setSelectedJob(null);
-    window.location.reload(); // reset lại sau khi complete
+    window.location.reload();
   };
 
   const filteredJobs = jobs.filter((job) => {
@@ -92,10 +92,17 @@ export default function SCTechnicianRepair() {
     return matchesSearch;
   });
 
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  // 🔹 Thêm phần sort
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const dateA = new Date(a.claimDate);
+    const dateB = new Date(b.claimDate);
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+  const currentJobs = sortedJobs.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -122,6 +129,24 @@ export default function SCTechnicianRepair() {
                 }}
                 className="pl-10 h-12 text-base"
               />
+            </div>
+
+            {/* 🔹 Thêm chọn sort */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={sortOrder === "newest" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder("newest")}
+              >
+                Newest
+              </Button>
+              <Button
+                variant={sortOrder === "oldest" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder("oldest")}
+              >
+                Oldest
+              </Button>
             </div>
 
             <Card>
