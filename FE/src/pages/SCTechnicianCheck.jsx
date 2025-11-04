@@ -22,7 +22,7 @@ export default function SCTechnicianCheck() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("newest"); 
+  const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const vehicleCache = useRef({});
@@ -57,11 +57,11 @@ export default function SCTechnicianCheck() {
       const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
       const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
 
-      const vehicleMap = Object.fromEntries(vehicles.map(v => [v.vin, v]));
-      const accountMap = Object.fromEntries(accounts.map(a => [a.accountId, a]));
+      const vehicleMap = Object.fromEntries(vehicles.map((v) => [v.vin, v]));
+      const accountMap = Object.fromEntries(accounts.map((a) => [a.accountId, a]));
 
       const filteredClaims = claims.filter(
-        c =>
+        (c) =>
           c.status === "CHECK" &&
           c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
       );
@@ -80,9 +80,7 @@ export default function SCTechnicianCheck() {
           claimDate: claim.claimDate,
           createdAt: claim.claimDate,
           comment:
-            claim.description ||
-            vehicle?.campaign?.serviceDescription ||
-            "",
+            claim.description || vehicle?.campaign?.serviceDescription || "",
           status: claim.status,
           scStaff,
           scTechnician,
@@ -115,11 +113,21 @@ export default function SCTechnicianCheck() {
     return matchesSearch;
   });
 
-  // 🔹 Thêm phần sort
   const sortedJobs = [...filteredJobs].sort((a, b) => {
     const dateA = new Date(a.claimDate || a.createdAt);
     const dateB = new Date(b.claimDate || b.createdAt);
-    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+
+    if (sortOrder === "newest") {
+      if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+      const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      return numB - numA;
+    } else {
+      if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+      const numA = parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      const numB = parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0, 10);
+      return numA - numB;
+    }
   });
 
   const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
@@ -154,21 +162,20 @@ export default function SCTechnicianCheck() {
               />
             </div>
 
-            {/* 🔹 Thêm chọn sort */}
             <div className="flex gap-2 mb-4">
               <Button
                 variant={sortOrder === "newest" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSortOrder("newest")}
               >
-                🕒 Newest
+                Newest
               </Button>
               <Button
                 variant={sortOrder === "oldest" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSortOrder("oldest")}
               >
-                ⏳ Oldest
+                Oldest
               </Button>
             </div>
 
