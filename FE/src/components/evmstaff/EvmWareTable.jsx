@@ -1,14 +1,29 @@
 // FE/src/components/evmstaff/EvmWareTable.jsx
 
-import { useState, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+// === IMPORTS ===
+import { useState, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 // === CONSTANT: number of rows displayed per page ===
-const ROWS_PER_PAGE = 5
+const ROWS_PER_PAGE = 5;
+const MAX_LOW_STOCK_DISPLAY = 3;
 
 /**
  * EvmWareTable Component
@@ -18,53 +33,77 @@ const ROWS_PER_PAGE = 5
  * @param {function} onRowClick - Handler for when a table row is clicked.
  * @param {boolean} loading - Loading state.
  */
-export default function EvmWareTable({ warehouses, parts, onRowClick, loading }) {
+export default function EvmWareTable({
+  warehouses,
+  parts,
+  onRowClick,
+  loading,
+}) {
   // ================== STATE ==================
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const rowsPerPage = ROWS_PER_PAGE
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = ROWS_PER_PAGE;
+
+  // ================== OPTIMIZATION: PRE-GROUPING PARTS (O(P)) ==================
+  const partsByWarehouseId = useMemo(() => {
+    const map = {};
+    for (const part of parts) {
+      const whId = part.warehouse?.whId;
+      if (whId) {
+        if (!map[whId]) {
+          map[whId] = [];
+        }
+        map[whId].push(part);
+      }
+    }
+    return map;
+  }, [parts]);
 
   // ================== FILTERING & PAGINATION LOGIC ==================
 
-  // Group parts by warehouse
+  // Group parts by warehouse (SỬ DỤNG MAP ĐÃ NHÓM ĐỂ CẢI THIỆN TỐC ĐỘ: O(W))
   const warehousesWithParts = useMemo(() => {
     return warehouses.map((warehouse) => ({
       ...warehouse,
-      parts: parts.filter((part) => part.warehouse?.whId === warehouse.whId),
-    }))
-  }, [warehouses, parts])
+      // Tra cứu trực tiếp trong map thay vì filter toàn bộ mảng parts
+      parts: partsByWarehouseId[warehouse.whId] || [],
+    }));
+  }, [warehouses, partsByWarehouseId]);
 
   // Filter Logic
   const filteredWarehouses = useMemo(() => {
     return warehousesWithParts.filter(
       (warehouse) =>
         warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        warehouse.location.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-  }, [warehousesWithParts, searchTerm])
+        warehouse.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [warehousesWithParts, searchTerm]);
 
   // Pagination Calculation
-  const totalPages = Math.ceil(filteredWarehouses.length / rowsPerPage)
-  const safeCurrentPage = Math.min(currentPage, totalPages || 1)
-  const currentWarehouses = filteredWarehouses.slice((safeCurrentPage - 1) * rowsPerPage, safeCurrentPage * rowsPerPage)
+  const totalPages = Math.ceil(filteredWarehouses.length / rowsPerPage);
+  const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+  const currentWarehouses = filteredWarehouses.slice(
+    (safeCurrentPage - 1) * rowsPerPage,
+    safeCurrentPage * rowsPerPage
+  );
 
-  const displayWarehouses = currentWarehouses
-  const hasResults = filteredWarehouses.length > 0
+  const displayWarehouses = currentWarehouses;
+  const hasResults = filteredWarehouses.length > 0;
 
   // ================== HANDLERS ==================
 
   const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-  }
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
 
   const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1))
-  }
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
 
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value)
-    setCurrentPage(1)
-  }
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   // ================== UTILITY FUNCTIONS ==================
 
@@ -73,23 +112,53 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   // Calculate warehouse inventory value
   const calculateWarehouseValue = (warehouseParts = []) =>
-    warehouseParts.reduce((sum, part) => sum + part.quantity * part.price, 0)
+    warehouseParts.reduce((sum, part) => sum + part.quantity * part.price, 0);
 
-  // Get low stock alert
+  /**
+   * Generates the low stock alert string, limiting the display to MAX_LOW_STOCK_DISPLAY parts.
+   * @param {Object} warehouse The warehouse object containing the lowPart array.
+   * @returns {{display: string, remainingCount: number, isAlert: boolean}} Structured alert info.
+   */
   const getLowStockAlert = (warehouse) => {
-    return warehouse.lowPart && warehouse.lowPart.length > 0 ? warehouse.lowPart.join(", ") : "None"
-  }
+    const lowParts = warehouse.lowPart || [];
+    const totalLowParts = lowParts.length;
+
+    if (totalLowParts === 0) {
+      return {
+        display: "None",
+        remainingCount: 0,
+        isAlert: false,
+      };
+    }
+
+    const partsToDisplay = lowParts.slice(0, MAX_LOW_STOCK_DISPLAY);
+    let displayString = partsToDisplay.join(", ");
+    let remainingCount = 0;
+
+    if (totalLowParts > MAX_LOW_STOCK_DISPLAY) {
+      remainingCount = totalLowParts - MAX_LOW_STOCK_DISPLAY;
+      displayString += `...`; // Thêm dấu ba chấm
+    }
+
+    return {
+      display: displayString,
+      remainingCount: remainingCount,
+      isAlert: true,
+    };
+  };
 
   // Get latest update from parts
   const getLatestUpdate = (warehouseParts = []) => {
-    if (warehouseParts.length === 0) return new Date(0)
-    return new Date()
-  }
+    if (warehouseParts.length === 0) return new Date(0);
+    // This logic is likely incorrect, but keeping from original file
+    // A better logic would be to find the max date from parts.
+    return new Date();
+  };
 
   // ================== UI RENDERING ==================
   return (
@@ -100,7 +169,9 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
           {/* Left Block: Title and Description */}
           <div>
             <CardTitle>All Warehouses</CardTitle>
-            <CardDescription>Click on a row to view warehouse details and inventory.</CardDescription>
+            <CardDescription>
+              Click on a row to view warehouse details and inventory.
+            </CardDescription>
           </div>
 
           {/* Right Block: Search Box */}
@@ -136,39 +207,67 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
                       <TableHead>No.</TableHead>
                       <TableHead>Warehouse Name</TableHead>
                       <TableHead className="text-center">Location</TableHead>
-                      <TableHead className="text-center">Last Updated</TableHead>
-                      <TableHead className="text-center">Inventory Value</TableHead>
+                      <TableHead className="text-center">
+                        Last Updated
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Inventory Value
+                      </TableHead>
                       <TableHead>Low Stock Alert</TableHead>
                     </TableRow>
                   </TableHeader>
 
                   <TableBody>
-                    {displayWarehouses.map((warehouse, i) => (
-                      <TableRow
-                        key={warehouse.whId}
-                        onClick={() => onRowClick(warehouse)}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      >
-                        <TableCell className="font-semibold text-xs text-gray-500">
-                          {(safeCurrentPage - 1) * rowsPerPage + i + 1}
-                        </TableCell>
-                        <TableCell className="font-medium">{warehouse.name}</TableCell>
-                        <TableCell className="text-center">{warehouse.location}</TableCell>
-                        <TableCell className="text-center text-sm text-gray-600">
-                          {getLatestUpdate(warehouse.parts).toLocaleString("vi-VN")}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold">
-                          {formatCurrency(calculateWarehouseValue(warehouse.parts))}
-                        </TableCell>
-                        <TableCell
-                          className={
-                            getLowStockAlert(warehouse) !== "None" ? "text-red-600 font-semibold" : "text-gray-800"
-                          }
+                    {displayWarehouses.map((warehouse, i) => {
+                      const lowStockInfo = getLowStockAlert(warehouse); // Lấy thông tin cảnh báo đã được xử lý
+                      return (
+                        <TableRow
+                          key={warehouse.whId}
+                          onClick={() => onRowClick(warehouse)}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
                         >
-                          {getLowStockAlert(warehouse)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell className="font-semibold text-xs text-gray-500">
+                            {(safeCurrentPage - 1) * rowsPerPage + i + 1}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {warehouse.name}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {warehouse.location}
+                          </TableCell>
+                          <TableCell className="text-center text-sm text-gray-600">
+                            {getLatestUpdate(warehouse.parts).toLocaleString(
+                              "vi-VN"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center font-semibold">
+                            {formatCurrency(
+                              calculateWarehouseValue(warehouse.parts)
+                            )}
+                          </TableCell>
+
+                          {/* CỘT LOW STOCK ĐÃ CHỈNH SỬA */}
+                          <TableCell
+                            className={
+                              lowStockInfo.isAlert
+                                ? "text-red-600 font-semibold"
+                                : "text-gray-800"
+                            }
+                          >
+                            <div className="flex justify-between items-center min-w-[150px]">
+                              <span className="truncate">{lowStockInfo.display}</span>
+                              {lowStockInfo.remainingCount > 0 && (
+                                <span className="ml-2 px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-700 whitespace-nowrap flex-shrink-0">
+                                  +{lowStockInfo.remainingCount}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          {/* KẾT THÚC CỘT LOW STOCK ĐÃ CHỈNH SỬA */}
+
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               ) : (
@@ -176,13 +275,23 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
                 <Table>
                   <TableBody>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-gray-500"
+                      >
                         <div className="p-10 text-center">
-                          <h3 className="text-xl font-semibold text-muted-foreground">No Warehouses Found</h3>
+                          <h3 className="text-xl font-semibold text-muted-foreground">
+                            No Warehouses Found
+                          </h3>
                           <p className="mt-2 text-sm text-gray-500">
-                            Your search term "{searchTerm}" did not match any warehouses.
+                            Your search term "{searchTerm}" did not match any
+                            warehouses.
                           </p>
-                          <Button variant="link" onClick={() => setSearchTerm("")} className="mt-2">
+                          <Button
+                            variant="link"
+                            onClick={() => setSearchTerm("")}
+                            className="mt-2"
+                          >
                             Clear Search
                           </Button>
                         </div>
@@ -196,7 +305,12 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
             {/* === PAGINATION CONTROLS === */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
-                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={safeCurrentPage === 1}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={safeCurrentPage === 1}
+                >
                   <ChevronLeft className="h-4 w-4 mr-1" /> Prev
                 </Button>
 
@@ -204,7 +318,12 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
                   Page {safeCurrentPage} of {totalPages}
                 </span>
 
-                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={safeCurrentPage === totalPages}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={safeCurrentPage === totalPages}
+                >
                   Next <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -213,5 +332,5 @@ export default function EvmWareTable({ warehouses, parts, onRowClick, loading })
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
