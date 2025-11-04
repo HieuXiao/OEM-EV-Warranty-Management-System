@@ -24,47 +24,51 @@ export default function SCTechnicianDashboard() {
   const techId = auth?.accountId;
 
   useEffect(() => {
-  const fetchClaims = async () => {
-    if (!techId) {
-      console.warn("⚠️ techId is undefined or null");
-      return;
-    }
+    const fetchClaims = async () => {
+      if (!techId) {
+        console.warn("techId is undefined or null");
+        return;
+      }
 
-    try {
-      setLoading(true);
-      const res = await axiosPrivate.get(`/api/warranty-claims`);
+      try {
+        setLoading(true);
+        const res = await axiosPrivate.get(`/api/warranty-claims`);
+        const allClaims = Array.isArray(res.data) ? res.data : [];
 
-      const allClaims = Array.isArray(res.data) ? res.data : [];
+        const technicianClaims = allClaims.filter(
+          (claim) =>
+            claim.serviceCenterTechnicianId?.toUpperCase() ===
+            techId.toUpperCase()
+        );
 
-      const technicianClaims = allClaims.filter(
-        (claim) =>
-          claim.serviceCenterTechnicianId?.toUpperCase() ===
-          techId.toUpperCase()
-      );
+        setClaims(technicianClaims);
+      } catch (err) {
+        console.error("Error fetching claims:", err);
+        setError("Failed to load technician claims.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setClaims(technicianClaims);
-
-    } catch (err) {
-      console.error("Error fetching claims:", err);
-      setError("Failed to load technician claims.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchClaims();
-}, [techId]);
+    fetchClaims();
+  }, [techId]);
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     return isNaN(d) ? "—" : d.toLocaleDateString("en-GB");
   };
 
-  const checkJobs = claims.filter((claim) => claim.status.toUpperCase() === "CHECK");
-  const repairJobs = claims.filter((claim) => claim.status.toUpperCase() === "REPAIR");
+  const checkJobs = claims.filter(
+    (claim) => claim.status?.toUpperCase() === "CHECK"
+  );
+  const repairJobs = claims.filter(
+    (claim) => claim.status?.toUpperCase() === "REPAIR"
+  );
 
   if (loading)
-    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+    return (
+      <div className="p-8 text-center text-muted-foreground">Loading...</div>
+    );
   if (error)
     return <div className="p-8 text-center text-destructive">{error}</div>;
 
@@ -122,12 +126,16 @@ export default function SCTechnicianDashboard() {
                               <p className="font-semibold">
                                 Claim #{job.claimId}
                               </p>
-                              <Badge variant="outline" className="text-xs capitalize">
+                              <Badge
+                                variant="outline"
+                                className="text-xs capitalize"
+                              >
                                 {job.status}
                               </Badge>
                             </div>
+                            {/* sửa VIN: lấy trực tiếp từ claim.vin */}
                             <p className="text-sm text-muted-foreground">
-                              VIN: {job.vehicle?.vin || "—"}
+                              VIN: {job.vin || "—"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Date: {formatDate(job.claimDate)}
@@ -179,12 +187,16 @@ export default function SCTechnicianDashboard() {
                               <p className="font-semibold">
                                 Claim #{job.claimId}
                               </p>
-                              <Badge variant="outline" className="text-xs capitalize">
+                              <Badge
+                                variant="outline"
+                                className="text-xs capitalize"
+                              >
                                 {job.status}
                               </Badge>
                             </div>
+                            {/* sửa VIN tương tự */}
                             <p className="text-sm text-muted-foreground">
-                              VIN: {job.vehicle?.vin || "—"}
+                              VIN: {job.vin || "—"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Date: {formatDate(job.claimDate)}

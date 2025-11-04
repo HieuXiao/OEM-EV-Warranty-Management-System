@@ -10,16 +10,31 @@ const API_ENDPOINTS = {
   ADD_SERIALS: "/api/claim-part-check/add-serials",
   CLAIM_WORKFLOW: "/api/warranty-claims/workflow",
   PARTS: "/api/parts",
+  CLAIMS: "/api/warranty-claims",
 };
 
 export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
   const [repairParts, setRepairParts] = useState([]);
   const [serialInputs, setSerialInputs] = useState({});
   const [loading, setLoading] = useState(false);
+  const [claimInfo, setClaimInfo] = useState(null);
 
   useEffect(() => {
     if (!job?.claimId) return;
 
+    // Lấy thông tin claim (VIN, Claim Date, Description)
+    const fetchClaimInfo = async () => {
+      try {
+        const res = await axiosPrivate.get(
+          `${API_ENDPOINTS.CLAIMS}/${job.claimId}`
+        );
+        setClaimInfo(res.data);
+      } catch (err) {
+        console.error("[RepairForm] Fetch claim info failed:", err);
+      }
+    };
+
+    // Lấy danh sách repair parts
     const fetchRepairParts = async () => {
       try {
         const res = await axiosPrivate.get(
@@ -55,6 +70,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
       }
     };
 
+    fetchClaimInfo();
     fetchRepairParts();
   }, [job]);
 
@@ -80,7 +96,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         job?.technicianId;
 
       if (!technicianId) {
-        alert("❌ Không tìm thấy technicianId hợp lệ để cập nhật workflow!");
+        alert(" Không tìm thấy technicianId hợp lệ để cập nhật workflow!");
         setLoading(false);
         return;
       }
@@ -92,7 +108,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         );
         if (serials.length < part.quantity) {
           alert(
-            `❌ Part "${part.partName}" cần nhập đủ ${part.quantity} serial number.`
+            ` Part "${part.partName}" cần nhập đủ ${part.quantity} serial number.`
           );
           setLoading(false);
           return;
@@ -117,11 +133,10 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
 
       onComplete?.();
       window.location.reload();
-
     } catch (e) {
       console.error("[RepairForm] Complete Repair failed:", e);
       alert(
-        `❌ Lỗi khi hoàn tất Repair.\n${
+        ` Lỗi khi hoàn tất Repair.\n${
           e.response?.status ? `Mã lỗi: ${e.response.status}` : ""
         }`
       );
@@ -141,6 +156,30 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
           <Button variant="destructive" size="sm" onClick={onClose}>
             <X className="h-4 w-4 mr-1" /> Close
           </Button>
+        </div>
+
+        {/* Claim Info */}
+        <div className="px-6 pt-6">
+          {claimInfo ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+              <div>
+                <Label>VIN</Label>
+                <p>{claimInfo.vin}</p>
+              </div>
+              <div>
+                <Label>Claim Date</Label>
+                <p>{claimInfo.claimDate}</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Description</Label>
+                <div className="p-3 bg-gray-50 border rounded-md text-sm">
+                  {claimInfo.description || "No description"}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 mb-4">Loading claim info...</p>
+          )}
         </div>
 
         {/* Body */}
