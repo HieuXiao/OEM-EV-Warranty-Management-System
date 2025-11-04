@@ -15,8 +15,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import { ShieldAlert, Clock, TriangleAlert, ShieldCheck } from "lucide-react";
+import { useEffect, useState, useReducer, useCallback } from "react";
+import {
+  ShieldAlert,
+  Clock,
+  TriangleAlert,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Eye } from "lucide-react";
@@ -33,12 +39,43 @@ const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
 const APPOINTMENT_URL = "/api/service-appointments";
 
+const initialState = {
+  status: "idle", // 'idle', 'loading', 'success', 'error'
+  campaigns: [],
+  vehicles: [], // Vẫn giữ nếu bạn cần dùng ở nơi khác
+  error: null,
+};
+
+const dataFetchReducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, status: "loading", error: null };
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        status: "success",
+        campaigns: action.payload.campaigns,
+        vehicles: action.payload.vehicles,
+      };
+    case "FETCH_ERROR":
+      return {
+        ...state,
+        status: "error",
+        error: action.payload,
+        campaigns: [],
+        vehicles: [],
+      };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+};
+
 export default function SCStaffCampaignSummary() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [campaigns, setCampaigns] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingCampaign, setViewingCampaign] = useState(null);
+  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
+  const { status, campaigns, error } = state;
 
   const getCampaignDateStatus = (startDateStr, endDateStr) => {
     const now = new Date();
@@ -58,61 +95,64 @@ export default function SCStaffCampaignSummary() {
     return "on going";
   };
 
-  useEffect(() => {
-    async function fetchAllData() {
-      try {
-        // Bước 1: Gọi cả ba API
-        const [campaignResponse, vehicleResponse, appointmentResponse] =
-          await Promise.all([
-            axiosPrivate.get(CAMPAIGN_URL),
-            axiosPrivate.get(VEHICLE_URL),
-            axiosPrivate.get(APPOINTMENT_URL), // <-- THÊM MỚI
-          ]);
+  const fetchAllData = useCallback(async () => {
+    dispatch({ type: "FETCH_START" });
+    try {
+      const [campaignResponse, vehicleResponse, appointmentResponse] =
+        await Promise.all([
+          axiosPrivate.get(CAMPAIGN_URL),
+          axiosPrivate.get(VEHICLE_URL),
+          axiosPrivate.get(APPOINTMENT_URL),
+        ]);
 
-        const rawCampaigns = campaignResponse.data;
-        const allVehicles = vehicleResponse.data;
-        const allAppointments = appointmentResponse.data; // <-- THÊM MỚI
+      const rawCampaigns = campaignResponse.data;
+      const allVehicles = vehicleResponse.data;
+      const allAppointments = appointmentResponse.data;
 
-        // Bước 2: Xử lý dữ liệu campaigns
-        const transformedData = rawCampaigns.map((campaign) => {
-          // Tính toán status
-          const status = getCampaignDateStatus(
-            campaign.startDate,
-            campaign.endDate
-          );
+      const transformedData = rawCampaigns.map((campaign) => {
+        // Tính toán status
+        const status = getCampaignDateStatus(
+          campaign.startDate,
+          campaign.endDate
+        );
 
-          // Tính Affected Vehicles
-          const campaignModelSet = new Set(campaign.model);
-          const affectedVehiclesCount = allVehicles.filter((vehicle) =>
-            campaignModelSet.has(vehicle.model)
-          ).length;
+        // Tính Affected Vehicles
+        const campaignModelSet = new Set(campaign.model);
+        const affectedVehiclesCount = allVehicles.filter((vehicle) =>
+          campaignModelSet.has(vehicle.model)
+        ).length;
 
-          // Tính Completed Vehicles (Giả định)
-          const completedVehiclesCount = allAppointments.filter(
-            (app) =>
-              app.campaign.campaignId === campaign.campaignId &&
-              app.status === "Completed"
-          ).length;
+        // Tính Completed Vehicles (Giả định)
+        const completedVehiclesCount = allAppointments.filter(
+          (app) =>
+            app.campaign.campaignId === campaign.campaignId &&
+            app.status === "Completed"
+        ).length;
 
-          // Bước 3: Trả về object campaign đã được thêm thông tin
-          return {
-            ...campaign,
-            status: status,
-            affectedVehicles: affectedVehiclesCount, // <-- ĐỔI TÊN/THÊM MỚI
-            completedVehicles: completedVehiclesCount, // <-- THÊM MỚI
-          };
-        });
+        return {
+          ...campaign,
+          status: status,
+          affectedVehicles: affectedVehiclesCount,
+          completedVehicles: completedVehiclesCount,
+        };
+      });
 
-        // Bước 4: Set state với dữ liệu đã xử lý
-        setCampaigns(transformedData);
-        setVehicles(allVehicles); // Vẫn set state vehicles nếu bạn cần dùng ở nơi khác
-      } catch (error) {
-        console.error("API Error: " + error.message);
-      }
+      dispatch({
+        type: "FETCH_SUCCESS",
+        payload: {
+          campaigns: transformedData,
+          vehicles: allVehicles, // Lưu nếu cần
+        },
+      });
+    } catch (err) {
+      console.error("API Error: " + err.message);
+      dispatch({ type: "FETCH_ERROR", payload: err.message });
     }
-
-    fetchAllData();
   }, []);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
   const campaignCounts = campaigns.reduce(
     (counts, campaign) => {
@@ -257,85 +297,101 @@ export default function SCStaffCampaignSummary() {
 
         {/* SECTION 2 - BODY */}
         <CardContent>
-          <div className="space-y-4">
-            {filteredCampaigns.map((campaign) => (
-              <Card
-                key={campaign.campaignName}
-                className="hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold">
-                          {campaign.campaignName}
-                        </h3>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(campaign.status)}
-                        >
-                          {campaign.status.toUpperCase()}
-                        </Badge>
+          {status === "loading" && (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+          {status === "error" && (
+            <div className="flex flex-col items-center justify-center h-40 text-destructive">
+              <AlertCircle className="w-6 h-6 mb-2" />
+              <p className="font-semibold">Error loading campaigns</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          {status === "success" && (
+            <div className="space-y-4">
+              {filteredCampaigns.map((campaign) => (
+                <Card
+                  key={campaign.campaignName}
+                  className="hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-semibold">
+                            {campaign.campaignName}
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className={getStatusColor(campaign.status)}
+                          >
+                            {campaign.status.toUpperCase()}
+                          </Badge>
+                        </div>
+
+                        <h4 className="font-medium mb-2">{campaign.title}</h4>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                          <div>
+                            <span className="text-muted-foreground">
+                              Affected Models:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {campaign.model.join(", ")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Start Date:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {new Date(
+                                campaign.startDate
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>Progress</span>
+                            <span>
+                              {campaign.completedVehicles}/
+                              {campaign.affectedVehicles} vehicles
+                            </span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all"
+                              style={{
+                                width: `${Math.round(
+                                  (campaign.completedVehicles /
+                                    campaign.affectedVehicles) *
+                                    100
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
 
-                      <h4 className="font-medium mb-2">{campaign.title}</h4>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                        <div>
-                          <span className="text-muted-foreground">
-                            Affected Models:{" "}
-                          </span>
-                          <span className="font-medium">
-                            {campaign.model.join(", ")}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Start Date:{" "}
-                          </span>
-                          <span className="font-medium">
-                            {new Date(campaign.startDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>Progress</span>
-                          <span>
-                            {campaign.completedVehicles}/
-                            {campaign.affectedVehicles} vehicles
-                          </span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{
-                              width: `${Math.round(
-                                (campaign.completedVehicles /
-                                  campaign.affectedVehicles) *
-                                  100
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewCampaign(campaign)}
+                        className="ml-4"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
                     </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewCampaign(campaign)}
-                      className="ml-4"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

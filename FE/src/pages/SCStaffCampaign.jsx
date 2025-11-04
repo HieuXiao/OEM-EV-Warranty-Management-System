@@ -25,7 +25,7 @@ export default function SCStaffProfile() {
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="practipant">Participants</TabsTrigger>
                 <TabsTrigger value="appointment">Appointments</TabsTrigger>
-                {/* <TabsTrigger value="report">Reports</TabsTrigger> */}
+                <TabsTrigger value="report">Reports</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -41,9 +41,9 @@ export default function SCStaffProfile() {
                 <SCStaffAppointments />
               </TabsContent>
               {/* Reports Tab */}
-              {/* <TabsContent value="report" className="space-y-4">
+              <TabsContent value="report" className="space-y-4">
                 <ScsReportSection />
-              </TabsContent> */}
+              </TabsContent>
             </Tabs>
           </div>
         </div>

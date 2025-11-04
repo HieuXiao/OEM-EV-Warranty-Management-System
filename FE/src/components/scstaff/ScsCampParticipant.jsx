@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Calendar, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useReducer, useCallback } from "react";
+import {
+  Calendar,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useMemo } from "react";
@@ -26,18 +33,44 @@ const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
 const APPOINTMENT_URL = "/api/service-appointments";
 
+const initialState = {
+  status: "idle",
+  campaigns: [],
+  vehicles: [],
+  appointments: [],
+  error: null,
+};
+
+const dataFetchReducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, status: "loading", error: null };
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        status: "success",
+        campaigns: action.payload.campaigns,
+        vehicles: action.payload.vehicles,
+        appointments: action.payload.appointments,
+      };
+    case "FETCH_ERROR":
+      return { ...state, status: "error", error: action.payload };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+};
+
 export default function CampaignsSection() {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  // <-- THÊM MỚI: State cho filter
   const [scheduleFilter, setScheduleFilter] = useState("all");
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [campaigns, setCampaigns] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
   const [campaignPage, setCampaignPage] = useState(0);
   const [vehiclePage, setVehiclePage] = useState(0);
-  const [appointments, setAppointments] = useState([]);
+
+  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
+  const { status, campaigns, vehicles, appointments, error } = state;
 
   const CAMPAIGNS_PER_PAGE = 3;
   const VEHICLES_PER_PAGE = 10;
@@ -60,7 +93,12 @@ export default function CampaignsSection() {
     return "on going";
   };
 
-  async function fetchAllData() {
+  const fetchAllData = useCallback(async () => {
+    // Chỉ set loading nếu chưa ở state success (tránh giật lag khi refresh)
+    if (status !== "success") {
+      dispatch({ type: "FETCH_START" });
+    }
+
     try {
       const [campaignResponse, vehicleResponse, appointmentResponse] =
         await Promise.all([
@@ -72,9 +110,6 @@ export default function CampaignsSection() {
       const rawCampaigns = campaignResponse.data;
       const allVehicles = vehicleResponse.data;
       const allAppointments = appointmentResponse.data;
-
-      setAppointments(allAppointments);
-      setVehicles(allVehicles);
 
       const transformedData = rawCampaigns.map((campaign) => {
         const status = getCampaignDateStatus(
@@ -98,32 +133,32 @@ export default function CampaignsSection() {
         };
       });
 
-      setCampaigns(transformedData);
+      dispatch({
+        type: "FETCH_SUCCESS",
+        payload: {
+          campaigns: transformedData,
+          vehicles: allVehicles,
+          appointments: allAppointments,
+        },
+      });
 
+      // Logic cập nhật selectedCampaign (giữ nguyên từ bản gốc)
       if (transformedData.length > 0) {
         if (selectedCampaign) {
-          // Nếu ĐÃ CÓ chiến dịch được chọn (trường hợp refresh)
-          // Tìm phiên bản MỚI của chiến dịch đó trong danh sách vừa tải
           const currentCampaignId = selectedCampaign.campaignId;
           const updatedSelectedCampaign = transformedData.find(
             (c) => c.campaignId === currentCampaignId
           );
-
-          if (updatedSelectedCampaign) {
-            setSelectedCampaign(updatedSelectedCampaign);
-          } else {
-            // Nếu vì lý do nào đó không tìm thấy, quay về mặc định
-            setSelectedCampaign(transformedData[0]);
-          }
+          setSelectedCampaign(updatedSelectedCampaign || transformedData[0]);
         } else {
-          // Nếu CHƯA CÓ gì được chọn (lần đầu tải trang)
           setSelectedCampaign(transformedData[0]);
         }
       }
-    } catch (error) {
-      console.error("API Error: " + error.message);
+    } catch (err) {
+      console.error("API Error: " + err.message);
+      dispatch({ type: "FETCH_ERROR", payload: err.message });
     }
-  }
+  }, [selectedCampaign, status]);
 
   const scheduledVehiclePlates = useMemo(() => {
     if (!selectedCampaign) return new Set();
@@ -214,7 +249,28 @@ export default function CampaignsSection() {
     }
   }
 
-  return (
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="ml-3 text-muted-foreground">
+          Loading participant data...
+        </p>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-destructive">
+        <AlertCircle className="w-8 h-8 mb-2" />
+        <p className="font-semibold">Error loading data</p>
+        <p className="text-sm">{error}</p>
+      </div>
+    );
+  }
+
+  return status === "success" ? (
     <div className="space-y-6">
       {/* Campaign Selection */}
       <div className="bg-card border border-border rounded-lg p-6">
@@ -408,5 +464,5 @@ export default function CampaignsSection() {
         onScheduleSuccess={fetchAllData}
       />
     </div>
-  );
+  ) : null;
 }

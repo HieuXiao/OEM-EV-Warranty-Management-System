@@ -1,5 +1,5 @@
 //FE/src/components/scstaff/ScsCampAppSection.jsx
-import { useState, useEffect } from "react"; // <-- THAY ĐỔI: Thêm useEffect
+import { useState, useEffect, useReducer, useCallback } from "react";
 import {
   CalendarIcon,
   ChevronLeft,
@@ -30,6 +30,41 @@ import axiosPrivate from "@/api/axios"; // <-- THAY ĐỔI: Thêm axios
 const APPOINTMENT_URL = "/api/service-appointments";
 const CAMPAIGN_URL = "/api/campaigns/all";
 
+const initialState = {
+  status: "idle", // 'idle', 'loading', 'success', 'error'
+  appointments: [],
+  campaigns: [],
+  error: null,
+};
+
+function dataFetchReducer(state, action) {
+  switch (action.type) {
+    case "FETCH_START":
+      return {
+        ...state,
+        status: "loading",
+        error: null,
+      };
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        status: "success",
+        appointments: action.payload.appointments,
+        campaigns: action.payload.campaigns,
+      };
+    case "FETCH_ERROR":
+      return {
+        ...state,
+        status: "error",
+        error: action.payload,
+        appointments: [], // Reset về rỗng khi lỗi
+        campaigns: [],
+      };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+}
+
 export default function AppointmentsSection() {
   const [viewMode, setViewMode] = useState("7days");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -42,27 +77,36 @@ export default function AppointmentsSection() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   // <-- THAY ĐỔI: Khởi tạo state với mảng rỗng
-  const [appointments, setAppointments] = useState([]);
-  const [campaigns, setCampaigns] = useState([]);
-
+  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
+  const { status, appointments, campaigns, error } = state;
   // <-- THAY ĐỔI: Hàm tải dữ liệu
-  async function fetchAllData() {
+  const fetchAllData = useCallback(async () => {
+    dispatch({ type: "FETCH_START" }); // Báo cho reducer biết bắt đầu tải
     try {
       const [appointmentResponse, campaignResponse] = await Promise.all([
         axiosPrivate.get(APPOINTMENT_URL),
         axiosPrivate.get(CAMPAIGN_URL),
       ]);
-      setAppointments(appointmentResponse.data);
-      setCampaigns(campaignResponse.data);
-    } catch (error) {
-      console.error("API Error fetching data:", error);
+
+      // Gửi payload khi thành công
+      dispatch({
+        type: "FETCH_SUCCESS",
+        payload: {
+          appointments: appointmentResponse.data,
+          campaigns: campaignResponse.data,
+        },
+      });
+    } catch (err) {
+      console.error("API Error fetching data:", err);
+      // Gửi lỗi khi thất bại
+      dispatch({ type: "FETCH_ERROR", payload: err.message });
     }
-  }
+  }, []);
 
   // <-- THAY ĐỔI: useEffect để tải dữ liệu khi component mount
   useEffect(() => {
     fetchAllData();
-  }, []); // Chạy một lần
+  }, [fetchAllData]); // Chạy một lần
 
   const getDateRange = () => {
     // ... (logic getDateRange của bạn giữ nguyên)
@@ -85,9 +129,8 @@ export default function AppointmentsSection() {
   };
 
   const filteredAppointments = appointments.filter((apt) => {
-    const aptDate = new Date(apt.date); // Giả sử 'apt.date' là chuỗi ISO datetime
+    const aptDate = new Date(apt.date);
 
-    // Kiểm tra các trường dữ liệu trước khi gọi toLowerCase()
     const customerName = apt.vehicle?.customer?.customerName || "";
     const phone = apt.vehicle?.customer?.customerPhone || "";
     const vin = apt.vehicle?.vin || "";
@@ -100,7 +143,7 @@ export default function AppointmentsSection() {
       licensePlate.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCampaign =
-      selectedCampaign === "0" || // Logic "All Campaigns"
+      selectedCampaign === "0" ||
       apt.campaign?.campaignId === Number.parseInt(selectedCampaign);
 
     const matchesStatus =
@@ -275,111 +318,133 @@ export default function AppointmentsSection() {
         </div>
       </div>
 
+      {status === "loading" && (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Loading appointments...</p>
+        </Card>
+      )}
+
+      {status === "error" && (
+        <Card className="p-8 text-center text-destructive">
+          <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+          <p className="font-semibold">Error loading data</p>
+          <p className="text-sm">{error}</p>
+        </Card>
+      )}
       {/* Appointment List */}
-      <div className="space-y-4">
-        {sortedDates.length === 0 ? (
-          <Card className="p-8 text-center">
-            {/* ... (Nội dung "No appointments found") ... */}
-          </Card>
-        ) : (
-          sortedDates.map((date) => (
-            <div
-              key={date}
-              className="bg-card border border-border rounded-lg overflow-hidden"
-            >
-              <div className="bg-muted px-6 py-3 border-b border-border">
-                <h4 className="font-semibold text-card-foreground">
-                  {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-                    // Thêm T00:00:00 để tránh lỗi múi giờ
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h4>
-              </div>
-              <div className="divide-y divide-border">
-                {appointmentsByDate[date]
-                  .sort((a, b) => a.date.localeCompare(b.date)) // Sắp xếp theo chuỗi datetime đầy đủ
-                  .map((appointment) => {
-                    // Trích xuất giờ từ chuỗi datetime
-                    const time = new Date(appointment.date).toLocaleTimeString(
-                      "en-US",
-                      {
+      {status === "success" && (
+        <div className="space-y-4">
+          {sortedDates.length === 0 ? (
+            <Card className="p-8 text-center">
+              {/* ... (Nội dung "No appointments found") ... */}
+            </Card>
+          ) : (
+            sortedDates.map((date) => (
+              <div
+                key={date}
+                className="bg-card border border-border rounded-lg overflow-hidden"
+              >
+                <div className="bg-muted px-6 py-3 border-b border-border">
+                  <h4 className="font-semibold text-card-foreground">
+                    {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+                      // Thêm T00:00:00 để tránh lỗi múi giờ
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </h4>
+                </div>
+                <div className="divide-y divide-border">
+                  {appointmentsByDate[date]
+                    .sort((a, b) => a.date.localeCompare(b.date)) // Sắp xếp theo chuỗi datetime đầy đủ
+                    .map((appointment) => {
+                      // Trích xuất giờ từ chuỗi datetime
+                      const time = new Date(
+                        appointment.date
+                      ).toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
-                      }
-                    );
+                      });
 
-                    return (
-                      <div
-                        key={appointment.appointmentId} // Dùng ID duy nhất
-                        className="p-6 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex gap-4 flex-1">
-                            <div className="flex items-center gap-2 min-w-[80px]">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-semibold text-card-foreground">
-                                {time}
-                              </span>
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-3">
-                                <h5 className="font-semibold text-card-foreground">
-                                  {appointment.vehicle?.customer?.customerName}
-                                </h5>
-                                <Badge
-                                  variant={getStatusColor(appointment.status)}
-                                >
-                                  {appointment.status}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {appointment.campaign?.campaignName}
-                                </Badge>
+                      return (
+                        <div
+                          key={appointment.appointmentId} // Dùng ID duy nhất
+                          className="p-6 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex gap-4 flex-1">
+                              <div className="flex items-center gap-2 min-w-[80px]">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span className="font-semibold text-card-foreground">
+                                  {time}
+                                </span>
                               </div>
-                              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                                <p>
-                                  <span className="font-medium">Phone:</span>{" "}
-                                  {appointment.vehicle?.customer?.customerPhone}
-                                </p>
-                                <p>
-                                  <span className="font-medium">VIN:</span>{" "}
-                                  {appointment.vehicle?.vin}
-                                </p>
-                                <p>
-                                  <span className="font-medium">License:</span>{" "}
-                                  {appointment.vehicle?.plate}
-                                </p>
-                              </div>
-                              {appointment.description && ( // Dùng 'description' thay vì 'notes'
-                                <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
-                                  <p className="text-muted-foreground">
-                                    {appointment.description}
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-3">
+                                  <h5 className="font-semibold text-card-foreground">
+                                    {
+                                      appointment.vehicle?.customer
+                                        ?.customerName
+                                    }
+                                  </h5>
+                                  <Badge
+                                    variant={getStatusColor(appointment.status)}
+                                  >
+                                    {appointment.status}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {appointment.campaign?.campaignName}
+                                  </Badge>
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                                  <p>
+                                    <span className="font-medium">Phone:</span>{" "}
+                                    {
+                                      appointment.vehicle?.customer
+                                        ?.customerPhone
+                                    }
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">VIN:</span>{" "}
+                                    {appointment.vehicle?.vin}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">
+                                      License:
+                                    </span>{" "}
+                                    {appointment.vehicle?.plate}
                                   </p>
                                 </div>
-                              )}
+                                {appointment.description && ( // Dùng 'description' thay vì 'notes'
+                                  <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
+                                    <p className="text-muted-foreground">
+                                      {appointment.description}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(appointment)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(appointment)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* <-- THAY ĐỔI: Truyền hàm refresh vào Dialog --> */}
       <EditAppointmentDialog
