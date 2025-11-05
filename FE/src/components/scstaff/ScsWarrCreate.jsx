@@ -35,7 +35,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [selectedCampaign, setSelectedCampaign] = useState("")
   const [campaignFound, setCampaignFound] = useState(false)
   const [isCampaignChecked, setIsCampaignChecked] = useState(false)
-  const [manualVinMode, setManualVinMode] = useState(false) // 🔹 Chế độ nhập VIN thủ công
+  const [manualVinMode, setManualVinMode] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -63,18 +63,21 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
   const generateClaimId = async () => {
     const dateStr = new Date().toISOString().split("T")[0]
-    const centerId = currentUser?.serviceCenter?.centerId || "NA"
     try {
+      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
+      const centerId = accountRes?.data?.serviceCenter?.centerId || "NA"
+
       const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
       const claims = Array.isArray(res.data) ? res.data : []
       const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`))
       const nextSerial = (sameDay.length + 1).toString().padStart(3, "0")
+
       const newId = `WC-${centerId}-${dateStr}-${nextSerial}`
       setClaimId(newId)
       return newId
     } catch (err) {
       console.error("Error generating claimId:", err)
-      const fallback = `WC-${centerId}-${dateStr}-001`
+      const fallback = `WC-NA-${dateStr}-001`
       setClaimId(fallback)
       return fallback
     }
@@ -133,7 +136,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
       try {
         setLoadingVehicles(true)
         const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS)
-        const customers = Array.isArray(customersRes.data) ? customersRes.data : []
+        const customers = Array.isArray(customersRes.data) ? res.data : []
         const foundCustomer = customers.find((c) => c.customerPhone === customerPhone)
 
         if (foundCustomer) {
@@ -142,7 +145,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
           const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
           const related = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
           setVehicles(related)
-          setManualVinMode(related.length === 0) // 🔹 Nếu không có VIN -> chuyển sang nhập tay
+          setManualVinMode(related.length === 0)
         } else {
           setCustomerName("")
           setVehicles([])
@@ -266,7 +269,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <Input placeholder="Auto-filled" value={customerName} disabled className="bg-muted h-10" />
             </div>
 
-            {/* Vehicle VIN: nếu có VIN thì dùng Select, nếu không thì cho nhập tay */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Vehicle VIN *</label>
               {manualVinMode ? (
@@ -297,15 +299,12 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <Input placeholder="Auto-filled" value={vehicleModel} disabled className="bg-muted h-10" />
             </div>
 
-            {/* Technician */}
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Assign to Technician *</label>
               {technicians.length > 0 ? (
                 <Select value={selectedTechnician} onValueChange={setSelectedTechnician} required>
                   <SelectTrigger className="h-10">
-                    <SelectValue
-                      placeholder={loadingTechnicians ? "Loading..." : "Select technician"}
-                    />
+                    <SelectValue placeholder={loadingTechnicians ? "Loading..." : "Select technician"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px] overflow-y-auto">
                     {technicians.map((t) => (
@@ -322,7 +321,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               )}
             </div>
 
-            {/* Campaign */}
             <div className="col-span-2 space-y-2 border-t pt-3">
               <label className="text-sm font-medium">Campaign (if available)</label>
               {campaignFound ? (
