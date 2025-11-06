@@ -1,4 +1,3 @@
-// <<< BEGIN EVMStaffDetailWarranty.jsx (UPDATED - IMAGE OUTSIDE FORM) >>>
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,10 +9,10 @@ import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 import { Folder, X } from "lucide-react";
 
-// 🔹 API CONFIG
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   PARTS: "/api/parts",
+  PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
   VEHICLES: "/api/vehicles",
   CLAIM_PART_CHECK_SEARCH: (claimId) => `/api/claim-part-check/search/warranty/${claimId}`,
   CLAIM_PART_CHECK_UPDATE: (claimId, partNumber) =>
@@ -40,7 +39,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
   const claimId = warranty?.claimId;
 
-  // 🔸 Load data
   useEffect(() => {
     if (open) {
       setComment("");
@@ -50,14 +48,14 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       setImagesModalOpen(false);
       setFullscreenImage(null);
     }
-    
+
     const loadAll = async () => {
       if (!claimId) return;
       try {
-        const [claimRes, checkRes, partsRes, vehiclesRes, filesRes] = await Promise.all([
+        const [claimRes, checkRes, underPartRes, vehiclesRes, filesRes] = await Promise.all([
           axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
           axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
-          axiosPrivate.get(API_ENDPOINTS.PARTS),
+          axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
           axiosPrivate.get(API_ENDPOINTS.VEHICLES),
           axiosPrivate.get(API_ENDPOINTS.WARRANTY_FILES(claimId)),
         ]);
@@ -67,17 +65,19 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         if (claimData?.evmDescription) setComment(claimData.evmDescription);
 
         const checks = Array.isArray(checkRes?.data) ? checkRes.data : [];
-        const partsList = Array.isArray(partsRes?.data)
-          ? partsRes.data.filter((p) => p?.warehouse?.whId === 1)
-          : [];
+        const underParts = Array.isArray(underPartRes?.data) ? underPartRes.data : [];
 
         const repairChecks = checks.filter((c) => c.isRepair === true);
+
         const merged = repairChecks.map((c) => {
-          const found = partsList.find((p) => p.partNumber === c.partNumber);
+          const found = underParts.find((p) => p.partId === c.partNumber);
           return {
             ...c,
-            namePart: found?.namePart || c.partNumber,
+            namePart: found?.partName || c.partNumber,
             price: found?.price ?? 0,
+            vehicleModel: found?.vehicleModel || "",
+            description: found?.description || "",
+            brand: found?.partBrand || "",
           };
         });
         setMergedParts(merged);
@@ -98,6 +98,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         console.error("[EVMDetail] Fetch error:", err?.response || err);
       }
     };
+
     if (open) loadAll();
   }, [claimId, open, warranty]);
 
@@ -190,6 +191,47 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       }
 
       if (approvedIndexes.length > 0) {
+        const centerMatch = claimId.match(/WC-(\d+)-/);
+        const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+
+        const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
+
+        for (const idx of approvedIndexes) {
+          const part = mergedParts[idx];
+          const foundPart = allParts.find((p) => p.partNumber === part.partNumber);
+
+          if (!foundPart) {
+            console.warn(`[EVMDetail] ❗ Không tìm thấy part ${part.partNumber} trong kho`);
+            continue;
+          }
+
+          const warehouse = foundPart.warehouse;
+          if (!warehouse) continue;
+
+          if (centerId && warehouse.whId !== centerId) {
+            console.warn(`[EVMDetail] ❗ Bỏ qua ${part.partNumber} — không thuộc centerId ${centerId}`);
+            continue;
+          }
+
+          const newQty = Math.max((foundPart.quantity || 0) - (part.quantity || 0), 0);
+
+          const updateBody = {
+            partNumber: foundPart.partNumber,
+            namePart: foundPart.namePart || part.namePart,
+            quantity: newQty,
+            price: foundPart.price || part.price || 0,
+            whId: warehouse.whId,
+          };
+
+          try {
+            await axiosPrivate.put(`/api/parts/${encodeURIComponent(foundPart.partNumber)}`, updateBody);
+            console.log(`[EVMDetail] Đã trừ ${part.quantity} ${part.partNumber} trong kho ${warehouse.name}`);
+          } catch (err) {
+            console.error(`[EVMDetail] Lỗi cập nhật kho cho ${part.partNumber}:`, err?.response || err);
+          }
+        }
+
         await axiosPrivate.post(
           `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
             evmId
@@ -206,7 +248,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       onOpenChange(false);
       window.location.reload();
     } catch (err) {
-      console.error("[EVMDetail] ❌ Done failed:", err?.response || err);
+      console.error("[EVMDetail] Done failed:", err?.response || err);
+      alert("Hoàn tất xử lý thất bại. Vui lòng kiểm tra console.");
     }
   };
 
@@ -311,7 +354,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         <p className="font-semibold text-base">
                           {part.namePart || part.partNumber}
                         </p>
-                        <p className="text-sm text-muted-foreground">Qty: {part.quantity}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Qty: {part.quantity} | Model: {part.vehicleModel}
+                        </p>
                         <p className="text-base font-semibold text-primary">
                           {formatCurrency(part.price)}
                         </p>
@@ -345,7 +390,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               </div>
             </div>
 
-            {/* 🔹 Attached Images */}
+            {/* Images */}
             {warrantyFiles.length > 0 && (
               <div>
                 <Separator className="my-4" />
@@ -363,15 +408,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                   <div className="flex flex-col">
                     <span className="font-medium">{claimId || "Claim images"}</span>
                     <span className="text-sm text-muted-foreground">
-                      {warrantyFiles.reduce(
-                        (acc, f) => acc + (f.mediaUrls?.length || 0),
-                        0
-                      )}{" "}
-                      image(s)
+                      {warrantyFiles.reduce((acc, f) => acc + (f.mediaUrls?.length || 0), 0)} image(s)
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">
-                      Click to view images
-                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">Click to view images</span>
                   </div>
                 </div>
               </div>
@@ -403,7 +442,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             </div>
           </div>
 
-          {/* 🔹 Claim Images Viewer — tách khỏi form */}
+          {/* Image viewer */}
           {imagesModalOpen && (
             <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
               <Button
@@ -435,37 +474,33 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               </div>
             </div>
           )}
-
         </DialogContent>
       </Dialog>
 
       {fullscreenImage &&
-      createPortal(
+        createPortal(
           <div
-              className="fixed inset-0 z-[10000] bg-black/95 flex items-center justify-center"
-              onClick={(e) => {
-                  if (e.target === e.currentTarget) setFullscreenImage(null);
-              }}
+            className="fixed inset-0 z-[10000] bg-black/95 flex items-center justify-center"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setFullscreenImage(null);
+            }}
           >
-              <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                      setFullscreenImage(null);
-                  }}
-                  className="absolute top-4 right-4 text-white z-[99999] p-2 w-10 h-10 hover:bg-white/20"
-              >
-                  <X className="w-6 h-6" />
-              </Button>
-              <img
-                  src={fullscreenImage}
-                  alt="fullscreen"
-                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-lg pointer-events-none" 
-              />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-4 right-4 text-white z-[99999] p-2 w-10 h-10 hover:bg-white/20"
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            <img
+              src={fullscreenImage}
+              alt="fullscreen"
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-lg pointer-events-none"
+            />
           </div>,
           document.body
-      )}
+        )}
     </>
   );
 }
-// <<< END EVMStaffDetailWarranty.jsx >>>
