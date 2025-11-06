@@ -1,6 +1,6 @@
 // FE/src/components/evmstaff/EVMStaffDetailCampaign.jsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,31 @@ import { AlertCircle, Loader2, Download } from "lucide-react"; // [CẬP NHẬT]
 import axiosPrivate from "@/api/axios";
 
 // [CẬP NHẬT] Endpoint API
-const REPORTS_URL = "/api/campaign-reports";
+const REPORTS_URL = "/api/campaign-reports/campaign";
+const SERVICE_CENTER_URL = "/api/service-centers";
+
+const initialState = {
+  status: "idle", // 'idle', 'loading', 'success', 'error'
+  reports: [],
+  error: null,
+};
+
+const dataFetchReducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, status: "loading", error: null, reports: [] }; // Reset reports khi fetch
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        status: "success",
+        reports: action.payload.reports,
+      };
+    case "FETCH_ERROR":
+      return { ...state, status: "error", error: action.payload };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+};
 
 export default function EVMStaffDetailCampaign({
   open,
@@ -31,33 +55,39 @@ export default function EVMStaffDetailCampaign({
   campaign,
 }) {
   // State để quản lý việc tải và hiển thị báo cáo
-  const [reports, setReports] = useState([]);
-  const [isLoadingReports, setIsLoadingReports] = useState(false);
-  const [reportsError, setReportsError] = useState(null);
+  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
+  const { status, serviceCenter, reports, error } = state;
 
   // Logic tải báo cáo khi dialog mở
+  const fetchReports = useCallback(async (campaignId) => {
+    dispatch({ type: "FETCH_START" });
+    try {
+      const reportResponse = await axiosPrivate.get(
+        `${REPORTS_URL}/${campaignId}`
+      );
+      const vehicleResponse = await axiosPrivate.get(`${SERVICE_CENTER_URL}`);
+
+      dispatch({
+        type: "FETCH_SUCCESS",
+        payload: {
+          reports: reportResponse.data,
+          serviceCenter: vehicleResponse.data,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to fetch reports:", err);
+      dispatch({
+        type: "FETCH_ERROR",
+        payload: "Could not load reports from service centers.",
+      });
+    }
+  }, []); // Chạy lại mỗi khi dialog mở hoặc 'campaign' thay đổi
+
   useEffect(() => {
     if (open && campaign) {
-      async function fetchReports() {
-        setIsLoadingReports(true);
-        setReportsError(null);
-        setReports([]);
-        try {
-          // Gọi API để lấy tất cả báo cáo cho campaignId này
-          const response = await axiosPrivate.get(REPORTS_URL, {
-            params: { campaignId: campaign.campaignId },
-          });
-          setReports(response.data);
-        } catch (err) {
-          console.error("Failed to fetch reports:", err);
-          setReportsError("Could not load reports from service centers.");
-        } finally {
-          setIsLoadingReports(false);
-        }
-      }
-      fetchReports();
+      fetchReports(campaign.campaignId);
     }
-  }, [open, campaign]); // Chạy lại mỗi khi dialog mở hoặc 'campaign' thay đổi
+  }, [open, campaign, fetchReports]);
 
   if (!campaign) return null;
 
@@ -78,7 +108,7 @@ export default function EVMStaffDetailCampaign({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         {/* Tăng chiều rộng để chứa bảng */}
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               Campaign Detail
@@ -115,11 +145,11 @@ export default function EVMStaffDetailCampaign({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Affected Model (Total)</Label>
-                <div className="mt-1">{campaign.affectedVehicles}</div>
+                <div className="mt-1">{campaign.affectedVehicles || 0}</div>
               </div>
               <div>
                 <Label>Completed Model (Total)</Label>
-                <div className="mt-1">{campaign.completedVehicles}</div>
+                <div className="mt-1">{campaign.completedVehicles || 0}</div>
               </div>
             </div>
             <div>
@@ -143,22 +173,21 @@ export default function EVMStaffDetailCampaign({
             </h4>
 
             {/* Trạng thái tải */}
-            {isLoadingReports && (
+            {status === "loading" && (
               <div className="flex justify-center items-center h-24">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             )}
 
-            {/* Trạng thái lỗi */}
-            {reportsError && (
+            {status === "error" && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{reportsError}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {/* Trạng thái không có dữ liệu */}
-            {!isLoadingReports && !reportsError && reports.length === 0 && (
+            {status === "success" && reports.length === 0 && (
               <p className="text-sm text-muted-foreground text-center">
                 No PDF reports submitted from service centers for this campaign
                 yet.
@@ -166,7 +195,7 @@ export default function EVMStaffDetailCampaign({
             )}
 
             {/* Bảng dữ liệu PDF */}
-            {!isLoadingReports && !reportsError && reports.length > 0 && (
+            {status === "success" && reports.length > 0 && (
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -174,7 +203,7 @@ export default function EVMStaffDetailCampaign({
                       <TableHead>Service Center</TableHead>
                       <TableHead>File Name</TableHead>
                       <TableHead>Date Submitted</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -182,7 +211,7 @@ export default function EVMStaffDetailCampaign({
                       <TableRow key={report.reportId}>
                         <TableCell className="font-medium">
                           {/* Giả định API trả về 'serviceCenter.name' */}
-                          {report.serviceCenter?.name ||
+                          {report.serviceCenterId.centerName ||
                             `Center ID: ${report.serviceCenterId}`}
                         </TableCell>
                         <TableCell>
@@ -192,19 +221,19 @@ export default function EVMStaffDetailCampaign({
                         <TableCell>
                           {new Date(report.submittedAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center ">
                           <Button
                             asChild // Dùng asChild
                             variant="outline"
                             size="sm"
                           >
                             <a
-                              href={report.reportFileUrl} // Link đến file
+                              href={report.reportFileUrls} // Link đến file
                               target="_blank" // Mở tab mới
                               rel="noopener noreferrer"
                               download={report.originalFileName} // Gợi ý tên file khi tải
                             >
-                              <Download className="w-4 h-4 mr-2" />
+                              <Download className="w-4 h-4" />
                               Download
                             </a>
                           </Button>
