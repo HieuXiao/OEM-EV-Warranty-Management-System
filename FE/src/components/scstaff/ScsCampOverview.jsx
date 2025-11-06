@@ -38,11 +38,13 @@ import axiosPrivate from "@/api/axios";
 const CAMPAIGN_URL = "/api/campaigns/all";
 const VEHICLE_URL = "/api/vehicles";
 const APPOINTMENT_URL = "/api/service-appointments";
+const ACCOUNT_URL = "/api/accounts/current";
 
 const initialState = {
   status: "idle", // 'idle', 'loading', 'success', 'error'
   campaigns: [],
   vehicles: [], // Vẫn giữ nếu bạn cần dùng ở nơi khác
+  currentAccount: null,
   error: null,
 };
 
@@ -98,13 +100,19 @@ export default function SCStaffCampaignSummary() {
   const fetchAllData = useCallback(async () => {
     dispatch({ type: "FETCH_START" });
     try {
-      const [campaignResponse, vehicleResponse, appointmentResponse] =
-        await Promise.all([
-          axiosPrivate.get(CAMPAIGN_URL),
-          axiosPrivate.get(VEHICLE_URL),
-          axiosPrivate.get(APPOINTMENT_URL),
-        ]);
+      const [
+        accountRes,
+        campaignResponse,
+        vehicleResponse,
+        appointmentResponse,
+      ] = await Promise.all([
+        axiosPrivate.get(ACCOUNT_URL),
+        axiosPrivate.get(CAMPAIGN_URL),
+        axiosPrivate.get(VEHICLE_URL),
+        axiosPrivate.get(APPOINTMENT_URL),
+      ]);
 
+      const currentAccount = accountRes.data;
       const rawCampaigns = campaignResponse.data;
       const allVehicles = vehicleResponse.data;
       const allAppointments = appointmentResponse.data;
@@ -118,15 +126,20 @@ export default function SCStaffCampaignSummary() {
 
         // Tính Affected Vehicles
         const campaignModelSet = new Set(campaign.model);
-        const affectedVehiclesCount = allVehicles.filter((vehicle) =>
-          campaignModelSet.has(vehicle.model)
+        const affectedVehiclesCount = allVehicles.filter(
+          (vehicle) =>
+            campaignModelSet.has(vehicle.model) &&
+            vehicle.customer.serviceCenter?.centerId ===
+              currentAccount.serviceCenter?.centerId
         ).length;
 
         // Tính Completed Vehicles (Giả định)
         const completedVehiclesCount = allAppointments.filter(
           (app) =>
             app.campaign.campaignId === campaign.campaignId &&
-            app.status === "Completed"
+            app.status === "Completed" &&
+            app.vehicle.customer.serviceCenter?.centerId ===
+              currentAccount.serviceCenter?.centerId
         ).length;
 
         return {
@@ -141,7 +154,8 @@ export default function SCStaffCampaignSummary() {
         type: "FETCH_SUCCESS",
         payload: {
           campaigns: transformedData,
-          vehicles: allVehicles, // Lưu nếu cần
+          vehicles: allVehicles,
+          currentAccount, // Lưu nếu cần
         },
       });
     } catch (err) {

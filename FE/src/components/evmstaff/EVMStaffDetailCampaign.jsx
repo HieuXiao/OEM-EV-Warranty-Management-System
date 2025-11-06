@@ -145,11 +145,11 @@ export default function EVMStaffDetailCampaign({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Affected Model (Total)</Label>
-                <div className="mt-1">{campaign.affectedVehicles}</div>
+                <div className="mt-1">{campaign.affectedVehicles || 0}</div>
               </div>
               <div>
                 <Label>Completed Model (Total)</Label>
-                <div className="mt-1">{campaign.completedVehicles}</div>
+                <div className="mt-1">{campaign.completedVehicles || 0}</div>
               </div>
             </div>
             <div>

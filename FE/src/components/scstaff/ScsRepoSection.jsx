@@ -163,6 +163,11 @@ export default function ScsReportSection() {
     const apptStatsMap = new Map();
     for (const appt of myAppointments) {
       if (!appt.campaign) continue;
+      if (
+        appt.vehicle.customer.serviceCenter?.centerId !==
+        currentAccount.serviceCenter?.centerId
+      )
+        continue;
       const campaignId = appt.campaign.campaignId;
       if (!apptStatsMap.has(campaignId)) {
         apptStatsMap.set(campaignId, { affected: new Set(), completed: 0 });
@@ -245,9 +250,11 @@ export default function ScsReportSection() {
                     <TableRow>
                       <TableHead>Campaign</TableHead>
                       <TableHead>Campaign Status</TableHead>
-                      <TableHead>Your Stats (Comp/Aff)</TableHead>
-                      <TableHead>Report Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-center">Comp/Aff</TableHead>
+                      <TableHead className="text-center">
+                        Report Status
+                      </TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -264,13 +271,13 @@ export default function ScsReportSection() {
                             {campaign.campaignStatus.toUpperCase()}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <span className="font-semibold">
                             {campaign.scStats.completedVehicles} /{" "}
                             {campaign.scStats.affectedVehicles}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge
                             variant={
                               campaign.reportStatus === "Submitted"
@@ -281,7 +288,7 @@ export default function ScsReportSection() {
                             {campaign.reportStatus}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           {campaign.reportStatus === "Submitted" ? (
                             <Button
                               asChild // Dùng asChild để Button hoạt động như Link
@@ -304,6 +311,7 @@ export default function ScsReportSection() {
                               variant="default"
                               size="sm"
                               onClick={() => handleSubmitClick(campaign)}
+                              disabled={campaign.campaignStatus !== "completed"}
                             >
                               <Send className="w-4 h-4 mr-2" />
                               Submit Report
