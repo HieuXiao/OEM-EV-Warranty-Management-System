@@ -42,7 +42,6 @@ export default function EVMStaffWarehouse() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   
-  // 💡 STATE MỚI: Lưu ID kho hàng cần chuyển đến sau khi load lại data
   const [warehouseToRedirect, setWarehouseToRedirect] = useState(null);
 
   // === DATA FETCHING ===
@@ -65,27 +64,39 @@ export default function EVMStaffWarehouse() {
         ]);
         
         const newWarehouses = warehousesRes.data;
+        const newParts = partsRes.data;
+        
         setWarehouses(newWarehouses);
-        setParts(partsRes.data);
+        setParts(newParts);
         setPartCatalog(partCatalogRes.data);
 
-        // 💡 LOGIC: Sau khi fetch data mới, kiểm tra và cập nhật giao diện
+        const partsByWarehouseId = newParts.reduce((map, part) => {
+            const whId = part.warehouse?.whId;
+            if (whId) {
+                if (!map[whId]) map[whId] = [];
+                map[whId].push(part);
+            }
+            return map;
+        }, {});
+        
+        const completeWarehouses = newWarehouses.map(warehouse => ({
+            ...warehouse,
+            parts: partsByWarehouseId[warehouse.whId] || [],
+        }));
+
         if (warehouseToRedirect) {
-            // Trường hợp 1: Có yêu cầu chuyển hướng/cập nhật từ Receive Stock Modal
-            const targetWarehouse = newWarehouses.find(wh => wh.whId === warehouseToRedirect);
+            const targetWarehouse = completeWarehouses.find(wh => wh.whId === warehouseToRedirect); 
             if (targetWarehouse) {
                 setSelectedWarehouse(targetWarehouse);
-                setShowDetailModal(true); // Đảm bảo hiển thị trang chi tiết
+                setShowDetailModal(true); 
             }
-            setWarehouseToRedirect(null); // Reset state sau khi xử lý
-        } else if (selectedWarehouse) {
-            // Trường hợp 2: Đang ở trang chi tiết, chỉ cần cập nhật data mới cho kho hàng đó
-            const updatedWarehouse = newWarehouses.find(wh => wh.whId === selectedWarehouse.whId);
+            setWarehouseToRedirect(null);
+        }
+        else if (selectedWarehouse) {
+            const updatedWarehouse = completeWarehouses.find(wh => wh.whId === selectedWarehouse.whId); 
             if (updatedWarehouse) {
-                // Cập nhật selectedWarehouse với dữ liệu mới nhất
                 setSelectedWarehouse(updatedWarehouse); 
             } else {
-                // Trường hợp kho hàng bị xóa
                 handleBackToWarehouseList();
             }
         }
@@ -103,36 +114,28 @@ export default function EVMStaffWarehouse() {
       }
     };
     fetchData();
-  }, [auth.token, refreshKey]); // Chỉ chạy khi token hoặc refreshKey thay đổi
+  }, [auth.token, refreshKey, warehouseToRedirect]); 
 
   // === UI STATE MANAGEMENT ===
 
-  // 💡 CẬP NHẬT: Xử lý thành công từ cả Modal lớn (EvmWareReceive) và Modal nhỏ (EvmWareDetailReceive)
   const handleReceiveSuccess = (whIdFromModal = null) => {
-    // 1. Đóng Modal lớn nếu nó đang mở
     setShowReceiveStockModal(false);
 
-    // 2. Xác định ID kho hàng cần chuyển hướng/cập nhật
-    // Ưu tiên ID được trả về từ Modal lớn (vì nó không biết detail page đang mở hay không)
-    // Sau đó là ID của kho hàng đang được chọn trên detail page
     const targetWhId = whIdFromModal || selectedWarehouse?.whId;
     
-    // 3. Kích hoạt refresh data
     refreshData();
 
-    // 4. Nếu có ID kho hàng, set state chuyển hướng (sẽ được xử lý trong useEffect sau khi data mới về)
     if (targetWhId) {
         setWarehouseToRedirect(targetWhId);
     }
   };
 
-  // Xử lý click trên hàng: Chuyển sang trang chi tiết
   const handleWarehouseRowClick = (warehouse) => {
     setSelectedWarehouse(warehouse);
     setShowDetailModal(true);
   };
 
-  // Xử lý nút Back trên trang chi tiết: Quay lại trang danh sách
+  
   const handleBackToWarehouseList = () => {
     setSelectedWarehouse(null);
     setShowDetailModal(false);
@@ -152,7 +155,7 @@ export default function EVMStaffWarehouse() {
               warehouse={selectedWarehouse}
               partCatalog={partCatalog}
               onBack={handleBackToWarehouseList}
-              onReceiveSuccess={handleReceiveSuccess} // Hàm này sẽ kích hoạt việc refresh và update selectedWarehouse
+              onReceiveSuccess={handleReceiveSuccess} 
             />
           ) : (
             // 💡 HIỂN THỊ TRANG DANH SÁCH (Mặc định)
@@ -170,10 +173,11 @@ export default function EVMStaffWarehouse() {
                   <span>Receive Stock</span>
                 </Button>
               </div>
-              {/* Data Table */}
+              {/* Data Table (Đã thêm prop partCatalog) */}
               <EvmWareTable
                 warehouses={warehouses}
                 parts={parts}
+                partCatalog={partCatalog}
                 loading={loading}
                 onRowClick={handleWarehouseRowClick}
               />
@@ -197,7 +201,7 @@ export default function EVMStaffWarehouse() {
             warehouses={warehouses}
             partCatalog={partCatalog}
             partsInventory={parts}
-            // 💡 CẬP NHẬT: Truyền whId của kho hàng vừa nhận vào hàm onSuccess
+            
             onSuccess={(whId) => handleReceiveSuccess(whId)} 
             onClose={() => setShowReceiveStockModal(false)}
           />

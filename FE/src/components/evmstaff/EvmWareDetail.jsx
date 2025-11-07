@@ -1,6 +1,5 @@
 // FE/src/components/evmstaff/EvmWareDetail.jsx
 
-// === IMPORTS ===
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,22 +40,12 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-/**
- * EvmWareDetail Component
- * Renders the dedicated page for warehouse details and inventory.
- *
- * @param {Object} warehouse - The selected warehouse object.
- * @param {Object[]} partCatalog - The complete list of all parts.
- * @param {function} onBack - Function to return to the main warehouse list page.
- * @param {function} onReceiveSuccess - Function to call on successful stock update (refreshes data on parent).
- */
 export default function EvmWareDetail({
   warehouse,
   partCatalog,
   onBack,
   onReceiveSuccess,
 }) {
-  // Kiểm tra xem warehouse có tồn tại không
   if (!warehouse) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -77,14 +66,37 @@ export default function EvmWareDetail({
   const [showMiniReceive, setShowMiniReceive] = useState(false);
   const [selectedPart, setSelectedPart] = useState(null);
 
+  const { priceMap, partsWithCorrectPrice } = useMemo(() => {
+    const pMap = {};
+    if (partCatalog) {
+      for (const part of partCatalog) {
+        pMap[part.partId] = parseFloat(part.price) || 0;
+      }
+    }
+
+    const partsCorrected = (warehouse?.parts || []).map(part => {
+        const correctPrice = pMap[part.partNumber] || 0;
+        return {
+            ...part,
+            price: correctPrice,
+            totalValue: part.quantity * correctPrice
+        };
+    });
+
+    return {
+        priceMap: pMap,
+        partsWithCorrectPrice: partsCorrected
+    };
+  }, [warehouse, partCatalog]);
+
   // === FILTERING & PAGINATION LOGIC ===
   const filteredParts = useMemo(() => {
-    return (warehouse?.parts || []).filter(
+    return partsWithCorrectPrice.filter(
       (part) =>
-        part.namePart?.toLowerCase().includes(searchTerm.toLowerCase()) || // Thêm check null/undefined
-        part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase()) // Thêm check null/undefined
+        part.namePart?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase()) 
     );
-  }, [warehouse, searchTerm]);
+  }, [partsWithCorrectPrice, searchTerm]);
 
   const totalPages = Math.ceil(filteredParts.length / ROWS_PER_PAGE);
   const safeCurrentPage = Math.min(currentPage, totalPages || 1);
@@ -103,15 +115,13 @@ export default function EvmWareDetail({
 
   // === MINI-MODAL HANDLERS ===
   const handleOpenMiniReceive = (part) => {
-    setSelectedPart(part);
+    setSelectedPart(part); 
     setShowMiniReceive(true);
   };
 
-  // Khi receive thành công, đóng mini-modal và gọi refresh data (từ EVMStaffWarehouse)
   const handleMiniReceiveSuccess = () => {
     setShowMiniReceive(false);
-    // Hàm này gọi onReceiveSuccess() từ component cha để trigger load lại data
-    onReceiveSuccess();
+    onReceiveSuccess(); 
   };
 
   // === RENDER ===
@@ -145,7 +155,7 @@ export default function EvmWareDetail({
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
+                setCurrentPage(1);
               }}
               className="pl-10"
             />
@@ -185,7 +195,7 @@ export default function EvmWareDetail({
                         {formatCurrency(part.price)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(part.quantity * part.price)}
+                        {formatCurrency(part.totalValue)} 
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
