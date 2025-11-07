@@ -1,4 +1,5 @@
-// === IMPORTS ===
+// FE/src/components/evmstaff/EvmWareDetaReceive.jsx
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,19 +11,9 @@ import useAuth from "@/hook/useAuth"
 import axios from "axios"
 
 // === CONSTANTS ===
-const UPDATE_PART_API_URL = "/api/parts"
+const ADD_QUANTITY_API_URL = "/api/repair-parts/add-quantity"; 
 
-/**
- * EvmWareDetaReceive Component
- * A form component rendered inside a modal to receive stock for a *specific* part.
- *
- * @param {Object} part - The selected part from the detail table (contains partNumber, namePart, quantity).
- * @param {Object} warehouse - The current warehouse object.
- * @param {Object[]} partCatalog - The complete list of all parts (for finding part details like price).
- * @param {function} onSuccess - Function to call on successful stock update.
- * @param {function} onClose - Function to close this modal.
- */
-export default function EvmWareDetaReceive({ part, warehouse, partCatalog, onSuccess, onClose }) {
+export default function EvmWareDetailReceive({ part, warehouse, partCatalog, onSuccess, onClose }) {
   const { auth } = useAuth()
 
   // === FORM STATE ===
@@ -52,21 +43,22 @@ export default function EvmWareDetaReceive({ part, warehouse, partCatalog, onSuc
     setIsSubmitting(true)
 
     try {
-      const newTotalQuantity = part.quantity + parseInt(additionalQuantity, 10)
+      // --- Prepare Payload as Query Parameters for PATCH ---
+      const params = {
+        // partNumber là string (partId)
+        partNumber: catalogPart.partId, 
 
-      // Use the same payload structure as EvmWareReceive
-      const payload = {
-        partNumber: catalogPart.partId,
-        namePart: catalogPart.partName,
-        quantity: newTotalQuantity,
-        price: catalogPart.price,
-        warehouse: warehouse, // Pass the full warehouse object
-      }
+        quantity: parseInt(additionalQuantity, 10), 
 
-      // Use the same API endpoint
-      await axios.put(`${UPDATE_PART_API_URL}/${part.partNumber}`, payload, {
+        // warehouseId là integer (whId)
+        warehouseId: warehouse.whId, 
+      };
+
+      await axios.patch(ADD_QUANTITY_API_URL, null, {
+        params: params,
         headers: { Authorization: `Bearer ${auth.token}` },
-      })
+      });
+
 
       // Success!
       onSuccess() // This will close all modals and refresh data
@@ -109,7 +101,7 @@ export default function EvmWareDetaReceive({ part, warehouse, partCatalog, onSuc
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{Error}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </div>

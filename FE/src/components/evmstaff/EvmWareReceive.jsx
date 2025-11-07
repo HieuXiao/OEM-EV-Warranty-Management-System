@@ -1,5 +1,4 @@
 // FE/src/components/evmstaff/EvmWareReceive.jsx
-
 // === IMPORTS ===
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,17 +16,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import useAuth from "@/hook/useAuth";
 import axios from "axios";
 
-// === API ENDPOINT ===
-const UPDATE_PART_API_URL = "/api/parts";
-/**
- * EvmWareReceive Component
- *
- * @param {Object[]} warehouses - List of all available warehouses.
- * @param {Object[]} partCatalog - List of all possible parts (from /api/part-under-warranty-controller).
- * @param {Object[]} partsInventory - List of parts currently in stock (from /api/parts).
- * @param {function} onSuccess - Callback function to run on successful submission.
- * @param {function} onClose - Callback function to close the modal.
- */
+const UPDATE_PART_API_URL = "/api/repair-parts/add-quantity";
+
 export default function EvmWareReceive({
   warehouses,
   partCatalog,
@@ -79,26 +69,20 @@ export default function EvmWareReceive({
     setIsSubmitting(true);
 
     try {
-      // --- Calculate New Quantity ---
-      const newTotalQuantity =
-        currentQuantity + parseInt(additionalQuantity, 10);
-
-      // --- Prepare Payload ---
-      const payload = {
+      const params = {
         partNumber: selectedCatalogPart.partId,
-        namePart: selectedCatalogPart.partName,
-        quantity: newTotalQuantity,
-        price: selectedCatalogPart.price,
-        whId: parseInt(selectedWhId, 10),
+
+        quantity: parseInt(additionalQuantity, 10),
+
+        warehouseId: parseInt(selectedWhId, 10),
       };
 
-      // --- API Call ---
-      await axios.put(`${UPDATE_PART_API_URL}/${selectedPartId}`, payload, {
+      await axios.patch(UPDATE_PART_API_URL, null, {
+        params: params,
         headers: { Authorization: `Bearer ${auth.token}` },
       });
 
-      // --- Success ---
-      onSuccess();
+      onSuccess(parseInt(selectedWhId, 10));
     } catch (err) {
       console.error("Error receiving stock:", err);
       setError(
@@ -149,21 +133,21 @@ export default function EvmWareReceive({
             />
           </SelectTrigger>
           <SelectContent>
-            {/* Hiển thị phụ tùng từ partCatalog */}
             {partCatalog.map((part) => (
               <SelectItem key={part.partId} value={part.partId}>
                 <div className="flex items-center justify-between w-full">
                   <span>
-                    {part.partName} ({part.partId}) 
+                    {part.partName} ({part.partId})
                   </span>
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
       </div>
 
-      {/* --- Quantity Inputs (Conditional) --- */}
+      {/* --- Quantity Inputs --- */}
       {selectedWhId && selectedCatalogPart && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

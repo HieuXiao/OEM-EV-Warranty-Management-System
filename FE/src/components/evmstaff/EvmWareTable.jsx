@@ -1,6 +1,5 @@
 // FE/src/components/evmstaff/EvmWareTable.jsx
 
-// === IMPORTS ===
 import { useState, useMemo } from "react";
 import {
   Card,
@@ -25,17 +24,10 @@ import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 const ROWS_PER_PAGE = 5;
 const MAX_LOW_STOCK_DISPLAY = 3;
 
-/**
- * EvmWareTable Component
- * Displays a paginated table of warehouses with a search feature.
- * @param {Object[]} warehouses - Array of warehouse objects.
- * @param {Object[]} parts - Array of part objects.
- * @param {function} onRowClick - Handler for when a table row is clicked.
- * @param {boolean} loading - Loading state.
- */
 export default function EvmWareTable({
   warehouses,
   parts,
+  partCatalog,
   onRowClick,
   loading,
 }) {
@@ -44,7 +36,19 @@ export default function EvmWareTable({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = ROWS_PER_PAGE;
 
-  // ================== OPTIMIZATION: PRE-GROUPING PARTS (O(P)) ==================
+  // ================== OPTIMIZATION: TẠO MAP GIÁ TỪ CATALOG ==================
+  const priceMap = useMemo(() => {
+    const map = {};
+    if (partCatalog) {
+      for (const part of partCatalog) {
+        const price = parseFloat(part.price) || 0;
+        map[part.partId] = price; 
+      }
+    }
+    return map;
+  }, [partCatalog]);
+
+  // ================== OPTIMIZATION ==================
   const partsByWarehouseId = useMemo(() => {
     const map = {};
     for (const part of parts) {
@@ -61,11 +65,9 @@ export default function EvmWareTable({
 
   // ================== FILTERING & PAGINATION LOGIC ==================
 
-  // Group parts by warehouse (SỬ DỤNG MAP ĐÃ NHÓM ĐỂ CẢI THIỆN TỐC ĐỘ: O(W))
   const warehousesWithParts = useMemo(() => {
     return warehouses.map((warehouse) => ({
       ...warehouse,
-      // Tra cứu trực tiếp trong map thay vì filter toàn bộ mảng parts
       parts: partsByWarehouseId[warehouse.whId] || [],
     }));
   }, [warehouses, partsByWarehouseId]);
@@ -115,15 +117,14 @@ export default function EvmWareTable({
     }).format(amount);
   };
 
-  // Calculate warehouse inventory value
   const calculateWarehouseValue = (warehouseParts = []) =>
-    warehouseParts.reduce((sum, part) => sum + part.quantity * part.price, 0);
+    warehouseParts.reduce((sum, part) => {
+      const partNumber = part.partNumber;
+      const correctPrice = priceMap[partNumber] || 0; 
+      
+      return sum + (part.quantity || 0) * correctPrice;
+    }, 0);
 
-  /**
-   * Generates the low stock alert string, limiting the display to MAX_LOW_STOCK_DISPLAY parts.
-   * @param {Object} warehouse The warehouse object containing the lowPart array.
-   * @returns {{display: string, remainingCount: number, isAlert: boolean}} Structured alert info.
-   */
   const getLowStockAlert = (warehouse) => {
     const lowParts = warehouse.lowPart || [];
     const totalLowParts = lowParts.length;
@@ -142,7 +143,7 @@ export default function EvmWareTable({
 
     if (totalLowParts > MAX_LOW_STOCK_DISPLAY) {
       remainingCount = totalLowParts - MAX_LOW_STOCK_DISPLAY;
-      displayString += `...`; // Thêm dấu ba chấm
+      displayString += `...`;
     }
 
     return {
@@ -155,9 +156,7 @@ export default function EvmWareTable({
   // Get latest update from parts
   const getLatestUpdate = (warehouseParts = []) => {
     if (warehouseParts.length === 0) return new Date(0);
-    // This logic is likely incorrect, but keeping from original file
-    // A better logic would be to find the max date from parts.
-    return new Date();
+    return new Date(); 
   };
 
   // ================== UI RENDERING ==================
@@ -219,7 +218,7 @@ export default function EvmWareTable({
 
                   <TableBody>
                     {displayWarehouses.map((warehouse, i) => {
-                      const lowStockInfo = getLowStockAlert(warehouse); // Lấy thông tin cảnh báo đã được xử lý
+                      const lowStockInfo = getLowStockAlert(warehouse);
                       return (
                         <TableRow
                           key={warehouse.whId}
@@ -245,8 +244,6 @@ export default function EvmWareTable({
                               calculateWarehouseValue(warehouse.parts)
                             )}
                           </TableCell>
-
-                          {/* CỘT LOW STOCK ĐÃ CHỈNH SỬA */}
                           <TableCell
                             className={
                               lowStockInfo.isAlert
@@ -263,7 +260,6 @@ export default function EvmWareTable({
                               )}
                             </div>
                           </TableCell>
-                          {/* KẾT THÚC CỘT LOW STOCK ĐÃ CHỈNH SỬA */}
 
                         </TableRow>
                       );
