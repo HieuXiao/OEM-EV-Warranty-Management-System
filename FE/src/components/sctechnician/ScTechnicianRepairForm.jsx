@@ -9,7 +9,7 @@ const API_ENDPOINTS = {
   CLAIM_PART_CHECK: "/api/claim-part-check/search/warranty",
   ADD_SERIALS: "/api/claim-part-check/add-serials",
   CLAIM_WORKFLOW: "/api/warranty-claims/workflow",
-  PARTS: "/api/parts",
+  PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
   CLAIMS: "/api/warranty-claims",
 };
 
@@ -34,33 +34,38 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
       }
     };
 
-    // Lấy danh sách repair parts
+    // Lấy danh sách repair parts (chỉ từ under_warranty)
     const fetchRepairParts = async () => {
       try {
-        const res = await axiosPrivate.get(
-          `${API_ENDPOINTS.CLAIM_PART_CHECK}/${job.claimId}`
-        );
-        const claimParts = Array.isArray(res.data) ? res.data : [];
+        const [checkRes, underWarrantyRes] = await Promise.all([
+          axiosPrivate.get(`${API_ENDPOINTS.CLAIM_PART_CHECK}/${job.claimId}`),
+          axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
+        ]);
 
-        // lọc part có repair:true
+        const claimParts = Array.isArray(checkRes.data) ? checkRes.data : [];
         const repairList = claimParts.filter((p) => p.isRepair === true);
+
         if (repairList.length === 0) {
           setRepairParts([]);
           return;
         }
 
-        // lấy thêm partName từ /api/parts
-        const partRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
-        const allParts = Array.isArray(partRes.data) ? partRes.data : [];
+        const underWarrantyParts = Array.isArray(underWarrantyRes.data)
+          ? underWarrantyRes.data
+          : [];
 
+        // Gộp namePart, price, brand, model từ under_warranty
         const merged = repairList.map((p) => {
-          const found = allParts.find(
-            (x) =>
-              x.partNumber?.toUpperCase() === p.partNumber?.toUpperCase()
+          const found = underWarrantyParts.find(
+            (u) => u.partId?.toUpperCase() === p.partNumber?.toUpperCase()
           );
           return {
             ...p,
-            partName: found?.namePart || found?.partName || p.partNumber,
+            partName: found?.partName || p.partNumber,
+            price: found?.price ?? 0,
+            brand: found?.partBrand || "",
+            vehicleModel: found?.vehicleModel || "",
+            description: found?.description || "",
           };
         });
 
@@ -96,7 +101,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         job?.technicianId;
 
       if (!technicianId) {
-        alert(" Không tìm thấy technicianId hợp lệ để cập nhật workflow!");
+        alert("Không tìm thấy technicianId hợp lệ để cập nhật workflow!");
         setLoading(false);
         return;
       }
@@ -108,7 +113,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         );
         if (serials.length < part.quantity) {
           alert(
-            ` Part "${part.partName}" cần nhập đủ ${part.quantity} serial number.`
+            `Part "${part.partName}" cần nhập đủ ${part.quantity} serial number.`
           );
           setLoading(false);
           return;
@@ -136,7 +141,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
     } catch (e) {
       console.error("[RepairForm] Complete Repair failed:", e);
       alert(
-        ` Lỗi khi hoàn tất Repair.\n${
+        `Lỗi khi hoàn tất Repair.\n${
           e.response?.status ? `Mã lỗi: ${e.response.status}` : ""
         }`
       );
