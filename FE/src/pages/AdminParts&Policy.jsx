@@ -10,6 +10,7 @@ import PartsTable from "@/components/admin/AdPartTable"
 import PartDetailPage from "@/components/admin/AdPartDetailPage"
 import PolicyEditModal from "@/components/admin/AdPoliEdit"
 import CreatePartForm from "@/components/admin/AdPartCreate"
+import CreatePolicyForm from "@/components/admin/AdPoliCreate" 
 import useAuth from "@/hook/useAuth"
 import axios from "axios"
 
@@ -17,6 +18,10 @@ import axios from "axios"
 const PARTS_API_URL = "/api/part-under-warranty-controller"
 const POLICIES_API_URL = "/api/policies"
 
+/**
+ * @component
+ * @description Main administrative page for viewing and managing Parts and their associated Policies.
+ */
 export default function AdminPartsPolicy() {
   const { auth } = useAuth()
 
@@ -31,8 +36,14 @@ export default function AdminPartsPolicy() {
   const [policyToEdit, setPolicyToEdit] = useState(null)
   const [showEditPolicy, setShowEditPolicy] = useState(false)
   const [activePoliciesCount, setActivePoliciesCount] = useState(0)
+  const [showCreatePolicy, setShowCreatePolicy] = useState(false)
 
-  // Function to fetch data from API
+
+  /**
+     * @function fetchPartsAndPolicies
+     * @description Fetches the latest list of parts and policies from their respective APIs.
+     * Uses useCallback to memoize the function.
+     */
   const fetchPartsAndPolicies = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -58,16 +69,61 @@ export default function AdminPartsPolicy() {
     fetchPartsAndPolicies()
   }, [fetchPartsAndPolicies])
 
-  // Handle page transition to detail view
+  /**
+     * @function handlePartRowClick
+     * @param {Object} part - The part object selected from the table.
+     * @description Sets the selected part to view its details.
+     */
   const handlePartRowClick = (part) => {
     setSelectedPart(part)
   }
 
+  /**
+     * @function handleBackToPartsList
+     * @description Clears the selected part state to return to the list view.
+     */
   const handleBackToPartsList = () => {
     setSelectedPart(null)
   }
 
-  // === CRUD API Handlers ===
+  /**
+     * @function handleAddPolicyClick
+     * @param {string} partId - The ID of the part to which the new policy will be added.
+     * @description Sets the selected part context and opens the Create Policy modal.
+     */
+  const handleAddPolicyClick = (partId) => {
+    if (partId) {
+        setSelectedPart(parts.find(p => p.partId === partId));
+    }
+    setShowCreatePolicy(true);
+  };
+  
+  /**
+     * @function handleAddPolicy
+     * @param {Object} policyData - The data for the new policy to be created.
+     * @description Sends a POST request to create a new policy and refreshes the data.
+     */
+  const handleAddPolicy = async (policyData) => {
+    try {
+      await axios.post(POLICIES_API_URL, policyData, { 
+        headers: { Authorization: `Bearer ${auth.token}` } 
+      });
+      await fetchPartsAndPolicies();
+      setShowCreatePolicy(false);
+      alert("Policy created successfully!");
+    } catch (err) {
+      console.error("Error creating policy:", err);
+      alert("Failed to create policy. Check API response.");
+      throw err;
+    }
+  };
+
+
+  /**
+     * @function handleAddPart
+     * @param {Object} data - Contains partData and policyData for creation.
+     * @description Handles the transactional creation of a new part followed by its initial policy.
+     */
   const handleAddPart = async ({ partData, policyData }) => {
     let createdPart = null
     try {
@@ -95,6 +151,11 @@ export default function AdminPartsPolicy() {
     }
   }
 
+  /**
+     * @function handleUpdatePart
+     * @param {Object} updatedPart - The part data with changes.
+     * @description Sends a PUT request to update an existing part.
+     */
   const handleUpdatePart = async (updatedPart) => {
     try {
       await axios.put(`${PARTS_API_URL}/${updatedPart.partId}`, updatedPart, {
@@ -108,22 +169,19 @@ export default function AdminPartsPolicy() {
     }
   }
 
-  const handleDeletePart = async (partId) => {
-    if (!window.confirm("Are you sure you want to delete this part?")) return
-    try {
-      await axios.delete(`${PARTS_API_URL}/${partId}`, { headers: { Authorization: `Bearer ${auth.token}` } })
-      await fetchPartsAndPolicies()
-      handleBackToPartsList()
-    } catch (error) {
-      console.error("Failed to delete part:", error)
-      alert("Failed to delete part.")
-    }
-  }
-
+  /**
+     * @function handlePolicyEditClick
+     * @param {Object} policy - The policy object to be edited.
+     * @description Sets the policy to edit and calculates the count of other active policies for validation.
+     */
   const handlePolicyEditClick = (policy) => {
-    // Count currently active policies for the part (excluding the one being edited)
+    const partIdToFilter = policy.partUnderWarranty?.partId || '';
+
     const count = policies.filter(
-      (p) => p.partId === policy.partId && p.enabled && p.policyId !== policy.policyId,
+      (p) => 
+        p.partUnderWarranty?.partId === partIdToFilter &&
+        p.isEnable && 
+        p.policyId !== policy.policyId,
     ).length
 
     setActivePoliciesCount(count)
@@ -131,6 +189,11 @@ export default function AdminPartsPolicy() {
     setShowEditPolicy(true)
   }
 
+  /**
+     * @function handleUpdatePolicy
+     * @param {Object} updatedPolicy - The policy data with changes.
+     * @description Sends a PUT request to update an existing policy and refreshes the data.
+     */
   const handleUpdatePolicy = async (updatedPolicy) => {
     try {
       await axios.put(`${POLICIES_API_URL}/${updatedPolicy.policyId}`, updatedPolicy, {
@@ -141,7 +204,6 @@ export default function AdminPartsPolicy() {
       setShowEditPolicy(false)
       setPolicyToEdit(null)
       if (selectedPart && selectedPart.partId === updatedPolicy.partId) {
-        // Force re-render/update detail view if the part is currently selected
         setSelectedPart({ ...selectedPart })
       }
     } catch (error) {
@@ -162,11 +224,12 @@ export default function AdminPartsPolicy() {
               // 1. Display Detail Page
               <PartDetailPage
                 part={selectedPart}
-                onBack={handleBackToPartsList} 
+                onBack={handleBackToPartsList} 
                 onUpdate={handleUpdatePart}
-                onDelete={handleDeletePart}
-                partPolicies={policies.filter((p) => p.partId === selectedPart.partId)}
+                onDelete={null} 
+                partPolicies={policies.filter((p) => p.partUnderWarranty?.partId === selectedPart.partId)}
                 onEditPolicy={handlePolicyEditClick}
+                onAddPolicy={() => handleAddPolicyClick(selectedPart.partId)} 
               />
             ) : (
               // 2. Display Parts List Table
@@ -198,7 +261,6 @@ export default function AdminPartsPolicy() {
       )}
 
       <Dialog open={showCreatePart} onOpenChange={setShowCreatePart}>
-        {/* 💡 Increased max-width to "max-w-4xl" for wider form */}
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Create New Part & Policy</DialogTitle>
@@ -209,6 +271,23 @@ export default function AdminPartsPolicy() {
             onCancel={() => setShowCreatePart(false)}
             currentAdminId={auth.accountId}
             currentAdminName={auth.fullName || auth.accountId}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create New Policy Modal */}
+      <Dialog open={showCreatePolicy} onOpenChange={setShowCreatePolicy}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Policy</DialogTitle>
+            <DialogDescription>
+              Create a new warranty policy for the selected part.
+            </DialogDescription>
+          </DialogHeader>
+          <CreatePolicyForm
+            initialPartId={selectedPart?.partId} 
+            onSubmit={handleAddPolicy}
+            onCancel={() => setShowCreatePolicy(false)}
           />
         </DialogContent>
       </Dialog>
