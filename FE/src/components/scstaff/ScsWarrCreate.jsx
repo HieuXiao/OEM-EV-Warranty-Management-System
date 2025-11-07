@@ -39,6 +39,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [campaignFound, setCampaignFound] = useState(false)
   const [isCampaignChecked, setIsCampaignChecked] = useState(false)
   const [manualVinMode, setManualVinMode] = useState(false)
+  const [vinUnderWarranty, setVinUnderWarranty] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -217,6 +218,37 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
       setIsCampaignChecked(false)
     }
   }, [selectedVin, vehicles, allCampaigns, manualVinMode, vehicleModel])
+
+  useEffect(() => {
+    const checkVinWarranty = async () => {
+      if (!selectedVin) {
+        setVinUnderWarranty(false)
+        return
+      }
+      try {
+        const claimRes = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
+        const claims = Array.isArray(claimRes.data) ? claimRes.data : []
+        const related = claims
+          .filter((c) => c.vin === selectedVin)
+          .sort((a, b) => new Date(b.claimDate) - new Date(a.claimDate))
+
+        if (related.length > 0) {
+          const latest = related[0]
+          if (latest.status && latest.status !== "DONE") {
+            setVinUnderWarranty(true)
+          } else {
+            setVinUnderWarranty(false)
+          }
+        } else {
+          setVinUnderWarranty(false)
+        }
+      } catch (err) {
+        console.error("Error checking VIN warranty:", err)
+        setVinUnderWarranty(false)
+      }
+    }
+    checkVinWarranty()
+  }, [selectedVin])
 
   // kiểm tra & tạo appointment khi cần
   useEffect(() => {
@@ -419,11 +451,23 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             />
           </div>
 
+          {vinUnderWarranty && (
+            <p className="text-xs text-red-500 italic mt-1">
+              This vehicle is currently under warranty.
+            </p>
+          )}
+
           <div className="flex justify-end gap-3 sticky bottom-0 bg-white py-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-black hover:bg-gray-800 text-white" disabled={loading}>
+            <Button
+              type="submit"
+              className={`bg-black hover:bg-gray-800 text-white ${
+                vinUnderWarranty ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={loading || vinUnderWarranty}
+            >
               {loading ? "Creating..." : "Create Claim"}
             </Button>
           </div>

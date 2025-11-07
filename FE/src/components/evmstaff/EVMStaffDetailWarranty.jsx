@@ -20,6 +20,7 @@ const API_ENDPOINTS = {
   EVMDESCRIPTION: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/description`,
   DECISION_HANDOVER: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/decision-handover`,
   WARRANTY_FILES: (claimId) => `/api/warranty-files/search/claim?value=${claimId}`,
+  REPAIR_PARTS_ADD_QUANTITY: "/api/repair-parts/add-quantity",
 };
 
 export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
@@ -36,6 +37,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [warrantyFiles, setWarrantyFiles] = useState([]);
   const [imagesModalOpen, setImagesModalOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   const claimId = warranty?.claimId;
 
@@ -161,97 +163,140 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     return sum;
   }, 0);
 
-  const handleDone = async () => {
-    if (!claimId || !evmId) return;
-    try {
-      const approvedIndexes = [];
-      const rejectedIndexes = [];
-      mergedParts.forEach((_, idx) => {
-        if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
-        else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
-      });
+const handleDone = async () => {
+  if (!claimId || !evmId) {
+    console.warn("[EVMDetail] Thiếu claimId hoặc evmId:", { claimId, evmId });
+    return;
+  }
+  if (processing) return;
+  setProcessing(true);
 
-      for (const idx of rejectedIndexes) {
+  try {
+    console.groupCollapsed("[EVMDetail] HANDLE DONE START");
+    console.log("claimId:", claimId);
+    console.log("evmId:", evmId);
+    console.log("comment:", comment);
+    console.log("mergedParts:", mergedParts);
+    console.log("partApprovals:", partApprovals);
+
+    const approvedIndexes = [];
+    const rejectedIndexes = [];
+
+    mergedParts.forEach((_, idx) => {
+      if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
+      else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
+    });
+
+    console.log("approvedIndexes:", approvedIndexes);
+    console.log("rejectedIndexes:", rejectedIndexes);
+
+    // Gửi các part bị từ chối
+    for (const idx of rejectedIndexes) {
+      const part = mergedParts[idx];
+      const body = {
+        partNumber: part.partNumber,
+        warrantyId: claimId,
+        vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
+        quantity: part.quantity || 0,
+        isRepair: false,
+        partId: part.partId || "",
+      };
+      console.log(`Reject Part [${idx}]`, body);
+      await axiosPrivate.put(
+        API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+          encodeURIComponent(claimId),
+          encodeURIComponent(part.partNumber)
+        ),
+        body
+      );
+    }
+
+    // Nếu có part được duyệt
+    if (approvedIndexes.length > 0) {
+      const centerMatch = claimId.match(/WC-(\d+)-/);
+      const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+      console.log("centerId:", centerId);
+
+      const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+      const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
+      console.log("allParts length:", allParts.length);
+
+      const groupedParts = {};
+      for (const idx of approvedIndexes) {
         const part = mergedParts[idx];
-        const body = {
-          partNumber: part.partNumber,
-          warrantyId: claimId,
-          vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
-          quantity: part.quantity || 0,
-          isRepair: false,
-          partId: part.partId || "",
-        };
-        await axiosPrivate.put(
-          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
-            encodeURIComponent(claimId),
-            encodeURIComponent(part.partNumber)
-          ),
-          body
-        );
+        if (!groupedParts[part.partNumber]) {
+          groupedParts[part.partNumber] = Number(part.quantity || 0);
+        }
       }
+      console.log("groupedParts:", groupedParts);
 
-      if (approvedIndexes.length > 0) {
-        const centerMatch = claimId.match(/WC-(\d+)-/);
-        const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+      for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
+        const foundPart = allParts.find((p) => p.partNumber === partNumber);
+        const foundWarehouse = foundPart?.warehouse;
 
-        const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
-        const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
-
-        for (const idx of approvedIndexes) {
-          const part = mergedParts[idx];
-          const foundPart = allParts.find((p) => p.partNumber === part.partNumber);
-
-          if (!foundPart) {
-            console.warn(`[EVMDetail] ❗ Không tìm thấy part ${part.partNumber} trong kho`);
-            continue;
-          }
-
-          const warehouse = foundPart.warehouse;
-          if (!warehouse) continue;
-
-          if (centerId && warehouse.whId !== centerId) {
-            console.warn(`[EVMDetail] ❗ Bỏ qua ${part.partNumber} — không thuộc centerId ${centerId}`);
-            continue;
-          }
-
-          const newQty = Math.max((foundPart.quantity || 0) - (part.quantity || 0), 0);
-
-          const updateBody = {
-            partNumber: foundPart.partNumber,
-            namePart: foundPart.namePart || part.namePart,
-            quantity: newQty,
-            price: foundPart.price || part.price || 0,
-            whId: warehouse.whId,
-          };
-
+        if (!foundPart) {
+          console.warn(`Không tìm thấy part: ${partNumber}`);
+        } else if (!foundWarehouse) {
+          console.warn(`Không có warehouse cho: ${partNumber}`);
+        } else if (centerId !== foundWarehouse.whId) {
+          console.log(
+            `Bỏ qua ${partNumber}: centerId ${centerId} ≠ warehouse ${foundWarehouse.whId}`
+          );
+        } else {
+          const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(
+            partNumber
+          )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
+          console.log("PATCH URL:", patchUrl);
           try {
-            await axiosPrivate.put(`/api/parts/${encodeURIComponent(foundPart.partNumber)}`, updateBody);
-            console.log(`[EVMDetail] Đã trừ ${part.quantity} ${part.partNumber} trong kho ${warehouse.name}`);
+            await axiosPrivate.patch(patchUrl);
+            console.log(`Đã cập nhật tồn kho cho ${partNumber}`);
+
+            const updatedPartsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+            const updatedPart = Array.isArray(updatedPartsRes.data)
+              ? updatedPartsRes.data.find((p) => p.partNumber === partNumber)
+              : null;
+
+            if (updatedPart) {
+              console.log("Dữ liệu sau khi cập nhật:", {
+                partNumber: updatedPart.partNumber,
+                warehouse: updatedPart.warehouse?.whId,
+                quantity: updatedPart.quantity,
+              });
+            } else {
+              console.warn(`Không tìm thấy dữ liệu part sau cập nhật: ${partNumber}`);
+            }
+
           } catch (err) {
-            console.error(`[EVMDetail] Lỗi cập nhật kho cho ${part.partNumber}:`, err?.response || err);
+            console.error(`Update lỗi cho ${partNumber}:`, err?.response || err);
           }
         }
-
-        await axiosPrivate.post(
-          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
-            evmId
-          )}&description=${encodeURIComponent(comment || "")}`
-        );
-      } else {
-        await axiosPrivate.post(
-          `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
-            evmId
-          )}&description=${encodeURIComponent(comment || "")}`
-        );
       }
 
-      onOpenChange(false);
-      window.location.reload();
-    } catch (err) {
-      console.error("[EVMDetail] Done failed:", err?.response || err);
-      alert("Hoàn tất xử lý thất bại. Vui lòng kiểm tra console.");
+      console.log("Gửi EVM Description API");
+      await axiosPrivate.post(
+        `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+          evmId
+        )}&description=${encodeURIComponent(comment || "")}`
+      );
+    } else {
+      console.log("Không có part nào được approve → Gửi Decision Handover");
+      await axiosPrivate.post(
+        `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
+          evmId
+        )}&description=${encodeURIComponent(comment || "")}`
+      );
     }
-  };
+
+    console.groupEnd();
+    console.log("handleDone hoàn tất thành công");
+    onOpenChange(false);
+  } catch (err) {
+    console.error("[EVMDetail] Done failed:", err?.response || err);
+    alert("Hoàn tất xử lý thất bại. Vui lòng kiểm tra console để xem chi tiết.");
+  } finally {
+    setProcessing(false);
+  }
+};
 
   return (
     <>
@@ -436,44 +481,11 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               <Button variant="destructive" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleDone} disabled={!isFormValid}>
-                Done
+              <Button onClick={handleDone} disabled={!isFormValid || processing}>
+                {processing ? "Processing..." : "Done"}
               </Button>
             </div>
           </div>
-
-          {/* Image viewer */}
-          {imagesModalOpen && (
-            <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setImagesModalOpen(false)}
-                className="absolute top-6 right-6 text-white z-50"
-              >
-                <X className="w-6 h-6" />
-              </Button>
-
-              <h2 className="text-white text-2xl font-bold mb-6">Claim Images</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-                {warrantyFiles
-                  .flatMap((f) => f.mediaUrls || [])
-                  .map((url, i) => (
-                    <div
-                      key={`claim-image-${i}`}
-                      className="relative overflow-hidden rounded-lg cursor-pointer"
-                      onClick={() => setFullscreenImage(url)}
-                    >
-                      <img
-                        src={url}
-                        alt={`claim-image-${i}`}
-                        className="w-full h-64 object-cover hover:scale-105 transition-transform"
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 
