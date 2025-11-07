@@ -126,14 +126,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   };
 
   const handleCompleteCheck = async () => {
-  console.log("=== [TEST] Start Complete Check ===")
-  console.log("Claim Info:", claimInfo)
-  console.log("Parts List:", partsList)
-  console.log("Part Selections:", partSelections)
-  console.log("Part Quantities:", partQuantities)
-  console.log("Claim ID:", claimId)
-
-  // nếu bạn muốn log payload trước khi gửi
   const testPayloads = partsList
     .filter((p) => partSelections[p.namePart])
     .map((p) => ({
@@ -171,10 +163,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         }
       } catch (err) {
         console.error("[TEST] Error on payload:", err.response?.data || err);
-      }
-      
-      for (const payload of payloads) {
-        await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
       }
 
       if (hasRepair) {
