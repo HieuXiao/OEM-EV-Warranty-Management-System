@@ -10,8 +10,8 @@ export default defineConfig({
     // Cấu hình Proxy
     proxy: {
       // Khi frontend gọi /api, nó sẽ chuyển tiếp đến backend
-      '/api': {
-        target: 'https://oem-ev-warranty-management-system-be-production.up.railway.app',
+      "/api": {
+        target: "http://14.225.255.47:8080",
         changeOrigin: true, // Điều này rất quan trọng để thay đổi header Host
         // Rewrite là tùy chọn nếu backend của bạn không muốn /api ở đầu:
         // rewrite: (path) => path.replace(/^\/api/, '')
