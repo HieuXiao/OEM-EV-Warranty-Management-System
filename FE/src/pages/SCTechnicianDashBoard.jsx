@@ -54,7 +54,7 @@ export default function SCTechnicianDashboard() {
           return numB - numA;
         });
 
-        setClaims(sortedClaims); 
+        setClaims(sortedClaims);
       } catch (err) {
         console.error("Error fetching claims:", err);
         setError("Failed to load technician claims.");
@@ -124,9 +124,9 @@ export default function SCTechnicianDashboard() {
 
                 <CardContent>
                   {checkJobs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center">
-                      No check jobs assigned.
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                      No check jobs assigned to your account
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       {checkJobs.slice(0, 3).map((job) => (
@@ -146,7 +146,6 @@ export default function SCTechnicianDashboard() {
                                 {job.status}
                               </Badge>
                             </div>
-                            {/*VIN*/}
                             <p className="text-sm text-muted-foreground">
                               VIN: {job.vin || "—"}
                             </p>
@@ -185,9 +184,9 @@ export default function SCTechnicianDashboard() {
 
                 <CardContent>
                   {repairJobs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center">
-                      No repair jobs assigned.
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                      No repair jobs assigned to your account
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       {repairJobs.slice(0, 3).map((job) => (
@@ -207,7 +206,6 @@ export default function SCTechnicianDashboard() {
                                 {job.status}
                               </Badge>
                             </div>
-                            {/*VIN*/}
                             <p className="text-sm text-muted-foreground">
                               VIN: {job.vin || "—"}
                             </p>

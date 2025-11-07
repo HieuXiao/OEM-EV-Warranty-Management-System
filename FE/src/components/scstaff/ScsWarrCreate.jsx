@@ -13,6 +13,7 @@ const API_ENDPOINTS = {
   VEHICLES: "/api/vehicles",
   ACCOUNTS: "/api/accounts/",
   CAMPAIGNS: "/api/campaigns/all",
+  APPOINTMENTS: "/api/service-appointments",
 }
 
 export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) {
@@ -31,6 +32,8 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const [claimId, setClaimId] = useState("")
   const [loadingVehicles, setLoadingVehicles] = useState(false)
   const [loadingTechnicians, setLoadingTechnicians] = useState(false)
+
+  const [allCampaigns, setAllCampaigns] = useState([])
   const [campaigns, setCampaigns] = useState([])
   const [selectedCampaign, setSelectedCampaign] = useState("")
   const [campaignFound, setCampaignFound] = useState(false)
@@ -62,26 +65,32 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   }
 
   const generateClaimId = async () => {
-    const dateStr = new Date().toISOString().split("T")[0]
+    const dateStr = new Date().toISOString().split("T")[0];
     try {
-      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
-      const centerId = accountRes?.data?.serviceCenter?.centerId || "NA"
+      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`);
+      const centerId = accountRes?.data?.serviceCenter?.centerId;
+      if (!centerId) throw new Error("Missing centerId");
 
-      const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
-      const claims = Array.isArray(res.data) ? res.data : []
-      const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`))
-      const nextSerial = (sameDay.length + 1).toString().padStart(3, "0")
+      let nextSerial = "001";
+      try {
+        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS);
+        const claims = Array.isArray(res.data) ? res.data : [];
+        const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`));
+        nextSerial = (sameDay.length + 1).toString().padStart(3, "0");
+      } catch {
+        nextSerial = "001";
+      }
 
-      const newId = `WC-${centerId}-${dateStr}-${nextSerial}`
-      setClaimId(newId)
-      return newId
+      const newId = `WC-${centerId}-${dateStr}-${nextSerial}`;
+      setClaimId(newId);
+      return newId;
     } catch (err) {
-      console.error("Error generating claimId:", err)
-      const fallback = `WC-NA-${dateStr}-001`
-      setClaimId(fallback)
-      return fallback
+      console.error("Error generating claimId:", err);
+      const fallback = `WC-000-${dateStr}-001`;
+      setClaimId(fallback);
+      return fallback;
     }
-  }
+  };
 
   const fetchTechnicians = async () => {
     try {
@@ -115,54 +124,58 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const fetchCampaigns = async () => {
     try {
       const res = await axiosPrivate.get(API_ENDPOINTS.CAMPAIGNS)
-      setCampaigns(Array.isArray(res.data) ? res.data : [])
+      setAllCampaigns(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       console.error("Error fetching campaigns:", err)
-      setCampaigns([])
+      setAllCampaigns([])
     }
   }
 
   useEffect(() => {
     if (!customerPhone) {
-      setCustomerName("")
-      setVehicles([])
-      setSelectedVin("")
-      setVehicleModel("")
-      setManualVinMode(false)
-      return
+      setCustomerName("");
+      setVehicles([]);
+      setSelectedVin("");
+      setVehicleModel("");
+      setManualVinMode(false);
+      return;
     }
 
     const fetchData = async () => {
       try {
-        setLoadingVehicles(true)
-        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS)
-        const customers = Array.isArray(customersRes.data) ? res.data : []
-        const foundCustomer = customers.find((c) => c.customerPhone === customerPhone)
+        setLoadingVehicles(true);
+        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS);
+        const customers = Array.isArray(customersRes.data) ? customersRes.data : [];
+        const foundCustomer = customers.find(
+          (c) => String(c.customerPhone).trim() === String(customerPhone).trim()
+        );
 
         if (foundCustomer) {
-          setCustomerName(foundCustomer.customerName)
-          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
-          const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
-          const related = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
-          setVehicles(related)
-          setManualVinMode(related.length === 0)
+          setCustomerName(foundCustomer.customerName || "");
+          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES);
+          const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
+          const relatedVehicles = allVehicles.filter(
+            (v) => v.customer?.customerId === foundCustomer.customerId
+          );
+          setVehicles(relatedVehicles);
+          setManualVinMode(relatedVehicles.length === 0);
         } else {
-          setCustomerName("")
-          setVehicles([])
-          setManualVinMode(false)
+          setCustomerName("");
+          setVehicles([]);
+          setManualVinMode(false);
         }
       } catch (err) {
-        console.error("Error fetching data:", err)
-        setCustomerName("")
-        setVehicles([])
-        setManualVinMode(false)
+        console.error("Error fetching customer or vehicle data:", err);
+        setCustomerName("");
+        setVehicles([]);
+        setManualVinMode(false);
       } finally {
-        setLoadingVehicles(false)
+        setLoadingVehicles(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [customerPhone])
+    fetchData();
+  }, [customerPhone]);
 
   useEffect(() => {
     if (selectedVin) {
@@ -185,17 +198,59 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         setVehicleModel(selected ? selected.model : "")
       }
 
-      const matched = campaigns.find((c) => c.model.includes(vehicleModel))
-      setCampaignFound(!!matched)
-      setSelectedCampaign(matched ? matched.campaignId.toString() : "")
-      setIsCampaignChecked(!!matched)
+      const matchedCampaigns = allCampaigns.filter(
+        (c) => Array.isArray(c.model) && c.model.includes(vehicleModel)
+      )
+      setCampaignFound(matchedCampaigns.length > 0)
+      setCampaigns(matchedCampaigns)
+      if (matchedCampaigns.length > 0) {
+        setSelectedCampaign(matchedCampaigns[0].campaignId.toString())
+        setIsCampaignChecked(true)
+      } else {
+        setSelectedCampaign("")
+        setIsCampaignChecked(false)
+      }
     } else {
       setVehicleModel("")
       setCampaignFound(false)
       setSelectedCampaign("")
       setIsCampaignChecked(false)
     }
-  }, [selectedVin, vehicles, campaigns, manualVinMode, vehicleModel])
+  }, [selectedVin, vehicles, allCampaigns, manualVinMode, vehicleModel])
+
+  // kiểm tra & tạo appointment khi cần
+  useEffect(() => {
+    const checkAndCreateAppointment = async () => {
+      if (!isCampaignChecked || !selectedCampaign || !selectedVin) return;
+
+      try {
+        const res = await axiosPrivate.get(API_ENDPOINTS.APPOINTMENTS);
+        const appointments = Array.isArray(res.data) ? res.data : [];
+
+        const related = appointments
+          .filter((a) => a.vehicle?.vin === selectedVin)
+          .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+        // chỉ tạo nếu chưa có hoặc appointment gần nhất đã COMPLETED
+        if (!related || related.status === "COMPLETED") {
+          const payload = {
+            vin: selectedVin,
+            campaignId: Number(selectedCampaign),
+            date: new Date().toISOString(),
+            description: "Auto-created from warranty claim",
+          };
+          await axiosPrivate.post(API_ENDPOINTS.APPOINTMENTS, payload);
+          console.log("Created new service appointment:", payload);
+        } else {
+          console.log("Existing appointment not completed, skip creating new one.");
+        }
+      } catch (err) {
+        console.error("Error checking or creating service appointment:", err);
+      }
+    };
+
+    checkAndCreateAppointment();
+  }, [isCampaignChecked, selectedCampaign, selectedVin]);
 
   const handleSubmitNewClaim = async (e) => {
     e.preventDefault()
@@ -207,7 +262,6 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     try {
       setLoading(true)
       const finalClaimId = claimId || (await generateClaimId())
-
       const payload = {
         claimId: finalClaimId,
         vin: selectedVin,
@@ -216,7 +270,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         claimDate: new Date().toISOString().split("T")[0],
         description,
         campaignIds:
-          isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : [],
+          isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
       }
 
       console.log("Creating warranty claim payload:", payload)
@@ -316,7 +370,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                 </Select>
               ) : (
                 <p className="text-sm italic text-red-500">
-                  ⚠ No technician available in your service center.
+                  No technician available in your service center.
                 </p>
               )}
             </div>

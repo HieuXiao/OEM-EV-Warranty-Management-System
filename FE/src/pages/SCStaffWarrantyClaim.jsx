@@ -132,11 +132,16 @@ export default function SCStaffWarrantyClaim() {
     })
 
   // Summary counters
-  const totalClaims = claims.length
-  const checkClaims = claims.filter((claim) => claim.status === "CHECK").length
-  const decideClaims = claims.filter((claim) => claim.status === "DECIDE").length
-  const repairClaims = claims.filter((claim) => claim.status === "REPAIR").length
-  const doneClaims = claims.filter((claim) => claim.status === "DONE").length
+  const userClaims = claims.filter(
+    (claim) =>
+      claim.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase()
+  );
+
+  const totalClaims = userClaims.length;
+  const checkClaims = userClaims.filter((c) => c.status === "CHECK").length;
+  const decideClaims = userClaims.filter((c) => c.status === "DECIDE").length;
+  const repairClaims = userClaims.filter((c) => c.status === "REPAIR").length;
+  const doneClaims = userClaims.filter((c) => c.status === "DONE").length;
 
   const handleViewClaim = (claim) => {
     setSelectedClaim(claim)

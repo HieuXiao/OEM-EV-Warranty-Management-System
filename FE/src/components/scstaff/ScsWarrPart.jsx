@@ -1,4 +1,3 @@
-// 📁 src/components/scstaff/ScsWarrPart.jsx
 import { useState, useEffect } from "react";
 import { Folder } from "lucide-react";
 import axiosPrivate from "@/api/axios";
@@ -21,7 +20,7 @@ export default function ScsWarrPart({ warrantyId }) {
       try {
         setLoading(true);
 
-        // 🔹 Lấy parts check và parts trong warehouse 1
+        // Lấy parts check và parts trong warehouse 1
         const [checkRes, allPartsRes] = await Promise.all([
           axiosPrivate.get(`/api/claim-part-check/search/warranty/${warrantyId}`),
           axiosPrivate.get("/api/parts"),
@@ -30,10 +29,10 @@ export default function ScsWarrPart({ warrantyId }) {
         const checkedParts = checkRes.data || [];
         const allParts = allPartsRes.data || [];
 
-        // 🔹 Chỉ lấy part ở warehouse whId = 1
+        // Chỉ lấy part ở warehouse whId = 1
         const wh1Parts = allParts.filter((p) => p.warehouse?.whId === 1);
 
-        // 🔹 Lọc các part có isRepair = true
+        // Lọc các part có isRepair = true
         const repairParts = checkedParts
           .filter((p) => p.isRepair)
           .map((p) => {
@@ -59,7 +58,7 @@ export default function ScsWarrPart({ warrantyId }) {
 
   return (
     <>
-      {/* 🔹 Folder icon mở form */}
+      {/* Folder icon mở form */}
       <div
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 border-t pt-4 mt-4"
         onClick={() => setOpen(true)}
@@ -70,7 +69,7 @@ export default function ScsWarrPart({ warrantyId }) {
         </h4>
       </div>
 
-      {/* 🔹 Dialog hiển thị danh sách part */}
+      {/* Dialog hiển thị danh sách part */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
