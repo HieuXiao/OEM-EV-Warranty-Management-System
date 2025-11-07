@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, Download } from "lucide-react"; // [CẬP NHẬT] icon
+import { AlertCircle, Loader2, Download, Eye } from "lucide-react"; // [CẬP NHẬT] icon
 import axiosPrivate from "@/api/axios";
 
 // [CẬP NHẬT] Endpoint API
@@ -41,6 +41,7 @@ const dataFetchReducer = (state, action) => {
         ...state,
         status: "success",
         reports: action.payload.reports,
+        serviceCenter: action.payload.serviceCenter,
       };
     case "FETCH_ERROR":
       return { ...state, status: "error", error: action.payload };
@@ -108,7 +109,7 @@ export default function EVMStaffDetailCampaign({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         {/* Tăng chiều rộng để chứa bảng */}
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               Campaign Detail
@@ -233,8 +234,8 @@ export default function EVMStaffDetailCampaign({
                               rel="noopener noreferrer"
                               download={report.originalFileName} // Gợi ý tên file khi tải
                             >
-                              <Download className="w-4 h-4" />
-                              Download
+                              <Eye className="w-4 h-4" />
+                              View
                             </a>
                           </Button>
                         </TableCell>

@@ -27,6 +27,8 @@ import { AlertCircle } from "lucide-react";
 
 const CAMPAIGN_CREATE_URL = "/api/campaigns/create";
 const CAMPAIGN_URL = "/api/campaigns/all";
+const VEHICLE_URL = "/api/vehicles";
+const EMAIL_URL = "/api/email";
 
 // --- HÀM HELPER MỚI ---
 // Hàm kiểm tra sự chồng chéo của hai khoảng ngày
@@ -65,6 +67,59 @@ export default function EVMStaffFormCampaign({
   // State lỗi API (backend, ví dụ: trùng tên)
   const [apiError, setApiError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const sendEmailsToAffectedCustomers = async (newCampaign) => {
+    try {
+      // 1. Lấy danh sách TẤT CẢ các xe
+      const vehicleResponse = await axiosPrivate.get(VEHICLE_URL);
+      const allVehicles = vehicleResponse.data;
+
+      // 2. Lọc các xe bị ảnh hưởng
+      const affectedModels = new Set(newCampaign.model);
+      const affectedVehicles = allVehicles.filter((vehicle) =>
+        affectedModels.has(vehicle.model)
+      );
+
+      // 3. Lấy danh sách khách hàng duy nhất (unique) từ các xe bị ảnh hưởng
+      const affectedCustomers = new Map();
+      for (const vehicle of affectedVehicles) {
+        if (vehicle.customer && vehicle.customer.customerEmail) {
+          // Dùng email làm key để đảm bảo mỗi khách hàng chỉ nhận 1 email
+          affectedCustomers.set(
+            vehicle.customer.customerEmail,
+            vehicle.customer
+          );
+        }
+      }
+      const uniqueCustomers = Array.from(affectedCustomers.values());
+
+      // 4. [THAY ĐỔI] Tạo payload email với các trường mới
+      const emailPayloads = uniqueCustomers.map((customer) => ({
+        recipient: customer.customerEmail,
+        subject: `Thông báo chiến dịch bảo hành: ${newCampaign.campaignName}`,
+        fullName: customer.customerName,
+        url: "", // Theo yêu cầu của bạn, không cần giá trị
+        campaignName: newCampaign.campaignName,
+
+        // Thêm các trường mới từ Swagger
+        modelName: newCampaign.model.join(", "), // Gửi danh sách các model
+        startDate: newCampaign.startDate,
+        endDate: newCampaign.endDate,
+      }));
+
+      // 5. Gửi tất cả email (dùng Promise.allSettled)
+      const emailPromises = emailPayloads.map((payload) =>
+        axiosPrivate.post(EMAIL_URL, JSON.stringify(payload), {
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+      const results = await Promise.allSettled(emailPromises);
+    } catch (err) {
+      console.error("Background email sending failed:", err);
+    }
+  };
+  // --- KẾT THÚC CẬP NHẬT ---
 
   const validateForm = () => {
     const newErrors = {};
@@ -185,9 +240,13 @@ export default function EVMStaffFormCampaign({
         { headers: { "Content-Type": "application/json" } }
       );
 
+      const createdCampaign = response.data;
+
       onSave(response.data);
       onOpenChange(false);
       resetForm();
+
+      sendEmailsToAffectedCustomers(createdCampaign);
     } catch (error) {
       // Cập nhật logic bắt lỗi BE (ví dụ: trùng tên)
       const errorMessage = error.response?.data

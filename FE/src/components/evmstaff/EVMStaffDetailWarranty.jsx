@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,16 +19,24 @@ const API_ENDPOINTS = {
   PARTS: "/api/parts",
   PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
   VEHICLES: "/api/vehicles",
-  CLAIM_PART_CHECK_SEARCH: (claimId) => `/api/claim-part-check/search/warranty/${claimId}`,
+  CLAIM_PART_CHECK_SEARCH: (claimId) =>
+    `/api/claim-part-check/search/warranty/${claimId}`,
   CLAIM_PART_CHECK_UPDATE: (claimId, partNumber) =>
     `/api/claim-part-check/update/${claimId}/${partNumber}`,
-  EVMDESCRIPTION: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/description`,
-  DECISION_HANDOVER: (claimId) => `/api/warranty-claims/workflow/${claimId}/evm/decision-handover`,
-  WARRANTY_FILES: (claimId) => `/api/warranty-files/search/claim?value=${claimId}`,
+  EVMDESCRIPTION: (claimId) =>
+    `/api/warranty-claims/workflow/${claimId}/evm/description`,
+  DECISION_HANDOVER: (claimId) =>
+    `/api/warranty-claims/workflow/${claimId}/evm/decision-handover`,
+  WARRANTY_FILES: (claimId) =>
+    `/api/warranty-files/search/claim?value=${claimId}`,
   REPAIR_PARTS_ADD_QUANTITY: "/api/repair-parts/add-quantity",
 };
 
-export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
+export default function EVMStaffDetailWarranty({
+  open,
+  onOpenChange,
+  warranty,
+}) {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
   const [comment, setComment] = useState("");
@@ -54,20 +67,25 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     const loadAll = async () => {
       if (!claimId) return;
       try {
-        const [claimRes, checkRes, underPartRes, vehiclesRes, filesRes] = await Promise.all([
-          axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
-          axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
-          axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
-          axiosPrivate.get(API_ENDPOINTS.VEHICLES),
-          axiosPrivate.get(API_ENDPOINTS.WARRANTY_FILES(claimId)),
-        ]);
+        const [claimRes, checkRes, underPartRes, vehiclesRes, filesRes] =
+          await Promise.all([
+            axiosPrivate.get(
+              `${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`
+            ),
+            axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
+            axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
+            axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+            axiosPrivate.get(API_ENDPOINTS.WARRANTY_FILES(claimId)),
+          ]);
 
         const claimData = claimRes?.data ?? null;
         setClaimDetails(claimData);
         if (claimData?.evmDescription) setComment(claimData.evmDescription);
 
         const checks = Array.isArray(checkRes?.data) ? checkRes.data : [];
-        const underParts = Array.isArray(underPartRes?.data) ? underPartRes.data : [];
+        const underParts = Array.isArray(underPartRes?.data)
+          ? underPartRes.data
+          : [];
 
         const repairChecks = checks.filter((c) => c.isRepair === true);
 
@@ -84,8 +102,12 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         });
         setMergedParts(merged);
 
-        const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
-        const matchedVehicle = vehicles.find((v) => v.vin === (claimData?.vin || warranty?.vin));
+        const vehicles = Array.isArray(vehiclesRes?.data)
+          ? vehiclesRes.data
+          : [];
+        const matchedVehicle = vehicles.find(
+          (v) => v.vin === (claimData?.vin || warranty?.vin)
+        );
         setVehicle(matchedVehicle || null);
 
         const files = Array.isArray(filesRes?.data) ? filesRes.data : [];
@@ -105,11 +127,16 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   }, [claimId, open, warranty]);
 
   useEffect(() => {
-    setIsFormValid(Boolean(claimDetails && comment && comment.trim().length > 0));
+    setIsFormValid(
+      Boolean(claimDetails && comment && comment.trim().length > 0)
+    );
   }, [comment, claimDetails]);
 
   const formatCurrency = (amount) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount ?? 0);
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount ?? 0);
 
   const getStatusBadge = (status) => {
     const s = String(status || "").toUpperCase();
@@ -145,7 +172,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     setApproveAllActive(newState);
     setRejectAllActive(false);
     const updated = {};
-    mergedParts.forEach((_, i) => (updated[i] = { approved: newState, rejected: false }));
+    mergedParts.forEach(
+      (_, i) => (updated[i] = { approved: newState, rejected: false })
+    );
     setPartApprovals(updated);
   };
 
@@ -154,156 +183,176 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     setRejectAllActive(newState);
     setApproveAllActive(false);
     const updated = {};
-    mergedParts.forEach((_, i) => (updated[i] = { approved: false, rejected: newState }));
+    mergedParts.forEach(
+      (_, i) => (updated[i] = { approved: false, rejected: newState })
+    );
     setPartApprovals(updated);
   };
 
   const totalCost = mergedParts.reduce((sum, p, idx) => {
-    if (partApprovals[idx]?.approved) return sum + (p.price ?? 0) * (p.quantity ?? 1);
+    if (partApprovals[idx]?.approved)
+      return sum + (p.price ?? 0) * (p.quantity ?? 1);
     return sum;
   }, 0);
 
-const handleDone = async () => {
-  if (!claimId || !evmId) {
-    console.warn("[EVMDetail] Thiếu claimId hoặc evmId:", { claimId, evmId });
-    return;
-  }
-  if (processing) return;
-  setProcessing(true);
-
-  try {
-    console.groupCollapsed("[EVMDetail] HANDLE DONE START");
-    console.log("claimId:", claimId);
-    console.log("evmId:", evmId);
-    console.log("comment:", comment);
-    console.log("mergedParts:", mergedParts);
-    console.log("partApprovals:", partApprovals);
-
-    const approvedIndexes = [];
-    const rejectedIndexes = [];
-
-    mergedParts.forEach((_, idx) => {
-      if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
-      else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
-    });
-
-    console.log("approvedIndexes:", approvedIndexes);
-    console.log("rejectedIndexes:", rejectedIndexes);
-
-    // Gửi các part bị từ chối
-    for (const idx of rejectedIndexes) {
-      const part = mergedParts[idx];
-      const body = {
-        partNumber: part.partNumber,
-        warrantyId: claimId,
-        vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
-        quantity: part.quantity || 0,
-        isRepair: false,
-        partId: part.partId || "",
-      };
-      console.log(`Reject Part [${idx}]`, body);
-      await axiosPrivate.put(
-        API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
-          encodeURIComponent(claimId),
-          encodeURIComponent(part.partNumber)
-        ),
-        body
-      );
+  const handleDone = async () => {
+    if (!claimId || !evmId) {
+      console.warn("[EVMDetail] Thiếu claimId hoặc evmId:", { claimId, evmId });
+      return;
     }
+    if (processing) return;
+    setProcessing(true);
 
-    // Nếu có part được duyệt
-    if (approvedIndexes.length > 0) {
-      const centerMatch = claimId.match(/WC-(\d+)-/);
-      const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
-      console.log("centerId:", centerId);
+    try {
+      console.groupCollapsed("[EVMDetail] HANDLE DONE START");
+      console.log("claimId:", claimId);
+      console.log("evmId:", evmId);
+      console.log("comment:", comment);
+      console.log("mergedParts:", mergedParts);
+      console.log("partApprovals:", partApprovals);
 
-      const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
-      const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
-      console.log("allParts length:", allParts.length);
+      const approvedIndexes = [];
+      const rejectedIndexes = [];
 
-      const groupedParts = {};
-      for (const idx of approvedIndexes) {
+      mergedParts.forEach((_, idx) => {
+        if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
+        else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
+      });
+
+      console.log("approvedIndexes:", approvedIndexes);
+      console.log("rejectedIndexes:", rejectedIndexes);
+
+      // Gửi các part bị từ chối
+      for (const idx of rejectedIndexes) {
         const part = mergedParts[idx];
-        if (!groupedParts[part.partNumber]) {
-          groupedParts[part.partNumber] = Number(part.quantity || 0);
-        }
+        const body = {
+          partNumber: part.partNumber,
+          warrantyId: claimId,
+          vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
+          quantity: part.quantity || 0,
+          isRepair: false,
+          partId: part.partId || "",
+        };
+        console.log(`Reject Part [${idx}]`, body);
+        await axiosPrivate.put(
+          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+            encodeURIComponent(claimId),
+            encodeURIComponent(part.partNumber)
+          ),
+          body
+        );
       }
-      console.log("groupedParts:", groupedParts);
 
-      for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
-        const foundPart = allParts.find((p) => p.partNumber === partNumber);
-        const foundWarehouse = foundPart?.warehouse;
+      // Nếu có part được duyệt
+      if (approvedIndexes.length > 0) {
+        const centerMatch = claimId.match(/WC-(\d+)-/);
+        const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+        console.log("centerId:", centerId);
 
-        if (!foundPart) {
-          console.warn(`Không tìm thấy part: ${partNumber}`);
-        } else if (!foundWarehouse) {
-          console.warn(`Không có warehouse cho: ${partNumber}`);
-        } else if (centerId !== foundWarehouse.whId) {
-          console.log(
-            `Bỏ qua ${partNumber}: centerId ${centerId} ≠ warehouse ${foundWarehouse.whId}`
-          );
-        } else {
-          const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(
-            partNumber
-          )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
-          console.log("PATCH URL:", patchUrl);
-          try {
-            await axiosPrivate.patch(patchUrl);
-            console.log(`Đã cập nhật tồn kho cho ${partNumber}`);
+        const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
+        console.log("allParts length:", allParts.length);
 
-            const updatedPartsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
-            const updatedPart = Array.isArray(updatedPartsRes.data)
-              ? updatedPartsRes.data.find((p) => p.partNumber === partNumber)
-              : null;
-
-            if (updatedPart) {
-              console.log("Dữ liệu sau khi cập nhật:", {
-                partNumber: updatedPart.partNumber,
-                warehouse: updatedPart.warehouse?.whId,
-                quantity: updatedPart.quantity,
-              });
-            } else {
-              console.warn(`Không tìm thấy dữ liệu part sau cập nhật: ${partNumber}`);
-            }
-
-          } catch (err) {
-            console.error(`Update lỗi cho ${partNumber}:`, err?.response || err);
+        const groupedParts = {};
+        for (const idx of approvedIndexes) {
+          const part = mergedParts[idx];
+          if (!groupedParts[part.partNumber]) {
+            groupedParts[part.partNumber] = Number(part.quantity || 0);
           }
         }
+        console.log("groupedParts:", groupedParts);
+
+        for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
+          const foundPart = allParts.find((p) => p.partNumber === partNumber);
+          const foundWarehouse = foundPart?.warehouse;
+
+          if (!foundPart) {
+            console.warn(`Không tìm thấy part: ${partNumber}`);
+          } else if (!foundWarehouse) {
+            console.warn(`Không có warehouse cho: ${partNumber}`);
+          } else if (centerId !== foundWarehouse.whId) {
+            console.log(
+              `Bỏ qua ${partNumber}: centerId ${centerId} ≠ warehouse ${foundWarehouse.whId}`
+            );
+          } else {
+            const patchUrl = `${
+              API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY
+            }?partNumber=${encodeURIComponent(
+              partNumber
+            )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
+            console.log("PATCH URL:", patchUrl);
+            try {
+              await axiosPrivate.patch(patchUrl);
+              console.log(`Đã cập nhật tồn kho cho ${partNumber}`);
+
+              const updatedPartsRes = await axiosPrivate.get(
+                API_ENDPOINTS.PARTS
+              );
+              const updatedPart = Array.isArray(updatedPartsRes.data)
+                ? updatedPartsRes.data.find((p) => p.partNumber === partNumber)
+                : null;
+
+              if (updatedPart) {
+                console.log("Dữ liệu sau khi cập nhật:", {
+                  partNumber: updatedPart.partNumber,
+                  warehouse: updatedPart.warehouse?.whId,
+                  quantity: updatedPart.quantity,
+                });
+              } else {
+                console.warn(
+                  `Không tìm thấy dữ liệu part sau cập nhật: ${partNumber}`
+                );
+              }
+            } catch (err) {
+              console.error(
+                `Update lỗi cho ${partNumber}:`,
+                err?.response || err
+              );
+            }
+          }
+        }
+
+        console.log("Gửi EVM Description API");
+        await axiosPrivate.post(
+          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
+        );
+      } else {
+        console.log("Không có part nào được approve → Gửi Decision Handover");
+        await axiosPrivate.post(
+          `${API_ENDPOINTS.DECISION_HANDOVER(
+            claimId
+          )}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
+        );
       }
 
-      console.log("Gửi EVM Description API");
-      await axiosPrivate.post(
-        `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
-          evmId
-        )}&description=${encodeURIComponent(comment || "")}`
+      console.groupEnd();
+      console.log("handleDone hoàn tất thành công");
+      onOpenChange(false);
+    } catch (err) {
+      console.error("[EVMDetail] Done failed:", err?.response || err);
+      alert(
+        "Hoàn tất xử lý thất bại. Vui lòng kiểm tra console để xem chi tiết."
       );
-    } else {
-      console.log("Không có part nào được approve → Gửi Decision Handover");
-      await axiosPrivate.post(
-        `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(
-          evmId
-        )}&description=${encodeURIComponent(comment || "")}`
-      );
+    } finally {
+      setProcessing(false);
     }
-
-    console.groupEnd();
-    console.log("handleDone hoàn tất thành công");
-    onOpenChange(false);
-  } catch (err) {
-    console.error("[EVMDetail] Done failed:", err?.response || err);
-    alert("Hoàn tất xử lý thất bại. Vui lòng kiểm tra console để xem chi tiết.");
-  } finally {
-    setProcessing(false);
-  }
-};
+  };
 
   return (
     <>
       <Dialog open={open} modal={false}>
-        <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Warranty Claim Details
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -311,7 +360,9 @@ const handleDone = async () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Claim ID</p>
-                <p className="font-semibold">{claimDetails?.claimId || warranty?.claimId}</p>
+                <p className="font-semibold">
+                  {claimDetails?.claimId || warranty?.claimId}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -319,7 +370,9 @@ const handleDone = async () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
-                <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
+                <p className="font-semibold">
+                  {claimDetails?.vin || vehicle?.vin || ""}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Model</p>
@@ -331,11 +384,15 @@ const handleDone = async () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
+                <p className="font-semibold">
+                  {vehicle?.customer?.customerName || ""}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Description</p>
-                <p className="font-semibold">{claimDetails?.description || ""}</p>
+                <p className="font-semibold">
+                  {claimDetails?.description || ""}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Submitted Date</p>
@@ -412,7 +469,9 @@ const handleDone = async () => {
                           type="checkbox"
                           className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
                           checked={approved}
-                          onChange={() => handleApprovalChange(index, "approved")}
+                          onChange={() =>
+                            handleApprovalChange(index, "approved")
+                          }
                         />
                       </div>
 
@@ -421,7 +480,9 @@ const handleDone = async () => {
                           type="checkbox"
                           className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
                           checked={rejected}
-                          onChange={() => handleApprovalChange(index, "rejected")}
+                          onChange={() =>
+                            handleApprovalChange(index, "rejected")
+                          }
                         />
                       </div>
                     </div>
@@ -431,7 +492,9 @@ const handleDone = async () => {
 
               <div className="flex justify-between items-center text-lg pt-4">
                 <p className="font-bold">Total Cost</p>
-                <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
+                <p className="font-bold text-primary text-xl">
+                  {formatCurrency(totalCost)}
+                </p>
               </div>
             </div>
 
@@ -445,17 +508,27 @@ const handleDone = async () => {
                   tabIndex={0}
                   onClick={() => setImagesModalOpen(true)}
                   onKeyDown={(e) =>
-                    e.key === "Enter" || e.key === " " ? setImagesModalOpen(true) : null
+                    e.key === "Enter" || e.key === " "
+                      ? setImagesModalOpen(true)
+                      : null
                   }
                   className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
                 >
                   <Folder className="w-8 h-8 text-amber-600" />
                   <div className="flex flex-col">
-                    <span className="font-medium">{claimId || "Claim images"}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {warrantyFiles.reduce((acc, f) => acc + (f.mediaUrls?.length || 0), 0)} image(s)
+                    <span className="font-medium">
+                      {claimId || "Claim images"}
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">Click to view images</span>
+                    <span className="text-sm text-muted-foreground">
+                      {warrantyFiles.reduce(
+                        (acc, f) => acc + (f.mediaUrls?.length || 0),
+                        0
+                      )}{" "}
+                      image(s)
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">
+                      Click to view images
+                    </span>
                   </div>
                 </div>
               </div>
@@ -481,7 +554,10 @@ const handleDone = async () => {
               <Button variant="destructive" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleDone} disabled={!isFormValid || processing}>
+              <Button
+                onClick={handleDone}
+                disabled={!isFormValid || processing}
+              >
                 {processing ? "Processing..." : "Done"}
               </Button>
             </div>
