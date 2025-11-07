@@ -8,9 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import axiosPrivate from "@/api/axios";
-import ScsWarrPart from "@/components/scstaff/ScsWarrPart"; // ✅ Import phần mới
+import ScsWarrPart from "@/components/scstaff/ScsWarrPart";
 
-// 🔹 API endpoints
 const API_CLAIMS = "/api/warranty-claims";
 const API_VEHICLES = "/api/vehicles";
 const API_ACCOUNTS = "/api/accounts/";

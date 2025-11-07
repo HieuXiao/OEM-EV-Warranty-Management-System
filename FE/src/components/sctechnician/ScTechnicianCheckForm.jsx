@@ -126,6 +126,27 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   };
 
   const handleCompleteCheck = async () => {
+  console.log("=== [TEST] Start Complete Check ===")
+  console.log("Claim Info:", claimInfo)
+  console.log("Parts List:", partsList)
+  console.log("Part Selections:", partSelections)
+  console.log("Part Quantities:", partQuantities)
+  console.log("Claim ID:", claimId)
+
+  // nếu bạn muốn log payload trước khi gửi
+  const testPayloads = partsList
+    .filter((p) => partSelections[p.namePart])
+    .map((p) => ({
+      partNumber: p.partNumber || p.partId || "UNKNOWN_PART",
+      partId: p.partNumber || p.partId || "UNKNOWN_PART",
+      warrantyId: claimInfo?.claimId || claimId,
+      vin: claimInfo?.vin || "UNKNOWN",
+      quantity: partQuantities[p.namePart] > 0 ? partQuantities[p.namePart] : 1,
+      isRepair: partSelections[p.namePart] === "REPAIR",
+    }));
+
+  console.log("=== [TEST] Payloads to send ===", testPayloads);
+    
     if (!claimId) return;
     setUploading(true);
 
@@ -143,6 +164,15 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
       const hasRepair = payloads.some((p) => p.isRepair);
 
+      try {
+        for (const payload of testPayloads) {
+          console.log("Sending payload:", payload);
+          await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
+        }
+      } catch (err) {
+        console.error("[TEST] Error on payload:", err.response?.data || err);
+      }
+      
       for (const payload of payloads) {
         await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
       }
@@ -153,7 +183,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         await axiosPrivate.post(API_ENDPOINTS.SKIP_REPAIR(claimId, technicianId));
       }
 
-      try {
+      try {``
         await axiosPrivate.post("/api/warranty-claims/assign-evm/auto");
       } catch (autoErr) {
         console.warn("[CheckForm] Auto-assign EVM failed:", autoErr);
