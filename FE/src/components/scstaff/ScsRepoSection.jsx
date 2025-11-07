@@ -35,6 +35,7 @@ const CAMPAIGN_URL = "/api/campaigns/all";
 const APPOINTMENT_URL = "/api/service-appointments";
 const ACCOUNT_URL = "/api/accounts/current";
 const REPORTS_URL = "/api/campaign-reports/all";
+const VEHICLE_URL = "/api/vehicles";
 
 // --- [THÊM MỚI]: Reducer cho việc tải dữ liệu ---
 const initialState = {
@@ -43,6 +44,7 @@ const initialState = {
   allCampaigns: [],
   myAppointments: [],
   mySubmittedReports: [], // Giữ nguyên logic ban đầu là mảng rỗng
+  allVehicles: [],
   error: null,
 };
 
@@ -58,6 +60,7 @@ const dataFetchReducer = (state, action) => {
         allCampaigns: action.payload.allCampaigns,
         myAppointments: action.payload.myAppointments,
         mySubmittedReports: action.payload.mySubmittedReports,
+        allVehicles: action.payload.allVehicles,
       };
     case "FETCH_ERROR":
       return {
@@ -68,6 +71,7 @@ const dataFetchReducer = (state, action) => {
         allCampaigns: [],
         myAppointments: [],
         mySubmittedReports: [],
+        allVehicles: [],
       };
     default:
       throw new Error(`Unhandled action type: ${action.type}`);
@@ -112,6 +116,7 @@ export default function ScsReportSection() {
     allCampaigns,
     myAppointments,
     mySubmittedReports,
+    allVehicles,
     error,
   } = state;
 
@@ -123,12 +128,13 @@ export default function ScsReportSection() {
   const fetchData = useCallback(async () => {
     dispatch({ type: "FETCH_START" });
     try {
-      const [accountRes, campaignRes, appointmentRes, reportRes] =
+      const [accountRes, campaignRes, appointmentRes, reportRes, vehicleRes] =
         await Promise.all([
           axiosPrivate.get(ACCOUNT_URL),
           axiosPrivate.get(CAMPAIGN_URL),
           axiosPrivate.get(APPOINTMENT_URL),
           axiosPrivate.get(REPORTS_URL),
+          axiosPrivate.get(VEHICLE_URL),
         ]);
       dispatch({
         type: "FETCH_SUCCESS",
@@ -137,6 +143,7 @@ export default function ScsReportSection() {
           allCampaigns: campaignRes.data,
           myAppointments: appointmentRes.data,
           mySubmittedReports: reportRes.data,
+          allVehicles: vehicleRes.data,
         },
       });
     } catch (err) {
@@ -152,37 +159,59 @@ export default function ScsReportSection() {
     fetchData();
   }, [fetchData]); // Thêm fetchData vào dependency
 
-  // Xử lý và hợp nhất dữ liệu (giữ nguyên, vì nó đọc từ state)
+  // --- [THAY ĐỔI LOGIC TÍNH TOÁN] ---
   const campaignReportData = useMemo(() => {
-    // Map các báo cáo đã gửi để tra cứu nhanh
+    // 1. Lấy ID của trung tâm hiện tại
+    const myCenterId = currentAccount.serviceCenter?.centerId;
+    if (!myCenterId) return []; // Trả về rỗng nếu không có centerId
+
+    // 2. Map các báo cáo đã gửi (để tra cứu nhanh)
+    // [SỬA LỖI]: Sửa r.campaignId.campaignId thành r.campaign.campaignId
     const reportMap = new Map(
-      mySubmittedReports.map((r) => [r.campaignId.campaignId, r])
+      mySubmittedReports
+        .filter((r) => r.serviceCenterId?.centerId === myCenterId) // Lọc report của trung tâm mình
+        .map((r) => [r.campaignId.campaignId, r])
     );
 
-    // Vẫn tính toán stats để SCStaff tham khảo trước khi tạo file PDF
-    const apptStatsMap = new Map();
+    // 3. Tính toán số xe ĐÃ HOÀN THÀNH (Completed) tại trung tâm này
+    const completedApptMap = new Map();
     for (const appt of myAppointments) {
-      if (!appt.campaign) continue;
+      // Lọc các cuộc hẹn của trung tâm mình VÀ đã hoàn thành
       if (
-        appt.vehicle.customer.serviceCenter?.centerId !==
-        currentAccount.serviceCenter?.centerId
-      )
-        continue;
-      const campaignId = appt.campaign.campaignId;
-      if (!apptStatsMap.has(campaignId)) {
-        apptStatsMap.set(campaignId, { affected: new Set(), completed: 0 });
-      }
-      const stats = apptStatsMap.get(campaignId);
-      stats.affected.add(appt.vehicle.vin);
-      if (appt.status === "Completed") {
-        stats.completed++;
+        appt.vehicle.customer.serviceCenter?.centerId === myCenterId &&
+        appt.status === "Completed" &&
+        appt.campaign
+      ) {
+        const campaignId = appt.campaign.campaignId;
+        // Đếm số cuộc hẹn hoàn thành cho mỗi chiến dịch
+        completedApptMap.set(
+          campaignId,
+          (completedApptMap.get(campaignId) || 0) + 1
+        );
       }
     }
 
-    // Hợp nhất mọi thứ
+    // 4. Hợp nhất dữ liệu
     return allCampaigns.map((campaign) => {
+      // 4a. Lấy danh sách model của chiến dịch
+      const campaignModelSet = new Set(campaign.model || []);
+
+      // 4b. [LOGIC MỚI] Tính tổng số xe BỊ ẢNH HƯỞNG (Affected)
+      // Lọc từ TẤT CẢ xe (allVehicles)
+      const affectedVehiclesCount = allVehicles.filter(
+        (vehicle) =>
+          // Xe này phải khớp model của chiến dịch
+          campaignModelSet.has(vehicle.model) &&
+          // Và xe này phải thuộc trung tâm của tôi
+          vehicle.customer.serviceCenter?.centerId === myCenterId
+      ).length;
+
+      // 4c. Lấy số xe đã hoàn thành (từ bước 3)
+      const completedVehiclesCount =
+        completedApptMap.get(campaign.campaignId) || 0;
+
+      // 4d. Lấy thông tin khác
       const submittedReport = reportMap.get(campaign.campaignId);
-      const stats = apptStatsMap.get(campaign.campaignId);
       const campaignStatus = getCampaignDateStatus(
         campaign.startDate,
         campaign.endDate
@@ -194,12 +223,20 @@ export default function ScsReportSection() {
         reportStatus: submittedReport ? "Submitted" : "Not Submitted",
         submittedReport: submittedReport || null,
         scStats: {
-          affectedVehicles: stats ? stats.affected.size : 0,
-          completedVehicles: stats ? stats.completed : 0,
+          affectedVehicles: affectedVehiclesCount, // <-- Số xe BỊ ẢNH HƯỞNG (đúng)
+          completedVehicles: completedVehiclesCount, // <-- Số xe ĐÃ HOÀN THÀNH (đúng)
         },
       };
     });
-  }, [allCampaigns, myAppointments, mySubmittedReports]);
+    // [THAY ĐỔI]: Thêm dependencies
+  }, [
+    currentAccount,
+    allCampaigns,
+    allVehicles,
+    myAppointments,
+    mySubmittedReports,
+  ]);
+  // --- [KẾT THÚC THAY ĐỔI LOGIC] ---
 
   // Handlers (giữ nguyên)
   const handleSubmitClick = (campaign) => {

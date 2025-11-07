@@ -29,11 +29,13 @@ import axiosPrivate from "@/api/axios"; // <-- THAY ĐỔI: Thêm axios
 // <-- THAY ĐỔI: Thêm URLs
 const APPOINTMENT_URL = "/api/service-appointments";
 const CAMPAIGN_URL = "/api/campaigns/all";
+const ACCOUNT_URL = "/api/accounts/current";
 
 const initialState = {
   status: "idle", // 'idle', 'loading', 'success', 'error'
   appointments: [],
   campaigns: [],
+  currentAccount: {},
   error: null,
 };
 
@@ -51,6 +53,7 @@ function dataFetchReducer(state, action) {
         status: "success",
         appointments: action.payload.appointments,
         campaigns: action.payload.campaigns,
+        currentAccount: action.payload.currentAccount,
       };
     case "FETCH_ERROR":
       return {
@@ -59,6 +62,7 @@ function dataFetchReducer(state, action) {
         error: action.payload,
         appointments: [], // Reset về rỗng khi lỗi
         campaigns: [],
+        currentAccount: {},
       };
     default:
       throw new Error(`Unhandled action type: ${action.type}`);
@@ -78,15 +82,17 @@ export default function AppointmentsSection() {
 
   // <-- THAY ĐỔI: Khởi tạo state với mảng rỗng
   const [state, dispatch] = useReducer(dataFetchReducer, initialState);
-  const { status, appointments, campaigns, error } = state;
+  const { status, appointments, campaigns, currentAccount, error } = state;
   // <-- THAY ĐỔI: Hàm tải dữ liệu
   const fetchAllData = useCallback(async () => {
     dispatch({ type: "FETCH_START" }); // Báo cho reducer biết bắt đầu tải
     try {
-      const [appointmentResponse, campaignResponse] = await Promise.all([
-        axiosPrivate.get(APPOINTMENT_URL),
-        axiosPrivate.get(CAMPAIGN_URL),
-      ]);
+      const [appointmentResponse, campaignResponse, accountRes] =
+        await Promise.all([
+          axiosPrivate.get(APPOINTMENT_URL),
+          axiosPrivate.get(CAMPAIGN_URL),
+          axiosPrivate.get(ACCOUNT_URL),
+        ]);
 
       // Gửi payload khi thành công
       dispatch({
@@ -94,6 +100,7 @@ export default function AppointmentsSection() {
         payload: {
           appointments: appointmentResponse.data,
           campaigns: campaignResponse.data,
+          currentAccount: accountRes.data,
         },
       });
     } catch (err) {
@@ -129,8 +136,17 @@ export default function AppointmentsSection() {
   };
 
   const filteredAppointments = appointments.filter((apt) => {
-    const aptDate = new Date(apt.date);
+    // 1. Lấy ID trung tâm của user
+    const myCenterId = currentAccount.serviceCenter?.centerId;
 
+    // 2. [LOGIC MỚI] Kiểm tra xem cuộc hẹn này có thuộc trung tâm của user không
+    // (Giả định cấu trúc data: appointment -> vehicle -> customer -> serviceCenter)
+    const matchesCenter =
+      !myCenterId || // Nếu không tìm thấy centerId (lỗi), tạm thời bỏ qua filter
+      apt.vehicle?.customer?.serviceCenter?.centerId === myCenterId;
+
+    // --- Logic cũ ---
+    const aptDate = new Date(apt.date);
     const customerName = apt.vehicle?.customer?.customerName || "";
     const phone = apt.vehicle?.customer?.customerPhone || "";
     const vin = apt.vehicle?.vin || "";
@@ -152,8 +168,13 @@ export default function AppointmentsSection() {
     const { start, end } = getDateRange();
     const matchesDateRange = aptDate >= start && aptDate <= end;
 
+    // 3. Trả về kết quả (thêm matchesCenter)
     return (
-      matchesSearch && matchesCampaign && matchesStatus && matchesDateRange
+      matchesCenter && // <-- THÊM ĐIỀU KIỆN LỌC
+      matchesSearch &&
+      matchesCampaign &&
+      matchesStatus &&
+      matchesDateRange
     );
   });
 
