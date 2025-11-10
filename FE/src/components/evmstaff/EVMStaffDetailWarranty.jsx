@@ -332,6 +332,8 @@ export default function EVMStaffDetailWarranty({
       console.groupEnd();
       console.log("handleDone hoàn tất thành công");
       onOpenChange(false);
+
+      window.location.reload();
     } catch (err) {
       console.error("[EVMDetail] Done failed:", err?.response || err);
       alert(
