@@ -133,6 +133,18 @@ export default function CampaignsSection() {
         };
       });
 
+      const statusPriority = {
+        "on going": 1,
+        "not yet": 2,
+        completed: 3,
+      };
+
+      transformedData.sort((a, b) => {
+        const priorityA = statusPriority[a.status] || 99;
+        const priorityB = statusPriority[b.status] || 99;
+        return priorityA - priorityB;
+      });
+
       dispatch({
         type: "FETCH_SUCCESS",
         payload: {

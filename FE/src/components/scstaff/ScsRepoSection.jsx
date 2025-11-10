@@ -192,42 +192,53 @@ export default function ScsReportSection() {
     }
 
     // 4. Hợp nhất dữ liệu
-    return allCampaigns.map((campaign) => {
-      // 4a. Lấy danh sách model của chiến dịch
-      const campaignModelSet = new Set(campaign.model || []);
+    return allCampaigns
+      .map((campaign) => {
+        // 4a. Lấy danh sách model của chiến dịch
+        const campaignModelSet = new Set(campaign.model || []);
 
-      // 4b. [LOGIC MỚI] Tính tổng số xe BỊ ẢNH HƯỞNG (Affected)
-      // Lọc từ TẤT CẢ xe (allVehicles)
-      const affectedVehiclesCount = allVehicles.filter(
-        (vehicle) =>
-          // Xe này phải khớp model của chiến dịch
-          campaignModelSet.has(vehicle.model) &&
-          // Và xe này phải thuộc trung tâm của tôi
-          vehicle.customer.serviceCenter?.centerId === myCenterId
-      ).length;
+        // 4b. [LOGIC MỚI] Tính tổng số xe BỊ ẢNH HƯỞNG (Affected)
+        // Lọc từ TẤT CẢ xe (allVehicles)
+        const affectedVehiclesCount = allVehicles.filter(
+          (vehicle) =>
+            // Xe này phải khớp model của chiến dịch
+            campaignModelSet.has(vehicle.model) &&
+            // Và xe này phải thuộc trung tâm của tôi
+            vehicle.customer.serviceCenter?.centerId === myCenterId
+        ).length;
 
-      // 4c. Lấy số xe đã hoàn thành (từ bước 3)
-      const completedVehiclesCount =
-        completedApptMap.get(campaign.campaignId) || 0;
+        // 4c. Lấy số xe đã hoàn thành (từ bước 3)
+        const completedVehiclesCount =
+          completedApptMap.get(campaign.campaignId) || 0;
 
-      // 4d. Lấy thông tin khác
-      const submittedReport = reportMap.get(campaign.campaignId);
-      const campaignStatus = getCampaignDateStatus(
-        campaign.startDate,
-        campaign.endDate
-      );
+        // 4d. Lấy thông tin khác
+        const submittedReport = reportMap.get(campaign.campaignId);
+        const campaignStatus = getCampaignDateStatus(
+          campaign.startDate,
+          campaign.endDate
+        );
 
-      return {
-        ...campaign,
-        campaignStatus: campaignStatus,
-        reportStatus: submittedReport ? "Submitted" : "Not Submitted",
-        submittedReport: submittedReport || null,
-        scStats: {
-          affectedVehicles: affectedVehiclesCount, // <-- Số xe BỊ ẢNH HƯỞNG (đúng)
-          completedVehicles: completedVehiclesCount, // <-- Số xe ĐÃ HOÀN THÀNH (đúng)
-        },
-      };
-    });
+        return {
+          ...campaign,
+          campaignStatus: campaignStatus,
+          reportStatus: submittedReport ? "Submitted" : "Not Submitted",
+          submittedReport: submittedReport || null,
+          scStats: {
+            affectedVehicles: affectedVehiclesCount, // <-- Số xe BỊ ẢNH HƯỞNG (đúng)
+            completedVehicles: completedVehiclesCount, // <-- Số xe ĐÃ HOÀN THÀNH (đúng)
+          },
+        };
+      })
+      .sort((a, b) => {
+        const statusPriority = {
+          "on going": 1,
+          "not yet": 2,
+          completed: 3,
+        };
+        const priorityA = statusPriority[a.campaignStatus] || 99;
+        const priorityB = statusPriority[b.campaignStatus] || 99;
+        return priorityA - priorityB;
+      });
     // [THAY ĐỔI]: Thêm dependencies
   }, [
     currentAccount,

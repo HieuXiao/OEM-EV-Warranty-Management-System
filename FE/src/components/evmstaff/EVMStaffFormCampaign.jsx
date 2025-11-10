@@ -247,6 +247,7 @@ export default function EVMStaffFormCampaign({
       resetForm();
 
       sendEmailsToAffectedCustomers(createdCampaign);
+      window.location.reload();
     } catch (error) {
       // Cập nhật logic bắt lỗi BE (ví dụ: trùng tên)
       const errorMessage = error.response?.data

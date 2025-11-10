@@ -340,6 +340,7 @@ export default function EVMStaffDetailWarranty({
     } finally {
       setProcessing(false);
     }
+    window.location.reload();
   };
 
   return (
@@ -562,8 +563,42 @@ export default function EVMStaffDetailWarranty({
               </Button>
             </div>
           </div>
+
+          {/* Image viewer */}
         </DialogContent>
       </Dialog>
+
+      {imagesModalOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setImagesModalOpen(false)}
+            className="absolute top-6 right-6 text-white z-50"
+          >
+            <X className="w-6 h-6" />
+          </Button>
+
+          <h2 className="text-white text-2xl font-bold mb-6">Claim Images</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
+            {warrantyFiles
+              .flatMap((f) => f.mediaUrls || [])
+              .map((url, i) => (
+                <div
+                  key={`claim-image-${i}`}
+                  className="relative overflow-hidden rounded-lg cursor-pointer"
+                  onClick={() => setFullscreenImage(url)}
+                >
+                  <img
+                    src={url}
+                    alt={`claim-image-${i}`}
+                    className="w-full h-64 object-cover hover:scale-105 transition-transform"
+                  />
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {fullscreenImage &&
         createPortal(
