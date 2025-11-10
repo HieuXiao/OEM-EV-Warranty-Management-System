@@ -187,17 +187,33 @@ export default function SCStaffCampaignSummary() {
   // --- Kết thúc logic đếm ---
 
   // --- Logic lọc danh sách ---
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    // <-- Lọc từ 'campaigns' (state)
-    const matchesSearch = campaign.campaignName
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  const filteredCampaigns = campaigns
+    .filter((campaign) => {
+      // <-- Lọc từ 'campaigns' (state)
+      const matchesSearch = campaign.campaignName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || campaign.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || campaign.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // 1. Định nghĩa thứ tự ưu tiên
+      const statusPriority = {
+        "on going": 1,
+        "not yet": 2,
+        completed: 3,
+      };
+
+      // 2. Lấy độ ưu tiên của a và b (nếu không tìm thấy, cho xuống cuối)
+      const priorityA = statusPriority[a.status] || 99;
+      const priorityB = statusPriority[b.status] || 99;
+
+      // 3. So sánh
+      return priorityA - priorityB;
+    });
 
   const handleViewCampaign = (campaign) => {
     setViewingCampaign(campaign);
