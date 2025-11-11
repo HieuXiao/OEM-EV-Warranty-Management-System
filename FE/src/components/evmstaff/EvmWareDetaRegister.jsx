@@ -25,6 +25,18 @@ import {
 // API Endpoint for registering a new part type into a warehouse
 const REGISTER_PART_API_URL = "/api/parts";
 
+// Helper function to format currency (giống như trong EvmWareDetail.jsx)
+const formatCurrency = (amount) => {
+  if (amount === undefined || amount === null) return "";
+  const num = parseFloat(amount);
+  if (isNaN(num)) return "";
+
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(num);
+};
+
 /**
  * Form for registering a completely new part into a specific warehouse,
  * allowing selection from the master part catalog.
@@ -62,7 +74,6 @@ export default function EvmWareDetaRegister({
 
   // Danh sách các part từ catalog CHƯA tồn tại trong kho này
   const availablePartsToRegister = useMemo(() => {
-    // FIX BUG: Kiểm tra partCatalog trước khi gọi .filter()
     if (!partCatalog || partCatalog.length === 0) {
       return [];
     }
@@ -247,18 +258,17 @@ export default function EvmWareDetaRegister({
               required
             />
           </div>
-          {/* Price (AUTO-FILLED) */}
+          {/* Price (AUTO-FILLED & DISPLAY FORMATTED) */}
           <div className="space-y-1">
             <Label htmlFor="price">Unit Price (VND)</Label>
             <Input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.price}
+              id="price-display" // Dùng id khác để tránh xung đột
+              type="text" // Đổi sang text để hiển thị định dạng tiền tệ
+              value={formatCurrency(formData.price)} // 💡 CHỈNH SỬA: Hiển thị giá trị đã format
               disabled
-              className="bg-muted/50"
+              className="bg-muted/50 font-medium text-right"
             />
+            {/* Vẫn giữ giá trị gốc trong formData.price (string) */}
           </div>
         </div>
 

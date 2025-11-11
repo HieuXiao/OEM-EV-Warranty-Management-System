@@ -96,7 +96,7 @@ export default function EVMStaffWarehouse() {
           setSelectedWarehouseDetail(updatedDetail);
           setShowDetailModal(true);
         } else if (selectedWarehouseDetail && showDetailModal) {
-          // FIX: Chỉ refresh detail nếu modal detail đang mở (ngăn chặn lỗi load vô hạn khi back)
+          // FIX: Chỉ refresh detail nếu modal detail đang mở
           const updatedDetail = await fetchWarehouseDetail(
             selectedWarehouseDetail.whId
           );
@@ -229,7 +229,7 @@ export default function EVMStaffWarehouse() {
         open={showReceiveStockModal}
         onOpenChange={setShowReceiveStockModal}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-full max-w-4xl sm:max-w-4xl md:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Receive Stock</DialogTitle>
             <DialogDescription>

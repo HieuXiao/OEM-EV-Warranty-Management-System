@@ -26,7 +26,7 @@ import {
 
 // API Endpoint for adding stock to an existing part in a warehouse.
 // It requires partNumber, quantity, and warehouseId as query parameters.
-const ADD_QUANTITY_API_URL = "/api/repair-parts/add-quantity"; 
+const ADD_QUANTITY_API_URL = "/api/repair-parts/add-quantity";
 const LOW_STOCK_THRESHOLD = 50;
 
 /**
@@ -59,9 +59,8 @@ export default function EvmWareReceive({
    */
   const currentWarehouse = useMemo(() => {
     const whIdInt = parseInt(selectedWhId, 10);
-    return warehouses.find(wh => wh.whId === whIdInt);
+    return warehouses.find((wh) => wh.whId === whIdInt);
   }, [selectedWhId, warehouses]);
-
 
   /**
    * Get a list of parts currently existing (quantity > 0) in the selected warehouse.
@@ -72,20 +71,22 @@ export default function EvmWareReceive({
 
     // Filter parts that currently have stock (quantity > 0)
     return (currentWarehouse.parts || [])
-      .filter(p => (p.quantity || 0) > 0)
+      .filter((p) => (p.quantity || 0) > 0)
       .map((part) => {
         // Find Part Name from Catalog (or use part name from warehouse API)
-        const catalog = partCatalog.find((c) => c.partNumber === part.partNumber);
-        
+        const catalog = partCatalog.find(
+          (c) => c.partNumber === part.partNumber
+        );
+
         return {
           partNumber: part.partNumber,
           // Prioritize name from Catalog
-          partName: catalog?.partName || part.namePart || `Part ${part.partNumber}`, 
+          partName:
+            catalog?.partName || part.namePart || `Part ${part.partNumber}`,
           currentQuantity: part.quantity || 0,
         };
       });
   }, [currentWarehouse, partCatalog]);
-
 
   /**
    * Get a list of part names that are either missing or have low stock.
@@ -93,10 +94,9 @@ export default function EvmWareReceive({
    */
   const partsLowOrMissing = useMemo(() => {
     if (!currentWarehouse) return [];
-    
+
     // Use the 'lowPart' array directly from the warehouse object
     return currentWarehouse.lowPart || [];
-      
   }, [currentWarehouse]);
 
   // ----------------------------------------------------
@@ -160,7 +160,7 @@ export default function EvmWareReceive({
             quantity: parseInt(quantity, 10),
             warehouseId: warehouseId,
           };
-          
+
           // API Call to /api/repair-parts/add-quantity
           return axios.patch(
             ADD_QUANTITY_API_URL, // The API endpoint
@@ -182,12 +182,12 @@ export default function EvmWareReceive({
         errorStatus || "Network Error"
       }). Please try again.`;
       if (err.response?.data?.message) {
-         // Use detailed error message from API if available
-         errorMessage = `Update failed: ${err.response.data.message}`;
+        // Use detailed error message from API if available
+        errorMessage = `Update failed: ${err.response.data.message}`;
       } else if (errorStatus === 401 || errorStatus === 403) {
         errorMessage =
           "Authentication failed or insufficient permissions. Please re-login.";
-      } 
+      }
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -200,7 +200,6 @@ export default function EvmWareReceive({
 
   const partsDisplayList = partsCurrentlyInStock;
 
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pt-2">
       {/* --- Warehouse Selector --- */}
@@ -210,7 +209,8 @@ export default function EvmWareReceive({
           <SelectTrigger id="warehouse">
             <SelectValue placeholder="Choose a warehouse..." />
           </SelectTrigger>
-          <SelectContent>
+          {/* FIX: Thêm position="popper" và class="w-full" để căn chỉnh dropdown item */}
+          <SelectContent position="popper" className="w-full">
             {warehouses.map((wh) => (
               <SelectItem key={wh.whId} value={String(wh.whId)}>
                 {wh.name} ({wh.location})
@@ -226,8 +226,7 @@ export default function EvmWareReceive({
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Low/Missing Stock Warning</AlertTitle>
           <AlertDescription className="text-sm">
-            The following parts are currently missing or low in this
-            warehouse:
+            The following parts are currently missing or low in this warehouse:
             <ul className="list-disc list-inside mt-1 ml-2 space-y-0.5">
               {partsLowOrMissing.slice(0, 5).map((name, index) => (
                 <li key={index}>{name}</li>
@@ -236,10 +235,9 @@ export default function EvmWareReceive({
                 <li>and {partsLowOrMissing.length - 5} more...</li>
               )}
             </ul>
-
             <p className="font-semibold mt-2">
-              This form is only for adding stock to parts that
-              already exist (Quantity &gt; 0).
+              This form is only for adding stock to parts that already exist
+              (Quantity &gt; 0).
             </p>
           </AlertDescription>
         </Alert>
@@ -248,12 +246,11 @@ export default function EvmWareReceive({
       {/* --- Existing Parts List --- */}
       {selectedWhId && partsDisplayList.length > 0 ? (
         <div className="space-y-2">
-
           <Label className="text-md font-bold block mb-3">
             Update Quantity for Existing Stock ({partsDisplayList.length} items)
           </Label>
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-hidden w-full">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -264,14 +261,12 @@ export default function EvmWareReceive({
                   <TableHead className="w-[150px]">
                     Quantity to Receive
                   </TableHead>
-
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {partsDisplayList.map((part) => (
                   <TableRow key={part.partNumber}>
-
                     <TableCell className="font-medium">
                       {part.partName}
                     </TableCell>
@@ -296,14 +291,11 @@ export default function EvmWareReceive({
                         className="w-full text-center"
                       />
                     </TableCell>
-
                   </TableRow>
                 ))}
               </TableBody>
-
             </Table>
           </div>
-
         </div>
       ) : selectedWhId &&
         partsDisplayList.length === 0 &&
@@ -312,8 +304,8 @@ export default function EvmWareReceive({
           <PackageOpen className="h-4 w-4" />
           <AlertTitle>Warehouse Empty</AlertTitle>
           <AlertDescription>
-            There are no existing parts in this warehouse to receive
-            new stock for.
+            There are no existing parts in this warehouse to receive new stock
+            for.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -328,7 +320,6 @@ export default function EvmWareReceive({
 
       {/* --- Action Buttons --- */}
       <div className="flex justify-end gap-4 pt-4">
-
         <Button
           type="button"
           variant="outline"
@@ -346,14 +337,11 @@ export default function EvmWareReceive({
             Object.values(quantitiesToReceive).every((q) => q <= 0)
           }
         >
-
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-          Receive Stock ({Object.values(quantitiesToReceive).filter((q) => q > 0).length})
-
+          Receive Stock (
+          {Object.values(quantitiesToReceive).filter((q) => q > 0).length})
         </Button>
-
       </div>
-
     </form>
   );
 }
