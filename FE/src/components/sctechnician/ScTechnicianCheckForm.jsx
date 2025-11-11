@@ -26,6 +26,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const [partQuantities, setPartQuantities] = useState({});
   const [partImages, setPartImages] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const claimId = job?.claimId || job?.id;
 
@@ -70,21 +71,38 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     setPartQuantities((p) => ({ ...p, [key]: Number(val) || 0 }));
 
   const handleImageUpload = (key, e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
 
-    setPartImages((prev) => {
-      const current = prev[key] || [];
-      if (current.length + files.length > 3) {
-        alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
-        return prev;
-      }
-      const newFiles = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
-      return { ...prev, [key]: [...current, ...newFiles].slice(0, 3) };
+  const invalidFiles = files.filter(f => !f.type.startsWith("image/"));
+  const validFiles = files.filter(f => f.type.startsWith("image/"));
+
+  if (invalidFiles.length > 0) {
+    setImageErrors(prev => ({ ...prev, [key]: "Only image files are allowed" }));
+  } else {
+    setImageErrors(prev => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
     });
+  }
 
-    e.target.value = "";
-  };
+  if (!validFiles.length) return;
+
+  setPartImages(prev => {
+    const current = prev[key] || [];
+    if (current.length + validFiles.length > 3) {
+      setImageErrors(prev => ({ ...prev, [key]: "Max 3 images allowed" }));
+      return prev;
+    }
+
+    const newFiles = validFiles.map(f => ({ file: f, url: URL.createObjectURL(f) }));
+    const updated = { ...prev, [key]: [...current, ...newFiles].slice(0, 3) };
+    return updated;
+  });
+
+  e.target.value = "";
+};
 
   const handleDeleteImage = (key, idx) => {
     setPartImages((prev) => {
@@ -256,6 +274,10 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                             className="h-8 w-20 text-sm"
                           />
                         </div>
+                      )}
+
+                      {isRepair && imageErrors[key] && (
+                        <p className="text-xs text-red-500 mt-1">{imageErrors[key]}</p>
                       )}
 
                       {isRepair && imgs.length > 0 && (
