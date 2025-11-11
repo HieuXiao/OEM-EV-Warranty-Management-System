@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import EvmWareTable from "@/components/evmstaff/EvmWareTable";
 import useAuth from "@/hook/useAuth";
 import axios from "axios";
@@ -20,7 +21,6 @@ import EvmWareDetail from "@/components/evmstaff/EvmWareDetail";
 
 // ======================== API ENDPOINTS ========================
 const WAREHOUSES_API_URL = "/api/warehouses";
-// Re-include Catalog API for EvmWareReceive modal (list of parts that can be received)
 const PARTS_CATALOG_API_URL = "/api/part-under-warranty-controller";
 
 // === COMPONENT DEFINITION ===
@@ -75,7 +75,7 @@ export default function EVMStaffWarehouse() {
         setLoading(true);
         setError(null);
 
-        // Fetch Warehouse List and Part Catalog (for receive modal)
+        // Fetch Warehouse List and Part Catalog
         const [warehousesRes, partCatalogRes] = await Promise.all([
           axios.get(WAREHOUSES_API_URL, {
             headers: { Authorization: `Bearer ${auth.token}` },
@@ -88,14 +88,15 @@ export default function EVMStaffWarehouse() {
         setWarehouses(warehousesRes.data);
         setPartCatalog(partCatalogRes.data);
 
-        // Handle Redirect/Update Detail after refresh
+        // --- Handle Redirect/Update Detail after refresh ---
         if (warehouseToRedirect) {
           const targetWhId = warehouseToRedirect;
           setWarehouseToRedirect(null);
           const updatedDetail = await fetchWarehouseDetail(targetWhId);
           setSelectedWarehouseDetail(updatedDetail);
           setShowDetailModal(true);
-        } else if (selectedWarehouseDetail) {
+        } else if (selectedWarehouseDetail && showDetailModal) {
+          // FIX: Chỉ refresh detail nếu modal detail đang mở (ngăn chặn lỗi load vô hạn khi back)
           const updatedDetail = await fetchWarehouseDetail(
             selectedWarehouseDetail.whId
           );
@@ -118,6 +119,7 @@ export default function EVMStaffWarehouse() {
     refreshKey,
     warehouseToRedirect,
     selectedWarehouseDetail,
+    showDetailModal,
     fetchWarehouseDetail,
   ]);
 
@@ -126,10 +128,11 @@ export default function EVMStaffWarehouse() {
   // ----------------------------------------------------
 
   /**
-   * Handles successful stock reception and triggers data refresh/detail view redirect.
-   * @param {number} whIdFromModal - The ID of the warehouse that received stock.
+   * Handles successful stock reception or new part registration and triggers data refresh/detail view redirect.
+   * @param {number} whIdFromModal - The ID of the warehouse that received stock/registered part.
    */
   const handleReceiveSuccess = (whIdFromModal = null) => {
+    // Closes main receive modal (if open)
     setShowReceiveStockModal(false);
 
     const targetWhId = whIdFromModal || selectedWarehouseDetail?.whId;
@@ -179,11 +182,18 @@ export default function EVMStaffWarehouse() {
       <div className="lg:pl-64">
         <Header />
         <main className="p-4 md:p-6 lg:p-8">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {showDetailModal && selectedWarehouseDetail ? (
             // RENDER DETAIL VIEW
             <EvmWareDetail
               warehouse={selectedWarehouseDetail}
-              partCatalog={partCatalog} // Pass catalog if needed for part-related operations in detail
+              partCatalog={partCatalog} // Pass catalog for consistency and register modal
               onBack={handleBackToWarehouseList}
               onReceiveSuccess={handleReceiveSuccess}
             />
@@ -214,7 +224,7 @@ export default function EVMStaffWarehouse() {
           )}
         </main>
       </div>
-      {/* === MODAL: Receive Stock === */}
+      {/* === MODAL: Receive Stock (General) === */}
       <Dialog
         open={showReceiveStockModal}
         onOpenChange={setShowReceiveStockModal}
@@ -229,10 +239,8 @@ export default function EVMStaffWarehouse() {
 
           <EvmWareReceive
             warehouses={warehouses}
-            // Pass Part Catalog so the modal can list parts available for reception
             partCatalog={partCatalog}
-            // If EvmWareReceive uses 'partsInventory', it should be satisfied by partCatalog here
-            partsInventory={partCatalog}
+            partsInventory={partCatalog} // Use catalog as source for parts to receive
             onSuccess={(whId) => handleReceiveSuccess(whId)}
             onClose={() => setShowReceiveStockModal(false)}
           />

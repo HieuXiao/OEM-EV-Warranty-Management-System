@@ -17,8 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-}
- from "@/components/ui/table";
+} from "@/components/ui/table";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Search,
@@ -26,11 +25,14 @@ import {
   ChevronRight,
   Plus,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import EvmWareDetailReceive from "./EvmWareDetaReceive";
+import EvmWareDetaRegister from "./EvmWareDetaRegister";
 
 // === CONSTANTS ===
 const ROWS_PER_PAGE = 10;
+const LOW_STOCK_THRESHOLD = 50;
 
 // === HELPER FUNCTIONS ===
 const formatCurrency = (amount) => {
@@ -46,6 +48,9 @@ export default function EvmWareDetail({
   onBack,
   onReceiveSuccess,
 }) {
+  // ----------------------------------------------------
+  // 1. INPUT VALIDATION
+  // ----------------------------------------------------
   if (!warehouse) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -65,38 +70,40 @@ export default function EvmWareDetail({
   // === MINI-MODAL STATE ===
   const [showMiniReceive, setShowMiniReceive] = useState(false);
   const [selectedPart, setSelectedPart] = useState(null);
+  const [showRegisterPart, setShowRegisterPart] = useState(false);
 
-  const { priceMap, partsWithCorrectPrice } = useMemo(() => {
-    const pMap = {};
-    if (partCatalog) {
-      for (const part of partCatalog) {
-        pMap[part.partId] = parseFloat(part.price) || 0;
-      }
-    }
+  // ----------------------------------------------------
+  // 2. DATA PROCESSING (Simplified and focused on calculation)
+  // ----------------------------------------------------
 
-    const partsCorrected = (warehouse?.parts || []).map(part => {
-        const correctPrice = pMap[part.partNumber] || 0;
-        return {
-            ...part,
-            price: correctPrice,
-            totalValue: part.quantity * correctPrice
-        };
+  /**
+   * Processes the raw part data from the warehouse API.
+   * Calculates totalValue and sets the 'isLow' flag.
+   */
+  const processedParts = useMemo(() => {
+    return (warehouse?.parts || []).map((part) => {
+      const price = parseFloat(part.price) || 0;
+      const quantity = part.quantity || 0;
+      const totalValue = quantity * price;
+
+      return {
+        ...part,
+        price,
+        quantity,
+        totalValue,
+        isLow: quantity < LOW_STOCK_THRESHOLD,
+      };
     });
-
-    return {
-        priceMap: pMap,
-        partsWithCorrectPrice: partsCorrected
-    };
-  }, [warehouse, partCatalog]);
+  }, [warehouse]);
 
   // === FILTERING & PAGINATION LOGIC ===
   const filteredParts = useMemo(() => {
-    return partsWithCorrectPrice.filter(
+    return processedParts.filter(
       (part) =>
-        part.namePart?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase()) 
+        part.namePart?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [partsWithCorrectPrice, searchTerm]);
+  }, [processedParts, searchTerm]);
 
   const totalPages = Math.ceil(filteredParts.length / ROWS_PER_PAGE);
   const safeCurrentPage = Math.min(currentPage, totalPages || 1);
@@ -104,6 +111,10 @@ export default function EvmWareDetail({
     (safeCurrentPage - 1) * ROWS_PER_PAGE,
     safeCurrentPage * ROWS_PER_PAGE
   );
+
+  // ----------------------------------------------------
+  // 3. HANDLERS
+  // ----------------------------------------------------
 
   // === MAIN TABLE HANDLERS ===
   const handleNextPage = () => {
@@ -115,16 +126,24 @@ export default function EvmWareDetail({
 
   // === MINI-MODAL HANDLERS ===
   const handleOpenMiniReceive = (part) => {
-    setSelectedPart(part); 
+    setSelectedPart(part);
     setShowMiniReceive(true);
   };
 
-  const handleMiniReceiveSuccess = () => {
+  const handleMiniReceiveSuccess = (whId = warehouse.whId) => {
     setShowMiniReceive(false);
-    onReceiveSuccess(); 
+    onReceiveSuccess(whId);
   };
 
-  // === RENDER ===
+  const handleRegisterSuccess = (whId = warehouse.whId) => {
+    setShowRegisterPart(false);
+    onReceiveSuccess(whId);
+  };
+
+  // ----------------------------------------------------
+  // 4. RENDER
+  // ----------------------------------------------------
+
   return (
     <div className="space-y-6">
       {/* --- Header Section --- */}
@@ -135,10 +154,23 @@ export default function EvmWareDetail({
           </h2>
           <p className="text-muted-foreground text-lg">{warehouse.location}</p>
         </div>
-        <Button onClick={onBack} variant="outline" className="flex items-center">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to List
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button
+            onClick={() => setShowRegisterPart(true)} // Nút Register
+            className="flex items-center bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Register New Part
+          </Button>
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="flex items-center"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to List
+          </Button>
+        </div>
       </div>
 
       {/* --- Inventory Card --- */}
@@ -168,10 +200,11 @@ export default function EvmWareDetail({
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead>Part Number</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Name Part</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Total Value</TableHead>
+                  <TableHead className="text-center">Is Low</TableHead>
                   <TableHead className="text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -184,18 +217,20 @@ export default function EvmWareDetail({
                         {part.partNumber}
                       </TableCell>
                       <TableCell>{part.namePart}</TableCell>
-                      <TableCell
-                        className={`text-right ${
-                          part.quantity < 50 ? "text-red-600 font-medium" : ""
-                        }`}
-                      >
+                      <TableCell className="text-right">
                         {part.quantity}
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(part.price)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(part.totalValue)} 
+                        {formatCurrency(part.totalValue)}
+                      </TableCell>
+                      {/* Is Low (Icon) */}
+                      <TableCell className="text-center">
+                        {part.isLow && (
+                          <AlertTriangle className="h-5 w-5 text-red-500 mx-auto" />
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
@@ -222,7 +257,7 @@ export default function EvmWareDetail({
               </TableBody>
             </Table>
           </div>
-          
+
           {/* --- Pagination --- */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
@@ -262,6 +297,18 @@ export default function EvmWareDetail({
               onClose={() => setShowMiniReceive(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL: Register Part --- */}
+      <Dialog open={showRegisterPart} onOpenChange={setShowRegisterPart}>
+        <DialogContent className="max-w-xl">
+          <EvmWareDetaRegister // Component đăng ký part mới
+            warehouse={warehouse}
+            partCatalog={partCatalog} // Pass catalog cho form register
+            onSuccess={handleRegisterSuccess}
+            onClose={() => setShowRegisterPart(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
