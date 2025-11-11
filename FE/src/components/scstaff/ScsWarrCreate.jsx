@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useReducer } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -16,283 +16,252 @@ const API_ENDPOINTS = {
   APPOINTMENTS: "/api/service-appointments",
 }
 
+const initialState = {
+  loading: false,
+  customerPhone: "",
+  customerName: "",
+  vehicles: [],
+  selectedVin: "",
+  vehicleModel: "",
+  technicians: [],
+  selectedTechnician: "",
+  description: "",
+  claimId: "",
+  allCampaigns: [],
+  campaigns: [],
+  selectedCampaign: "",
+  campaignFound: false,
+  isCampaignChecked: false,
+  manualVinMode: false,
+  vinUnderWarranty: false,
+  loadingVehicles: false,
+  loadingTechnicians: false,
+}
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "RESET_FORM":
+      return { ...initialState }
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value }
+    case "SET_MULTIPLE":
+      return { ...state, ...action.payload }
+    case "SET_LOADING":
+      return { ...state, loading: action.value }
+    case "SET_LOADING_VEHICLES":
+      return { ...state, loadingVehicles: action.value }
+    case "SET_LOADING_TECHNICIANS":
+      return { ...state, loadingTechnicians: action.value }
+    default:
+      return state
+  }
+}
+
 export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) {
   const { auth } = useAuth()
   const currentUser = auth
 
-  const [loading, setLoading] = useState(false)
-  const [customerPhone, setCustomerPhone] = useState("")
-  const [customerName, setCustomerName] = useState("")
-  const [vehicles, setVehicles] = useState([])
-  const [selectedVin, setSelectedVin] = useState("")
-  const [vehicleModel, setVehicleModel] = useState("")
-  const [technicians, setTechnicians] = useState([])
-  const [selectedTechnician, setSelectedTechnician] = useState("")
-  const [description, setDescription] = useState("")
-  const [claimId, setClaimId] = useState("")
-  const [loadingVehicles, setLoadingVehicles] = useState(false)
-  const [loadingTechnicians, setLoadingTechnicians] = useState(false)
-
-  const [allCampaigns, setAllCampaigns] = useState([])
-  const [campaigns, setCampaigns] = useState([])
-  const [selectedCampaign, setSelectedCampaign] = useState("")
-  const [campaignFound, setCampaignFound] = useState(false)
-  const [isCampaignChecked, setIsCampaignChecked] = useState(false)
-  const [manualVinMode, setManualVinMode] = useState(false)
-  const [vinUnderWarranty, setVinUnderWarranty] = useState(false)
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const {
+    loading,
+    customerPhone,
+    customerName,
+    vehicles,
+    selectedVin,
+    vehicleModel,
+    technicians,
+    selectedTechnician,
+    description,
+    claimId,
+    allCampaigns,
+    campaigns,
+    selectedCampaign,
+    campaignFound,
+    isCampaignChecked,
+    manualVinMode,
+    vinUnderWarranty,
+    loadingVehicles,
+    loadingTechnicians,
+  } = state
 
   useEffect(() => {
     if (isOpen) {
-      resetForm()
+      dispatch({ type: "RESET_FORM" })
       fetchTechnicians()
       fetchCampaigns()
       generateClaimId()
     }
   }, [isOpen])
 
-  const resetForm = () => {
-    setCustomerPhone("")
-    setCustomerName("")
-    setVehicles([])
-    setSelectedVin("")
-    setVehicleModel("")
-    setSelectedTechnician("")
-    setDescription("")
-    setClaimId("")
-    setSelectedCampaign("")
-    setCampaignFound(false)
-    setIsCampaignChecked(false)
-    setManualVinMode(false)
-  }
-
   const generateClaimId = async () => {
-    const dateStr = new Date().toISOString().split("T")[0];
+    const dateStr = new Date().toISOString().split("T")[0]
     try {
-      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`);
-      const centerId = accountRes?.data?.serviceCenter?.centerId;
-      if (!centerId) throw new Error("Missing centerId");
+      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
+      const centerId = accountRes?.data?.serviceCenter?.centerId || "000"
 
-      let nextSerial = "001";
+      let nextSerial = "001"
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS);
-        const claims = Array.isArray(res.data) ? res.data : [];
-        const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`));
-        nextSerial = (sameDay.length + 1).toString().padStart(3, "0");
-      } catch {
-        nextSerial = "001";
-      }
+        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
+        const claims = Array.isArray(res.data) ? res.data : []
+        const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`))
+        nextSerial = (sameDay.length + 1).toString().padStart(3, "0")
+      } catch {}
 
-      const newId = `WC-${centerId}-${dateStr}-${nextSerial}`;
-      setClaimId(newId);
-      return newId;
+      const newId = `WC-${centerId}-${dateStr}-${nextSerial}`
+      dispatch({ type: "SET_FIELD", field: "claimId", value: newId })
     } catch (err) {
-      console.error("Error generating claimId:", err);
-      const fallback = `WC-000-${dateStr}-001`;
-      setClaimId(fallback);
-      return fallback;
+      console.error("Error generating claimId:", err)
+      dispatch({ type: "SET_FIELD", field: "claimId", value: `WC-000-${dateStr}-001` })
     }
-  };
+  }
 
   const fetchTechnicians = async () => {
     try {
-      setLoadingTechnicians(true)
+      dispatch({ type: "SET_LOADING_TECHNICIANS", value: true })
       const accountDetailRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
-      const fullAccount = accountDetailRes.data
-      const currentCenterId = fullAccount?.serviceCenter?.centerId
-
-      if (!currentCenterId) {
-        setTechnicians([])
-        return
-      }
+      const currentCenterId = accountDetailRes.data?.serviceCenter?.centerId
+      if (!currentCenterId) return dispatch({ type: "SET_MULTIPLE", payload: { technicians: [] } })
 
       const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
       const list = Array.isArray(res.data) ? res.data : []
       const techs = list.filter(
-        (a) =>
-          a.roleName === "SC_TECHNICIAN" &&
-          a.enabled &&
-          String(a.serviceCenter?.centerId) === String(currentCenterId)
+        (a) => a.roleName === "SC_TECHNICIAN" && a.enabled && String(a.serviceCenter?.centerId) === String(currentCenterId)
       )
-      setTechnicians(techs)
+      dispatch({ type: "SET_MULTIPLE", payload: { technicians: techs } })
     } catch (e) {
       console.error("Error fetching technicians:", e)
-      setTechnicians([])
+      dispatch({ type: "SET_MULTIPLE", payload: { technicians: [] } })
     } finally {
-      setLoadingTechnicians(false)
+      dispatch({ type: "SET_LOADING_TECHNICIANS", value: false })
     }
   }
 
   const fetchCampaigns = async () => {
     try {
       const res = await axiosPrivate.get(API_ENDPOINTS.CAMPAIGNS)
-      setAllCampaigns(Array.isArray(res.data) ? res.data : [])
+      dispatch({ type: "SET_FIELD", field: "allCampaigns", value: Array.isArray(res.data) ? res.data : [] })
     } catch (err) {
       console.error("Error fetching campaigns:", err)
-      setAllCampaigns([])
+      dispatch({ type: "SET_FIELD", field: "allCampaigns", value: [] })
     }
   }
 
+  // Fetch customer & vehicles when phone changes
   useEffect(() => {
     if (!customerPhone) {
-      setCustomerName("");
-      setVehicles([]);
-      setSelectedVin("");
-      setVehicleModel("");
-      setManualVinMode(false);
-      return;
+      dispatch({ type: "SET_MULTIPLE", payload: { customerName: "", vehicles: [], selectedVin: "", vehicleModel: "", manualVinMode: false } })
+      return
     }
 
     const fetchData = async () => {
       try {
-        setLoadingVehicles(true);
-        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS);
-        const customers = Array.isArray(customersRes.data) ? customersRes.data : [];
-        const foundCustomer = customers.find(
-          (c) => String(c.customerPhone).trim() === String(customerPhone).trim()
-        );
+        dispatch({ type: "SET_LOADING_VEHICLES", value: true })
+        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS)
+        const customers = Array.isArray(customersRes.data) ? customersRes.data : []
+        const foundCustomer = customers.find((c) => String(c.customerPhone).trim() === String(customerPhone).trim())
 
         if (foundCustomer) {
-          setCustomerName(foundCustomer.customerName || "");
-          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES);
-          const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
-          const relatedVehicles = allVehicles.filter(
-            (v) => v.customer?.customerId === foundCustomer.customerId
-          );
-          setVehicles(relatedVehicles);
-          setManualVinMode(relatedVehicles.length === 0);
+          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
+          const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
+          const relatedVehicles = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
+
+          dispatch({
+            type: "SET_MULTIPLE",
+            payload: {
+              customerName: foundCustomer.customerName || "",
+              vehicles: relatedVehicles,
+              manualVinMode: relatedVehicles.length === 0,
+            },
+          })
         } else {
-          setCustomerName("");
-          setVehicles([]);
-          setManualVinMode(false);
+          dispatch({ type: "SET_MULTIPLE", payload: { customerName: "", vehicles: [], manualVinMode: false } })
         }
       } catch (err) {
-        console.error("Error fetching customer or vehicle data:", err);
-        setCustomerName("");
-        setVehicles([]);
-        setManualVinMode(false);
+        console.error("Error fetching customer/vehicle data:", err)
+        dispatch({ type: "SET_MULTIPLE", payload: { customerName: "", vehicles: [], manualVinMode: false } })
       } finally {
-        setLoadingVehicles(false);
+        dispatch({ type: "SET_LOADING_VEHICLES", value: false })
       }
-    };
-
-    fetchData();
-  }, [customerPhone]);
-
-  useEffect(() => {
-    if (selectedVin) {
-      const fetchVinModel = async () => {
-        try {
-          const res = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
-          const allVehicles = Array.isArray(res.data) ? res.data : []
-          const vehicle = allVehicles.find((v) => v.vin === selectedVin)
-          setVehicleModel(vehicle?.model || "")
-        } catch (err) {
-          console.error("Error fetching vehicle model:", err)
-          setVehicleModel("")
-        }
-      }
-
-      if (manualVinMode) {
-        fetchVinModel()
-      } else {
-        const selected = vehicles.find((v) => v.vin === selectedVin)
-        setVehicleModel(selected ? selected.model : "")
-      }
-
-      const matchedCampaigns = allCampaigns.filter(
-        (c) => Array.isArray(c.model) && c.model.includes(vehicleModel)
-      )
-      setCampaignFound(matchedCampaigns.length > 0)
-      setCampaigns(matchedCampaigns)
-      if (matchedCampaigns.length > 0) {
-        setSelectedCampaign(matchedCampaigns[0].campaignId.toString())
-        setIsCampaignChecked(true)
-      } else {
-        setSelectedCampaign("")
-        setIsCampaignChecked(false)
-      }
-    } else {
-      setVehicleModel("")
-      setCampaignFound(false)
-      setSelectedCampaign("")
-      setIsCampaignChecked(false)
     }
-  }, [selectedVin, vehicles, allCampaigns, manualVinMode, vehicleModel])
+    fetchData()
+  }, [customerPhone])
 
+  // Update vehicleModel + campaigns when selectedVin changes
   useEffect(() => {
+    if (!selectedVin) {
+      dispatch({
+        type: "SET_MULTIPLE",
+        payload: { vehicleModel: "", campaignFound: false, selectedCampaign: "", isCampaignChecked: false },
+      })
+      return
+    }
+
+    const selectedVehicle = manualVinMode ? null : vehicles.find((v) => v.vin === selectedVin)
+    const model = manualVinMode ? state.vehicleModel : selectedVehicle?.model || ""
+    const matchedCampaigns = allCampaigns.filter((c) => Array.isArray(c.model) && c.model.includes(model))
+    dispatch({
+      type: "SET_MULTIPLE",
+      payload: {
+        vehicleModel: model,
+        campaigns: matchedCampaigns,
+        campaignFound: matchedCampaigns.length > 0,
+        selectedCampaign: matchedCampaigns.length > 0 ? matchedCampaigns[0].campaignId.toString() : "",
+        isCampaignChecked: matchedCampaigns.length > 0,
+      },
+    })
+  }, [selectedVin, vehicles, allCampaigns, manualVinMode])
+
+  // Check VIN under warranty
+  useEffect(() => {
+    if (!selectedVin) return dispatch({ type: "SET_FIELD", field: "vinUnderWarranty", value: false })
+
     const checkVinWarranty = async () => {
-      if (!selectedVin) {
-        setVinUnderWarranty(false)
-        return
-      }
       try {
         const claimRes = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
         const claims = Array.isArray(claimRes.data) ? claimRes.data : []
-        const related = claims
-          .filter((c) => c.vin === selectedVin)
-          .sort((a, b) => new Date(b.claimDate) - new Date(a.claimDate))
-
-        if (related.length > 0) {
-          const latest = related[0]
-          if (latest.status && latest.status !== "DONE") {
-            setVinUnderWarranty(true)
-          } else {
-            setVinUnderWarranty(false)
-          }
-        } else {
-          setVinUnderWarranty(false)
-        }
+        const related = claims.filter((c) => c.vin === selectedVin).sort((a, b) => new Date(b.claimDate) - new Date(a.claimDate))
+        const underWarranty = related.length > 0 && related[0].status && related[0].status !== "DONE"
+        dispatch({ type: "SET_FIELD", field: "vinUnderWarranty", value: underWarranty })
       } catch (err) {
         console.error("Error checking VIN warranty:", err)
-        setVinUnderWarranty(false)
+        dispatch({ type: "SET_FIELD", field: "vinUnderWarranty", value: false })
       }
     }
     checkVinWarranty()
   }, [selectedVin])
 
-  // kiểm tra & tạo appointment khi cần
+  // Auto-create appointment
   useEffect(() => {
     const checkAndCreateAppointment = async () => {
-      if (!isCampaignChecked || !selectedCampaign || !selectedVin) return;
-
+      if (!isCampaignChecked || !selectedCampaign || !selectedVin) return
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.APPOINTMENTS);
-        const appointments = Array.isArray(res.data) ? res.data : [];
-
-        const related = appointments
-          .filter((a) => a.vehicle?.vin === selectedVin)
-          .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-
-        // chỉ tạo nếu chưa có hoặc appointment gần nhất đã COMPLETED
-        if (!related || related.status === "COMPLETED") {
-          const payload = {
+        const res = await axiosPrivate.get(API_ENDPOINTS.APPOINTMENTS)
+        const appointments = Array.isArray(res.data) ? res.data : []
+        const last = appointments.filter((a) => a.vehicle?.vin === selectedVin).sort((a, b) => new Date(b.date) - new Date(a.date))[0]
+        if (!last || last.status === "COMPLETED") {
+          await axiosPrivate.post(API_ENDPOINTS.APPOINTMENTS, {
             vin: selectedVin,
             campaignId: Number(selectedCampaign),
             date: new Date().toISOString(),
             description: "Auto-created from warranty claim",
-          };
-          await axiosPrivate.post(API_ENDPOINTS.APPOINTMENTS, payload);
-          console.log("Created new service appointment:", payload);
-        } else {
-          console.log("Existing appointment not completed, skip creating new one.");
+          })
         }
       } catch (err) {
-        console.error("Error checking or creating service appointment:", err);
+        console.error("Error creating appointment:", err)
       }
-    };
-
-    checkAndCreateAppointment();
-  }, [isCampaignChecked, selectedCampaign, selectedVin]);
+    }
+    checkAndCreateAppointment()
+  }, [isCampaignChecked, selectedCampaign, selectedVin])
 
   const handleSubmitNewClaim = async (e) => {
     e.preventDefault()
     if (!selectedVin) return alert("Please select or enter a vehicle VIN.")
-    if (!technicians.length) return alert("No technicians available in this service center.")
+    if (!technicians.length) return alert("No technicians available.")
     if (!selectedTechnician) return alert("Please assign a technician.")
     if (!description) return alert("Please enter a description.")
 
     try {
-      setLoading(true)
+      dispatch({ type: "SET_LOADING", value: true })
       const finalClaimId = claimId || (await generateClaimId())
       const payload = {
         claimId: finalClaimId,
@@ -301,21 +270,17 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
         description,
-        campaignIds:
-          isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
+        campaignIds: isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
       }
 
-      console.log("Creating warranty claim payload:", payload)
       await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
-
-      resetForm()
+      dispatch({ type: "RESET_FORM" })
       onOpenChange(false)
       onClaimCreated?.()
-      window.location.reload()
     } catch (err) {
       console.error("Error creating claim:", err)
     } finally {
-      setLoading(false)
+      dispatch({ type: "SET_LOADING", value: false })
     }
   }
 
@@ -344,7 +309,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               <Input
                 placeholder="Enter customer phone"
                 value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                onChange={(e) => dispatch({ type: "SET_FIELD", field: "customerPhone", value: e.target.value })}
                 required
                 className="h-10"
               />
@@ -361,11 +326,11 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                 <Input
                   placeholder="Enter VIN manually"
                   value={selectedVin}
-                  onChange={(e) => setSelectedVin(e.target.value)}
+                  onChange={(e) => dispatch({ type: "SET_FIELD", field: "selectedVin", value: e.target.value })}
                   className="h-10"
                 />
               ) : (
-                <Select value={selectedVin} onValueChange={setSelectedVin} required>
+                <Select value={selectedVin} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "selectedVin", value: v })} required>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder={loadingVehicles ? "Loading..." : "Select vehicle"} />
                   </SelectTrigger>
@@ -388,7 +353,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Assign to Technician *</label>
               {technicians.length > 0 ? (
-                <Select value={selectedTechnician} onValueChange={setSelectedTechnician} required>
+                <Select value={selectedTechnician} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "selectedTechnician", value: v })} required>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder={loadingTechnicians ? "Loading..." : "Select technician"} />
                   </SelectTrigger>
@@ -401,9 +366,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm italic text-red-500">
-                  No technician available in your service center.
-                </p>
+                <p className="text-sm italic text-red-500">No technician available in your service center.</p>
               )}
             </div>
 
@@ -413,7 +376,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                 <div className="flex items-center justify-between gap-3">
                   <Select
                     value={selectedCampaign}
-                    onValueChange={setSelectedCampaign}
+                    onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "selectedCampaign", value: v })}
                     disabled={!isCampaignChecked}
                   >
                     <SelectTrigger className="h-10 w-full">
@@ -430,7 +393,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                   <div className="flex items-center gap-2">
                     <Checkbox
                       checked={isCampaignChecked}
-                      onCheckedChange={(checked) => setIsCampaignChecked(checked)}
+                      onCheckedChange={(checked) => dispatch({ type: "SET_FIELD", field: "isCampaignChecked", value: checked })}
                     />
                   </div>
                 </div>
@@ -446,7 +409,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
               className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md resize-none"
               placeholder="Describe the issue..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => dispatch({ type: "SET_FIELD", field: "description", value: e.target.value })}
               required
             />
           </div>
@@ -463,9 +426,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             </Button>
             <Button
               type="submit"
-              className={`bg-black hover:bg-gray-800 text-white ${
-                vinUnderWarranty ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`bg-black hover:bg-gray-800 text-white ${vinUnderWarranty ? "opacity-50 cursor-not-allowed" : ""}`}
               disabled={loading || vinUnderWarranty}
             >
               {loading ? "Creating..." : "Create Claim"}

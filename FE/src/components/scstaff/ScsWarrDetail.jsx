@@ -39,25 +39,41 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       try {
         setFetching(true);
 
-        const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
-          axiosPrivate.get(API_CLAIMS),
-          axiosPrivate.get(API_VEHICLES),
-          axiosPrivate.get(API_ACCOUNTS),
-        ]);
+        const [claimsRes, vehiclesRes, accountsRes, appointmentsRes] =
+          await Promise.all([
+            axiosPrivate.get(API_CLAIMS),
+            axiosPrivate.get(API_VEHICLES),
+            axiosPrivate.get(API_ACCOUNTS),
+            axiosPrivate.get(API_APPOINTMENTS),
+          ]);
 
+        // Claim
         const foundClaim = claimsRes.data.find(
           (c) => c.claimId === selectedClaim.claimId
         );
         if (!foundClaim) return setClaim(null);
-
         setClaim(foundClaim);
 
+        // Vehicle
         const foundVehicle = vehiclesRes.data.find(
           (v) => v.vin === foundClaim.vin
         );
         setVehicle(foundVehicle || null);
 
+        // Accounts
         setAccounts(accountsRes.data);
+
+        // Map campaignName từ appointment
+        if (foundClaim.campaignIds?.length > 0 && foundClaim.vin) {
+          const matchedApp = appointmentsRes.data.find(
+            (a) =>
+              a.vehicle?.vin === foundClaim.vin &&
+              foundClaim.campaignIds.includes(a.campaign?.campaignId)
+          );
+          if (matchedApp) {
+            foundClaim.campaignName = matchedApp.campaign?.campaignName || "—";
+          }
+        }
       } catch (error) {
         console.error("Error fetching details:", error);
       } finally {
@@ -81,20 +97,19 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
         { params: { staffId, done: true } }
       );
 
+      // Update appointment status
       if (claim.campaignIds?.length > 0 && claim.vin) {
         try {
-          const campaignId = claim.campaignIds[0];
-          const appointmentsRes = await axiosPrivate.get(API_APPOINTMENTS);
-
-          const matchedAppointment = appointmentsRes.data.find(
+          const matchedAppointment = await axiosPrivate.get(API_APPOINTMENTS);
+          const appointment = matchedAppointment.data.find(
             (a) =>
-              a?.vehicle?.vin === claim.vin &&
-              a?.campaign?.campaignId === campaignId
+              a.vehicle?.vin === claim.vin &&
+              claim.campaignIds.includes(a.campaign?.campaignId)
           );
 
-          if (matchedAppointment && matchedAppointment.status === "Scheduled") {
+          if (appointment && appointment.status === "Scheduled") {
             await axiosPrivate.put(
-              `${API_APPOINTMENTS}/${matchedAppointment.appointmentId}/status`,
+              `${API_APPOINTMENTS}/${appointment.appointmentId}/status`,
               null,
               { params: { status: "Completed" } }
             );
@@ -188,14 +203,14 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
             {claim.campaignIds?.length > 0 ? (
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Campaign</h4>
-                <p className="text-sm">Campaign ID: {claim.campaignIds[0]}</p>
+                <p className="text-sm">{claim.campaignName || "—"}</p>
               </div>
             ) : (
               <p className="text-sm italic text-muted-foreground">No campaign associated.</p>
             )}
 
-            {/* ✅ Gọi form ScsWarrPart */}
-            <ScsWarrPart warrantyId={claim?.claimId} />
+            {/* ✅ Auto load repair parts */}
+            <ScsWarrPart warrantyId={claim?.claimId} autoLoad={true} />
 
             <Button
               onClick={handleMarkComplete}
@@ -206,6 +221,8 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
                 ? "Processing..."
                 : claim.status === "HANDOVER"
                 ? "Mark Complete"
+                : claim.status === "DONE"
+                ? "Completed"
                 : "Can only mark complete when status is HANDOVER"}
             </Button>
           </div>
