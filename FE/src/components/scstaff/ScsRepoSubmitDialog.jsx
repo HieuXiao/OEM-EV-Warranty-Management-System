@@ -124,7 +124,7 @@ export function SubmitReportDialog({
               type="file"
               accept=".pdf" // Chỉ chấp nhận file PDF
               onChange={handleFileChange}
-              className="file:text-primary file:font-semibold"
+              className="file:text-primary file:font-semibold cursor-pointer"
             />
           </div>
 

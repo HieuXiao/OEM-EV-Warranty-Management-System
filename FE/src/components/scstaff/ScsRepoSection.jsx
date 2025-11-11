@@ -1,3 +1,4 @@
+// FE/src/components/scstaff/ScsRepoSection.jsx
 import React, {
   useState,
   useEffect,
@@ -24,62 +25,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, FileText, Send, Loader2 } from "lucide-react";
-import axiosPrivate from "@/api/axios";
-
-// Import component dialog đã tách
-// (Giả sử file mới nằm trong /components/scstaff/ScsReportSubmitDialog.jsx)
+// Xóa import axiosPrivate
 import { SubmitReportDialog } from "./ScsRepoSubmitDialog";
 
-// --- API URLs ---
-const CAMPAIGN_URL = "/api/campaigns/all";
-const APPOINTMENT_URL = "/api/service-appointments";
-const ACCOUNT_URL = "/api/accounts/current";
-const REPORTS_URL = "/api/campaign-reports/all";
-const VEHICLE_URL = "/api/vehicles";
+// --- XÓA TOÀN BỘ API URLs ---
+// --- XÓA TOÀN BỘ dataFetchReducer VÀ initialState ---
 
-// --- [THÊM MỚI]: Reducer cho việc tải dữ liệu ---
-const initialState = {
-  status: "idle", // 'idle', 'loading', 'success', 'error'
-  currentAccount: {},
-  allCampaigns: [],
-  myAppointments: [],
-  mySubmittedReports: [], // Giữ nguyên logic ban đầu là mảng rỗng
-  allVehicles: [],
-  error: null,
-};
-
-const dataFetchReducer = (state, action) => {
-  switch (action.type) {
-    case "FETCH_START":
-      return { ...state, status: "loading", error: null };
-    case "FETCH_SUCCESS":
-      return {
-        ...state,
-        status: "success",
-        currentAccount: action.payload.currentAccount,
-        allCampaigns: action.payload.allCampaigns,
-        myAppointments: action.payload.myAppointments,
-        mySubmittedReports: action.payload.mySubmittedReports,
-        allVehicles: action.payload.allVehicles,
-      };
-    case "FETCH_ERROR":
-      return {
-        ...state,
-        status: "error",
-        error: action.payload,
-        currentAccount: {},
-        allCampaigns: [],
-        myAppointments: [],
-        mySubmittedReports: [],
-        allVehicles: [],
-      };
-    default:
-      throw new Error(`Unhandled action type: ${action.type}`);
-  }
-};
-// --- KẾT THÚC THÊM MỚI ---
-
-// --- Helpers ---
+// --- Helpers (Giữ lại) ---
 const getCampaignDateStatus = (startDateStr, endDateStr) => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -107,83 +59,43 @@ function getStatusColor(status) {
 }
 
 // --- COMPONENT CHÍNH ---
-export default function ScsReportSection() {
-  // [THAY ĐỔI]: Dùng useReducer cho state tải dữ liệu
-  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
-  const {
-    status,
-    currentAccount,
-    allCampaigns,
-    myAppointments,
-    mySubmittedReports,
-    allVehicles,
-    error,
-  } = state;
+export default function ScsReportSection({
+  currentAccount = {},
+  allCampaigns = [],
+  myAppointments = [],
+  mySubmittedReports = [],
+  allVehicles = [],
+  onRefreshData, // Thêm prop refresh
+  status, // Thêm status
+  error, // Thêm error
+}) {
+  // --- XÓA state, dispatch (từ reducer) ---
 
   // State của Dialog giữ nguyên
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
-  // [THAY ĐỔI]: Bọc fetchData trong useCallback và dùng dispatch
-  const fetchData = useCallback(async () => {
-    dispatch({ type: "FETCH_START" });
-    try {
-      const [accountRes, campaignRes, appointmentRes, reportRes, vehicleRes] =
-        await Promise.all([
-          axiosPrivate.get(ACCOUNT_URL),
-          axiosPrivate.get(CAMPAIGN_URL),
-          axiosPrivate.get(APPOINTMENT_URL),
-          axiosPrivate.get(REPORTS_URL),
-          axiosPrivate.get(VEHICLE_URL),
-        ]);
-      dispatch({
-        type: "FETCH_SUCCESS",
-        payload: {
-          currentAccount: accountRes.data,
-          allCampaigns: campaignRes.data,
-          myAppointments: appointmentRes.data,
-          mySubmittedReports: reportRes.data,
-          allVehicles: vehicleRes.data,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to fetch report data:", err);
-      dispatch({
-        type: "FETCH_ERROR",
-        payload: "Failed to load data. Please refresh.",
-      });
-    }
-  }, []); // Dependency rỗng
+  // --- XÓA HÀM fetchData VÀ useEffect GỌI NÓ ---
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]); // Thêm fetchData vào dependency
-
-  // --- [THAY ĐỔI LOGIC TÍNH TOÁN] ---
+  // --- CẬP NHẬT useMemo ĐỂ DÙNG PROPS ---
   const campaignReportData = useMemo(() => {
-    // 1. Lấy ID của trung tâm hiện tại
     const myCenterId = currentAccount.serviceCenter?.centerId;
-    if (!myCenterId) return []; // Trả về rỗng nếu không có centerId
+    if (!myCenterId) return [];
 
-    // 2. Map các báo cáo đã gửi (để tra cứu nhanh)
-    // [SỬA LỖI]: Sửa r.campaignId.campaignId thành r.campaign.campaignId
     const reportMap = new Map(
-      mySubmittedReports
-        .filter((r) => r.serviceCenterId?.centerId === myCenterId) // Lọc report của trung tâm mình
-        .map((r) => [r.campaignId.campaignId, r])
+      (mySubmittedReports || [])
+        .filter((r) => r.serviceCenterId?.centerId === myCenterId)
+        .map((r) => [r.campaignId?.campaignId, r])
     );
 
-    // 3. Tính toán số xe ĐÃ HOÀN THÀNH (Completed) tại trung tâm này
     const completedApptMap = new Map();
-    for (const appt of myAppointments) {
-      // Lọc các cuộc hẹn của trung tâm mình VÀ đã hoàn thành
+    for (const appt of myAppointments || []) {
       if (
         appt.vehicle.customer.serviceCenter?.centerId === myCenterId &&
         appt.status === "Completed" &&
         appt.campaign
       ) {
         const campaignId = appt.campaign.campaignId;
-        // Đếm số cuộc hẹn hoàn thành cho mỗi chiến dịch
         completedApptMap.set(
           campaignId,
           (completedApptMap.get(campaignId) || 0) + 1
@@ -191,27 +103,23 @@ export default function ScsReportSection() {
       }
     }
 
-    // 4. Hợp nhất dữ liệu
-    return allCampaigns
+    return (allCampaigns || [])
       .map((campaign) => {
-        // 4a. Lấy danh sách model của chiến dịch
         const campaignModelSet = new Set(campaign.model || []);
 
-        // 4b. [LOGIC MỚI] Tính tổng số xe BỊ ẢNH HƯỞNG (Affected)
-        // Lọc từ TẤT CẢ xe (allVehicles)
-        const affectedVehiclesCount = allVehicles.filter(
+        const affectedVehiclesCount = (allVehicles || []).filter(
           (vehicle) =>
-            // Xe này phải khớp model của chiến dịch
             campaignModelSet.has(vehicle.model) &&
-            // Và xe này phải thuộc trung tâm của tôi
             vehicle.customer.serviceCenter?.centerId === myCenterId
         ).length;
 
-        // 4c. Lấy số xe đã hoàn thành (từ bước 3)
+        if (affectedVehiclesCount === 0) {
+          return null;
+        }
+
         const completedVehiclesCount =
           completedApptMap.get(campaign.campaignId) || 0;
 
-        // 4d. Lấy thông tin khác
         const submittedReport = reportMap.get(campaign.campaignId);
         const campaignStatus = getCampaignDateStatus(
           campaign.startDate,
@@ -224,11 +132,12 @@ export default function ScsReportSection() {
           reportStatus: submittedReport ? "Submitted" : "Not Submitted",
           submittedReport: submittedReport || null,
           scStats: {
-            affectedVehicles: affectedVehiclesCount, // <-- Số xe BỊ ẢNH HƯỞNG (đúng)
-            completedVehicles: completedVehiclesCount, // <-- Số xe ĐÃ HOÀN THÀNH (đúng)
+            affectedVehicles: affectedVehiclesCount,
+            completedVehicles: completedVehiclesCount,
           },
         };
       })
+      .filter(Boolean)
       .sort((a, b) => {
         const statusPriority = {
           "on going": 1,
@@ -239,7 +148,6 @@ export default function ScsReportSection() {
         const priorityB = statusPriority[b.campaignStatus] || 99;
         return priorityA - priorityB;
       });
-    // [THAY ĐỔI]: Thêm dependencies
   }, [
     currentAccount,
     allCampaigns,
@@ -247,7 +155,7 @@ export default function ScsReportSection() {
     myAppointments,
     mySubmittedReports,
   ]);
-  // --- [KẾT THÚC THAY ĐỔI LOGIC] ---
+  // --- KẾT THÚC CẬP NHẬT LOGIC ---
 
   // Handlers (giữ nguyên)
   const handleSubmitClick = (campaign) => {
@@ -256,12 +164,12 @@ export default function ScsReportSection() {
   };
 
   const onReportSubmitted = () => {
-    fetchData(); // Tải lại toàn bộ dữ liệu sau khi gửi
+    onRefreshData(); // <-- DÙNG HÀM REFRESH TỪ PROPS
     setSubmitDialogOpen(false);
     setSelectedCampaign(null);
   };
 
-  // [THAY ĐỔI]: Dùng 'status' từ reducer
+  // --- GIỮ NGUYÊN JSX GỐC (loading/error/success) ---
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-64">
@@ -279,7 +187,6 @@ export default function ScsReportSection() {
     );
   }
 
-  // [THAY ĐỔI]: Chỉ render khi status === 'success'
   return (
     status === "success" && (
       <>
@@ -306,68 +213,83 @@ export default function ScsReportSection() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {campaignReportData.map((campaign) => (
-                      <TableRow key={campaign.campaignId}>
-                        <TableCell className="font-medium">
-                          {campaign.campaignName}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(campaign.campaignStatus)}
-                          >
-                            {campaign.campaignStatus.toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="font-semibold">
-                            {campaign.scStats.completedVehicles} /{" "}
-                            {campaign.scStats.affectedVehicles}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              campaign.reportStatus === "Submitted"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {campaign.reportStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {campaign.reportStatus === "Submitted" ? (
-                            <Button
-                              asChild // Dùng asChild để Button hoạt động như Link
-                              variant="outline"
-                              size="sm"
-                            >
-                              <a
-                                href={
-                                  campaign.submittedReport.reportFileUrls[0]
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                View Submitted
-                              </a>
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleSubmitClick(campaign)}
-                              disabled={campaign.campaignStatus !== "completed"}
-                            >
-                              <Send className="w-4 h-4 mr-2" />
-                              Submit Report
-                            </Button>
-                          )}
+                    {campaignReportData.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center h-24 text-muted-foreground"
+                        >
+                          No campaigns assigned to this service center.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      campaignReportData.map((campaign) => (
+                        <TableRow key={campaign.campaignId}>
+                          <TableCell className="font-medium">
+                            {campaign.campaignName}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={getStatusColor(
+                                campaign.campaignStatus
+                              )}
+                            >
+                              {campaign.campaignStatus.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-semibold">
+                              {campaign.scStats.completedVehicles} /{" "}
+                              {campaign.scStats.affectedVehicles}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                campaign.reportStatus === "Submitted"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {campaign.reportStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {campaign.reportStatus === "Submitted" ? (
+                              <Button asChild variant="outline" size="sm">
+                                <a
+                                  href={
+                                    campaign.submittedReport
+                                      ?.reportFileUrls?.[0]
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  View Submitted
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleSubmitClick(campaign)}
+                                // === THAY ĐỔI LOGIC Ở ĐÂY ===
+                                // Chỉ cho phép (không disabled) khi status LÀ "completed"
+                                disabled={
+                                  campaign.campaignStatus !== "completed"
+                                }
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Submit Report
+                              </Button>
+                              // === KẾT THÚC THAY ĐỔI ===
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -375,7 +297,7 @@ export default function ScsReportSection() {
           </CardContent>
         </Card>
 
-        {/* Dialog Gửi Báo Cáo (đã được import) */}
+        {/* Dialog Gửi Báo Cáo (Không đổi) */}
         <SubmitReportDialog
           open={submitDialogOpen}
           onOpenChange={setSubmitDialogOpen}
