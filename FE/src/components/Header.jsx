@@ -23,6 +23,10 @@ export default function Header() {
     navigate("/");
   };
 
+  const goToProfile = () => {
+    navigate("/profile");
+  };
+
   return (
     <header className="sticky top-0 z-40 h-16 bg-card border-b border-border">
       <div className="h-full px-4 flex items-center justify-between gap-4">
@@ -30,9 +34,6 @@ export default function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
-              {/* <Avatar className="h-8 w-8">
-                <AvatarImage src={image} />
-              </Avatar> */}
               <span className="hidden sm:inline text-sm font-medium">
                 {auth.fullName}
               </span>
@@ -46,7 +47,7 @@ export default function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={goToProfile}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
