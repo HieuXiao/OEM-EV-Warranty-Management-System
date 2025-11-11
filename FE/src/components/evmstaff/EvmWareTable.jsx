@@ -20,79 +20,57 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
-// === CONSTANT: number of rows displayed per page ===
+// === CONSTANTS ===
 const ROWS_PER_PAGE = 5;
 const MAX_LOW_STOCK_DISPLAY = 3;
 
-export default function EvmWareTable({
-  warehouses,
-  parts,
-  partCatalog,
-  onRowClick,
-  loading,
-}) {
+export default function EvmWareTable({ warehouses, onRowClick, loading }) {
   // ================== STATE ==================
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = ROWS_PER_PAGE;
 
-  // ================== OPTIMIZATION: TẠO MAP GIÁ TỪ CATALOG ==================
-  const priceMap = useMemo(() => {
-    const map = {};
-    if (partCatalog) {
-      for (const part of partCatalog) {
-        const price = parseFloat(part.price) || 0;
-        map[part.partId] = price; 
-      }
-    }
-    return map;
-  }, [partCatalog]);
+  // ----------------------------------------------------
+  // 1. DATA PROCESSING (Filtering & Pagination)
+  // ----------------------------------------------------
 
-  // ================== OPTIMIZATION ==================
-  const partsByWarehouseId = useMemo(() => {
-    const map = {};
-    for (const part of parts) {
-      const whId = part.warehouse?.whId;
-      if (whId) {
-        if (!map[whId]) {
-          map[whId] = [];
-        }
-        map[whId].push(part);
-      }
-    }
-    return map;
-  }, [parts]);
-
-  // ================== FILTERING & PAGINATION LOGIC ==================
-
-  const warehousesWithParts = useMemo(() => {
+  /**
+   * Pre-process warehouses data to include derived properties like numParts.
+   */
+  const warehousesForDisplay = useMemo(() => {
     return warehouses.map((warehouse) => ({
       ...warehouse,
-      parts: partsByWarehouseId[warehouse.whId] || [],
+      // Calculate number of distinct part models in the warehouse
+      numParts: warehouse.parts?.length || 0,
     }));
-  }, [warehouses, partsByWarehouseId]);
+  }, [warehouses]);
 
-  // Filter Logic
+  /**
+   * Filter the list of warehouses based on the search term.
+   */
   const filteredWarehouses = useMemo(() => {
-    return warehousesWithParts.filter(
+    return warehousesForDisplay.filter(
       (warehouse) =>
         warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         warehouse.location.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [warehousesWithParts, searchTerm]);
+  }, [warehousesForDisplay, searchTerm]);
 
-  // Pagination Calculation
+  /**
+   * Apply pagination to the filtered list.
+   */
   const totalPages = Math.ceil(filteredWarehouses.length / rowsPerPage);
   const safeCurrentPage = Math.min(currentPage, totalPages || 1);
-  const currentWarehouses = filteredWarehouses.slice(
+  const displayWarehouses = filteredWarehouses.slice(
     (safeCurrentPage - 1) * rowsPerPage,
     safeCurrentPage * rowsPerPage
   );
 
-  const displayWarehouses = currentWarehouses;
   const hasResults = filteredWarehouses.length > 0;
 
-  // ================== HANDLERS ==================
+  // ----------------------------------------------------
+  // 2. HANDLERS (Search & Pagination)
+  // ----------------------------------------------------
 
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
@@ -107,9 +85,13 @@ export default function EvmWareTable({
     setCurrentPage(1);
   };
 
-  // ================== UTILITY FUNCTIONS ==================
+  // ----------------------------------------------------
+  // 3. UTILITY FUNCTIONS
+  // ----------------------------------------------------
 
-  // Format currency
+  /**
+   * Formats a number as Vietnamese currency (VND).
+   */
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -117,16 +99,23 @@ export default function EvmWareTable({
     }).format(amount);
   };
 
+  /**
+   * Calculates the total monetary value of all parts in a warehouse.
+   * Assumes part object has 'price' and 'quantity'.
+   */
   const calculateWarehouseValue = (warehouseParts = []) =>
     warehouseParts.reduce((sum, part) => {
-      const partNumber = part.partNumber;
-      const correctPrice = priceMap[partNumber] || 0; 
-      
-      return sum + (part.quantity || 0) * correctPrice;
+      const partPrice = parseFloat(part.price) || 0;
+      const partQuantity = part.quantity || 0;
+
+      return sum + partQuantity * partPrice;
     }, 0);
 
+  /**
+   * Prepares the low stock alert string for display.
+   */
   const getLowStockAlert = (warehouse) => {
-    const lowParts = warehouse.lowPart || [];
+    const lowParts = warehouse.lowPart || []; // Array of part names/strings from API
     const totalLowParts = lowParts.length;
 
     if (totalLowParts === 0) {
@@ -153,19 +142,15 @@ export default function EvmWareTable({
     };
   };
 
-  // Get latest update from parts
-  const getLatestUpdate = (warehouseParts = []) => {
-    if (warehouseParts.length === 0) return new Date(0);
-    return new Date(); 
-  };
+  // ----------------------------------------------------
+  // 4. RENDER FUNCTION
+  // ----------------------------------------------------
 
-  // ================== UI RENDERING ==================
   return (
     <Card className="pt-4 px-4 pb-4">
       <CardHeader>
-        {/* === HEADER SECTION === */}
+        {/* === HEADER SECTION: Title and Search === */}
         <div className="flex flex-row items-center justify-between">
-          {/* Left Block: Title and Description */}
           <div>
             <CardTitle>All Warehouses</CardTitle>
             <CardDescription>
@@ -173,7 +158,6 @@ export default function EvmWareTable({
             </CardDescription>
           </div>
 
-          {/* Right Block: Search Box */}
           <div className="flex items-center gap-2">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -188,36 +172,34 @@ export default function EvmWareTable({
         </div>
       </CardHeader>
 
-      {/* === TABLE CONTENT === */}
       <CardContent className="pt-0 px-4">
         {loading ? (
+          /* === Loading State === */
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
             <span className="text-gray-600">Loading warehouse data...</span>
           </div>
         ) : (
           <>
-            {/* Warehouse Table / No Results */}
+            {/* === Warehouse Table / No Results === */}
             <div className="rounded-md border overflow-x-auto">
               {hasResults ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>No.</TableHead>
+                      <TableHead>ID</TableHead>
                       <TableHead>Warehouse Name</TableHead>
                       <TableHead className="text-center">Location</TableHead>
                       <TableHead className="text-center">
-                        Last Updated
+                        Part Models Number
                       </TableHead>
-                      <TableHead className="text-center">
-                        Inventory Value
-                      </TableHead>
+                      <TableHead className="text-right">Total Value</TableHead>
                       <TableHead>Low Stock Alert</TableHead>
                     </TableRow>
                   </TableHeader>
 
                   <TableBody>
-                    {displayWarehouses.map((warehouse, i) => {
+                    {displayWarehouses.map((warehouse) => {
                       const lowStockInfo = getLowStockAlert(warehouse);
                       return (
                         <TableRow
@@ -226,7 +208,7 @@ export default function EvmWareTable({
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
                         >
                           <TableCell className="font-semibold text-xs text-gray-500">
-                            {(safeCurrentPage - 1) * rowsPerPage + i + 1}
+                            {warehouse.whId}
                           </TableCell>
                           <TableCell className="font-medium">
                             {warehouse.name}
@@ -234,12 +216,10 @@ export default function EvmWareTable({
                           <TableCell className="text-center">
                             {warehouse.location}
                           </TableCell>
-                          <TableCell className="text-center text-sm text-gray-600">
-                            {getLatestUpdate(warehouse.parts).toLocaleString(
-                              "vi-VN"
-                            )}
+                          <TableCell className="text-center font-bold text-blue-600">
+                            {warehouse.numParts}
                           </TableCell>
-                          <TableCell className="text-center font-semibold">
+                          <TableCell className="text-right font-semibold">
                             {formatCurrency(
                               calculateWarehouseValue(warehouse.parts)
                             )}
@@ -252,7 +232,9 @@ export default function EvmWareTable({
                             }
                           >
                             <div className="flex justify-between items-center min-w-[150px]">
-                              <span className="truncate">{lowStockInfo.display}</span>
+                              <span className="truncate">
+                                {lowStockInfo.display}
+                              </span>
                               {lowStockInfo.remainingCount > 0 && (
                                 <span className="ml-2 px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-700 whitespace-nowrap flex-shrink-0">
                                   +{lowStockInfo.remainingCount}
@@ -260,14 +242,13 @@ export default function EvmWareTable({
                               )}
                             </div>
                           </TableCell>
-
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
               ) : (
-                /* === NO RESULTS MESSAGE === */
+                /* === No Results Message === */
                 <Table>
                   <TableBody>
                     <TableRow>

@@ -1,6 +1,6 @@
 // FE/src/pages/EVMStaffWarehouse.jsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,15 +20,15 @@ import EvmWareDetail from "@/components/evmstaff/EvmWareDetail";
 
 // ======================== API ENDPOINTS ========================
 const WAREHOUSES_API_URL = "/api/warehouses";
-const PARTS_API_URL = "/api/parts";
-const PARTS_UNDER_WARRANTY_API_URL = "/api/part-under-warranty-controller";
+// Re-include Catalog API for EvmWareReceive modal (list of parts that can be received)
+const PARTS_CATALOG_API_URL = "/api/part-under-warranty-controller";
 
 // === COMPONENT DEFINITION ===
 export default function EVMStaffWarehouse() {
   const { auth } = useAuth();
 
+  // === DATA STATES ===
   const [warehouses, setWarehouses] = useState([]);
-  const [parts, setParts] = useState([]);
   const [partCatalog, setPartCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,130 +40,160 @@ export default function EVMStaffWarehouse() {
   // === UI STATES ===
   const [showReceiveStockModal, setShowReceiveStockModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-  
+  const [selectedWarehouseDetail, setSelectedWarehouseDetail] = useState(null);
   const [warehouseToRedirect, setWarehouseToRedirect] = useState(null);
 
-  // === DATA FETCHING ===
+  // ----------------------------------------------------
+  // 1. DATA FETCHING FUNCTIONS
+  // ----------------------------------------------------
+
+  /**
+   * Fetches the detailed information for a specific warehouse by ID.
+   * @param {number} whId - The ID of the warehouse.
+   */
+  const fetchWarehouseDetail = useCallback(
+    async (whId) => {
+      try {
+        const response = await axios.get(`${WAREHOUSES_API_URL}/${whId}`, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        });
+        return response.data;
+      } catch (err) {
+        console.error(`Error fetching warehouse detail for ID ${whId}:`, err);
+        throw new Error("Failed to load warehouse details.");
+      }
+    },
+    [auth.token]
+  );
+
+  /**
+   * Fetches list data (Warehouses and Part Catalog) on component mount or refresh.
+   */
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const [warehousesRes, partsRes, partCatalogRes] = await Promise.all([
+        // Fetch Warehouse List and Part Catalog (for receive modal)
+        const [warehousesRes, partCatalogRes] = await Promise.all([
           axios.get(WAREHOUSES_API_URL, {
             headers: { Authorization: `Bearer ${auth.token}` },
           }),
-          axios.get(PARTS_API_URL, {
-            headers: { Authorization: `Bearer ${auth.token}` },
-          }),
-          axios.get(PARTS_UNDER_WARRANTY_API_URL, {
+          axios.get(PARTS_CATALOG_API_URL, {
             headers: { Authorization: `Bearer ${auth.token}` },
           }),
         ]);
-        
-        const newWarehouses = warehousesRes.data;
-        const newParts = partsRes.data;
-        
-        setWarehouses(newWarehouses);
-        setParts(newParts);
+
+        setWarehouses(warehousesRes.data);
         setPartCatalog(partCatalogRes.data);
 
-        const partsByWarehouseId = newParts.reduce((map, part) => {
-            const whId = part.warehouse?.whId;
-            if (whId) {
-                if (!map[whId]) map[whId] = [];
-                map[whId].push(part);
-            }
-            return map;
-        }, {});
-        
-        const completeWarehouses = newWarehouses.map(warehouse => ({
-            ...warehouse,
-            parts: partsByWarehouseId[warehouse.whId] || [],
-        }));
-
+        // Handle Redirect/Update Detail after refresh
         if (warehouseToRedirect) {
-            const targetWarehouse = completeWarehouses.find(wh => wh.whId === warehouseToRedirect); 
-            if (targetWarehouse) {
-                setSelectedWarehouse(targetWarehouse);
-                setShowDetailModal(true); 
-            }
-            setWarehouseToRedirect(null);
+          const targetWhId = warehouseToRedirect;
+          setWarehouseToRedirect(null);
+          const updatedDetail = await fetchWarehouseDetail(targetWhId);
+          setSelectedWarehouseDetail(updatedDetail);
+          setShowDetailModal(true);
+        } else if (selectedWarehouseDetail) {
+          const updatedDetail = await fetchWarehouseDetail(
+            selectedWarehouseDetail.whId
+          );
+          setSelectedWarehouseDetail(updatedDetail);
         }
-        else if (selectedWarehouse) {
-            const updatedWarehouse = completeWarehouses.find(wh => wh.whId === selectedWarehouse.whId); 
-            if (updatedWarehouse) {
-                setSelectedWarehouse(updatedWarehouse); 
-            } else {
-                handleBackToWarehouseList();
-            }
-        }
-        
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(
           "Failed to load warehouse data. Please check the API connection and token."
         );
         setWarehouses([]);
-        setParts([]);
         setPartCatalog([]);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [auth.token, refreshKey, warehouseToRedirect]); 
+  }, [
+    auth.token,
+    refreshKey,
+    warehouseToRedirect,
+    selectedWarehouseDetail,
+    fetchWarehouseDetail,
+  ]);
 
-  // === UI STATE MANAGEMENT ===
+  // ----------------------------------------------------
+  // 2. UI HANDLERS
+  // ----------------------------------------------------
 
+  /**
+   * Handles successful stock reception and triggers data refresh/detail view redirect.
+   * @param {number} whIdFromModal - The ID of the warehouse that received stock.
+   */
   const handleReceiveSuccess = (whIdFromModal = null) => {
     setShowReceiveStockModal(false);
 
-    const targetWhId = whIdFromModal || selectedWarehouse?.whId;
-    
+    const targetWhId = whIdFromModal || selectedWarehouseDetail?.whId;
+
     refreshData();
 
     if (targetWhId) {
-        setWarehouseToRedirect(targetWhId);
+      // Set to trigger detail fetch after list refresh
+      setWarehouseToRedirect(targetWhId);
     }
   };
 
-  const handleWarehouseRowClick = (warehouse) => {
-    setSelectedWarehouse(warehouse);
-    setShowDetailModal(true);
+  /**
+   * Handles click on a warehouse row to show details.
+   * @param {object} warehouse - The selected warehouse object (from /api/warehouses).
+   */
+  const handleWarehouseRowClick = async (warehouse) => {
+    // Call detail API to get the exact part list for detail page
+    try {
+      setLoading(true);
+      const detail = await fetchWarehouseDetail(warehouse.whId);
+      setSelectedWarehouseDetail(detail);
+      setShowDetailModal(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  
+  /**
+   * Clears detail view and returns to the warehouse list.
+   */
   const handleBackToWarehouseList = () => {
-    setSelectedWarehouse(null);
+    setSelectedWarehouseDetail(null);
     setShowDetailModal(false);
   };
 
-  // === RENDER FUNCTION ===
+  // ----------------------------------------------------
+  // 3. RENDER FUNCTION
+  // ----------------------------------------------------
+
   return (
     <div className="min-h-screen bg-muted/30">
-        <EVMStaffSideBar />
+      <EVMStaffSideBar />
       {/* === MAIN CONTENT LAYOUT === */}
       <div className="lg:pl-64">
-          <Header />
+        <Header />
         <main className="p-4 md:p-6 lg:p-8">
-          {showDetailModal && selectedWarehouse ? (
-            // 💡 HIỂN THỊ TRANG CHI TIẾT
+          {showDetailModal && selectedWarehouseDetail ? (
+            // RENDER DETAIL VIEW
             <EvmWareDetail
-              warehouse={selectedWarehouse}
-              partCatalog={partCatalog}
+              warehouse={selectedWarehouseDetail}
+              partCatalog={partCatalog} // Pass catalog if needed for part-related operations in detail
               onBack={handleBackToWarehouseList}
-              onReceiveSuccess={handleReceiveSuccess} 
+              onReceiveSuccess={handleReceiveSuccess}
             />
           ) : (
-            // 💡 HIỂN THỊ TRANG DANH SÁCH (Mặc định)
+            // RENDER LIST VIEW
             <div className="space-y-6">
               {/* Page Header & Action Button */}
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-foreground">
-                  Warehouse Management 
+                  Warehouse Management
                 </h1>
                 <Button
                   onClick={() => setShowReceiveStockModal(true)}
@@ -173,11 +203,10 @@ export default function EVMStaffWarehouse() {
                   <span>Receive Stock</span>
                 </Button>
               </div>
-              {/* Data Table (Đã thêm prop partCatalog) */}
+
+              {/* Data Table */}
               <EvmWareTable
                 warehouses={warehouses}
-                parts={parts}
-                partCatalog={partCatalog}
                 loading={loading}
                 onRowClick={handleWarehouseRowClick}
               />
@@ -185,7 +214,7 @@ export default function EVMStaffWarehouse() {
           )}
         </main>
       </div>
-      {/* === MODAL 1: Receive Stock (General) === */}
+      {/* === MODAL: Receive Stock === */}
       <Dialog
         open={showReceiveStockModal}
         onOpenChange={setShowReceiveStockModal}
@@ -197,12 +226,14 @@ export default function EVMStaffWarehouse() {
               Record new parts received into a warehouse.
             </DialogDescription>
           </DialogHeader>
+
           <EvmWareReceive
             warehouses={warehouses}
+            // Pass Part Catalog so the modal can list parts available for reception
             partCatalog={partCatalog}
-            partsInventory={parts}
-            
-            onSuccess={(whId) => handleReceiveSuccess(whId)} 
+            // If EvmWareReceive uses 'partsInventory', it should be satisfied by partCatalog here
+            partsInventory={partCatalog}
+            onSuccess={(whId) => handleReceiveSuccess(whId)}
             onClose={() => setShowReceiveStockModal(false)}
           />
         </DialogContent>
