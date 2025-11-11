@@ -1,5 +1,5 @@
 //FE/src/components/scstaff/ScsCampAppSection.jsx
-import { useState, useEffect, useReducer, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react"; // Xóa useReducer, useCallback
 import {
   CalendarIcon,
   ChevronLeft,
@@ -9,7 +9,8 @@ import {
   Edit,
   Trash2,
   Clock,
-  AlertCircle,
+  AlertCircle, // Giữ lại
+  Loader2, // Giữ lại
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,96 +25,30 @@ import {
 import { Card } from "@/components/ui/card";
 import { CreateAppointmentDialog } from "@/components/scstaff/ScsCampAppCreate";
 import { EditAppointmentDialog } from "@/components/scstaff/ScsCampAppEdit";
-import axiosPrivate from "@/api/axios"; // <-- THAY ĐỔI: Thêm axios
+// Xóa import axiosPrivate
+// Xóa các hằng số API_URL
 
-// <-- THAY ĐỔI: Thêm URLs
-const APPOINTMENT_URL = "/api/service-appointments";
-const CAMPAIGN_URL = "/api/campaigns/all";
-const ACCOUNT_URL = "/api/accounts/current";
+// --- XÓA TOÀN BỘ dataFetchReducer và initialState ---
 
-const initialState = {
-  status: "idle", // 'idle', 'loading', 'success', 'error'
-  appointments: [],
-  campaigns: [],
-  currentAccount: {},
-  error: null,
-};
-
-function dataFetchReducer(state, action) {
-  switch (action.type) {
-    case "FETCH_START":
-      return {
-        ...state,
-        status: "loading",
-        error: null,
-      };
-    case "FETCH_SUCCESS":
-      return {
-        ...state,
-        status: "success",
-        appointments: action.payload.appointments,
-        campaigns: action.payload.campaigns,
-        currentAccount: action.payload.currentAccount,
-      };
-    case "FETCH_ERROR":
-      return {
-        ...state,
-        status: "error",
-        error: action.payload,
-        appointments: [], // Reset về rỗng khi lỗi
-        campaigns: [],
-        currentAccount: {},
-      };
-    default:
-      throw new Error(`Unhandled action type: ${action.type}`);
-  }
-}
-
-export default function AppointmentsSection() {
+export default function AppointmentsSection({
+  campaigns = [], // Nhận props
+  appointments = [],
+  currentAccount = {},
+  onRefreshData, // Nhận hàm refresh
+  status, // Nhận status
+  error, // Nhận error
+}) {
   const [viewMode, setViewMode] = useState("7days");
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCampaign, setSelectedCampaign] = useState("0"); // "0" là giá trị cho "All Campaigns"
+  const [selectedCampaign, setSelectedCampaign] = useState("0");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  // <-- THAY ĐỔI: Khởi tạo state với mảng rỗng
-  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
-  const { status, appointments, campaigns, currentAccount, error } = state;
-  // <-- THAY ĐỔI: Hàm tải dữ liệu
-  const fetchAllData = useCallback(async () => {
-    dispatch({ type: "FETCH_START" }); // Báo cho reducer biết bắt đầu tải
-    try {
-      const [appointmentResponse, campaignResponse, accountRes] =
-        await Promise.all([
-          axiosPrivate.get(APPOINTMENT_URL),
-          axiosPrivate.get(CAMPAIGN_URL),
-          axiosPrivate.get(ACCOUNT_URL),
-        ]);
-
-      // Gửi payload khi thành công
-      dispatch({
-        type: "FETCH_SUCCESS",
-        payload: {
-          appointments: appointmentResponse.data,
-          campaigns: campaignResponse.data,
-          currentAccount: accountRes.data,
-        },
-      });
-    } catch (err) {
-      console.error("API Error fetching data:", err);
-      // Gửi lỗi khi thất bại
-      dispatch({ type: "FETCH_ERROR", payload: err.message });
-    }
-  }, []);
-
-  // <-- THAY ĐỔI: useEffect để tải dữ liệu khi component mount
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]); // Chạy một lần
+  // --- XÓA state, dispatch, fetchAllData, useEffect(fetchAllData) ---
 
   const getDateRange = () => {
     // ... (logic getDateRange của bạn giữ nguyên)
@@ -135,48 +70,53 @@ export default function AppointmentsSection() {
     return { start, end };
   };
 
-  const filteredAppointments = appointments.filter((apt) => {
-    // 1. Lấy ID trung tâm của user
+  const filteredAppointments = useMemo(() => {
     const myCenterId = currentAccount.serviceCenter?.centerId;
+    if (!myCenterId) return [];
 
-    // 2. [LOGIC MỚI] Kiểm tra xem cuộc hẹn này có thuộc trung tâm của user không
-    // (Giả định cấu trúc data: appointment -> vehicle -> customer -> serviceCenter)
-    const matchesCenter =
-      !myCenterId || // Nếu không tìm thấy centerId (lỗi), tạm thời bỏ qua filter
-      apt.vehicle?.customer?.serviceCenter?.centerId === myCenterId;
+    return (appointments || []).filter((apt) => {
+      const matchesCenter =
+        apt.vehicle?.customer?.serviceCenter?.centerId === myCenterId;
 
-    // --- Logic cũ ---
-    const aptDate = new Date(apt.date);
-    const customerName = apt.vehicle?.customer?.customerName || "";
-    const phone = apt.vehicle?.customer?.customerPhone || "";
-    const vin = apt.vehicle?.vin || "";
-    const licensePlate = apt.vehicle?.plate || "";
+      const aptDate = new Date(apt.date);
+      const customerName = apt.vehicle?.customer?.customerName || "";
+      const phone = apt.vehicle?.customer?.customerPhone || "";
+      const vin = apt.vehicle?.vin || "";
+      const licensePlate = apt.vehicle?.plate || "";
 
-    const matchesSearch =
-      customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      phone.includes(searchQuery) ||
-      vin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      licensePlate.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        phone.includes(searchQuery) ||
+        vin.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        licensePlate.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCampaign =
-      selectedCampaign === "0" ||
-      apt.campaign?.campaignId === Number.parseInt(selectedCampaign);
+      const matchesCampaign =
+        selectedCampaign === "0" ||
+        apt.campaign?.campaignId === Number.parseInt(selectedCampaign);
 
-    const matchesStatus =
-      selectedStatus === "all" || apt.status === selectedStatus;
+      const matchesStatus =
+        selectedStatus === "all" || apt.status === selectedStatus;
 
-    const { start, end } = getDateRange();
-    const matchesDateRange = aptDate >= start && aptDate <= end;
+      const { start, end } = getDateRange();
+      const matchesDateRange = aptDate >= start && aptDate <= end;
 
-    // 3. Trả về kết quả (thêm matchesCenter)
-    return (
-      matchesCenter && // <-- THÊM ĐIỀU KIỆN LỌC
-      matchesSearch &&
-      matchesCampaign &&
-      matchesStatus &&
-      matchesDateRange
-    );
-  });
+      return (
+        matchesCenter &&
+        matchesSearch &&
+        matchesCampaign &&
+        matchesStatus &&
+        matchesDateRange
+      );
+    });
+  }, [
+    appointments,
+    currentAccount,
+    searchQuery,
+    selectedCampaign,
+    selectedStatus,
+    currentDate,
+    viewMode,
+  ]);
 
   const handleEdit = (appointment) => {
     setSelectedAppointment(appointment);
@@ -228,14 +168,14 @@ export default function AppointmentsSection() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "scheduled":
+      case "Scheduled":
         return "default";
-      case "completed":
+      case "Completed":
         return "secondary";
-      case "cancelled":
-      case "no-show":
+      case "Cancelled":
+      case "No-Show": // Sửa lại từ "no-show"
         return "destructive";
-      case "rescheduled":
+      case "Rescheduled":
         return "secondary";
       default:
         return "outline";
@@ -243,8 +183,6 @@ export default function AppointmentsSection() {
   };
 
   const appointmentsByDate = filteredAppointments.reduce((acc, apt) => {
-    // Giả sử 'apt.date' là một chuỗi ISO đầy đủ (YYYY-MM-DDTHH:MM:SS)
-    // Chúng ta chỉ cần phần ngày (YYYY-MM-DD)
     const datePart = apt.date.split("T")[0];
     if (!acc[datePart]) acc[datePart] = [];
     acc[datePart].push(apt);
@@ -253,6 +191,7 @@ export default function AppointmentsSection() {
 
   const sortedDates = Object.keys(appointmentsByDate).sort();
 
+  // --- TÁI SỬ DỤNG JSX HIỂN THỊ LOADING/ERROR (y hệt file gốc) ---
   return (
     <div className="space-y-6">
       {/* Search + Filter */}
@@ -269,7 +208,6 @@ export default function AppointmentsSection() {
           </div>
 
           <div className="flex gap-2">
-            {/* <-- THAY ĐỔI: Cập nhật Select cho Campaigns --> */}
             <Select
               value={selectedCampaign}
               onValueChange={setSelectedCampaign}
@@ -278,10 +216,8 @@ export default function AppointmentsSection() {
                 <SelectValue placeholder="Campaign" />
               </SelectTrigger>
               <SelectContent>
-                {/* Thêm lựa chọn "All" theo logic state "0" */}
                 <SelectItem value="0">All Campaigns</SelectItem>
-                {/* Tải các chiến dịch từ API */}
-                {campaigns.map((campaign) => (
+                {(campaigns || []).map((campaign) => (
                   <SelectItem
                     key={campaign.campaignId}
                     value={campaign.campaignId.toString()}
@@ -291,8 +227,6 @@ export default function AppointmentsSection() {
                 ))}
               </SelectContent>
             </Select>
-            {/* <-- KẾT THÚC THAY ĐỔI --> */}
-
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Status" />
@@ -302,7 +236,7 @@ export default function AppointmentsSection() {
                 <SelectItem value="Scheduled">Scheduled</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
                 <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="No Show">No Show</SelectItem>
+                <SelectItem value="No-Show">No Show</SelectItem>
                 <SelectItem value="Rescheduled">Rescheduled</SelectItem>
               </SelectContent>
             </Select>
@@ -339,9 +273,11 @@ export default function AppointmentsSection() {
         </div>
       </div>
 
+      {/* --- THÊM LẠI LOGIC HIỂN THỊ LOADING/ERROR --- */}
       {status === "loading" && (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Loading appointments...</p>
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground mt-2">Loading appointments...</p>
         </Card>
       )}
 
@@ -352,12 +288,15 @@ export default function AppointmentsSection() {
           <p className="text-sm">{error}</p>
         </Card>
       )}
-      {/* Appointment List */}
+
+      {/* Appointment List (Chỉ render khi success) */}
       {status === "success" && (
         <div className="space-y-4">
           {sortedDates.length === 0 ? (
             <Card className="p-8 text-center">
-              {/* ... (Nội dung "No appointments found") ... */}
+              <p className="text-muted-foreground">
+                No appointments found for this date range and filter.
+              </p>
             </Card>
           ) : (
             sortedDates.map((date) => (
@@ -368,7 +307,6 @@ export default function AppointmentsSection() {
                 <div className="bg-muted px-6 py-3 border-b border-border">
                   <h4 className="font-semibold text-card-foreground">
                     {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-                      // Thêm T00:00:00 để tránh lỗi múi giờ
                       weekday: "long",
                       year: "numeric",
                       month: "long",
@@ -378,9 +316,8 @@ export default function AppointmentsSection() {
                 </div>
                 <div className="divide-y divide-border">
                   {appointmentsByDate[date]
-                    .sort((a, b) => a.date.localeCompare(b.date)) // Sắp xếp theo chuỗi datetime đầy đủ
+                    .sort((a, b) => a.date.localeCompare(b.date))
                     .map((appointment) => {
-                      // Trích xuất giờ từ chuỗi datetime
                       const time = new Date(
                         appointment.date
                       ).toLocaleTimeString("en-US", {
@@ -391,7 +328,7 @@ export default function AppointmentsSection() {
 
                       return (
                         <div
-                          key={appointment.appointmentId} // Dùng ID duy nhất
+                          key={appointment.appointmentId}
                           className="p-6 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex items-start justify-between">
@@ -438,7 +375,7 @@ export default function AppointmentsSection() {
                                     {appointment.vehicle?.plate}
                                   </p>
                                 </div>
-                                {appointment.description && ( // Dùng 'description' thay vì 'notes'
+                                {appointment.description && (
                                   <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
                                     <p className="text-muted-foreground">
                                       {appointment.description}
@@ -467,12 +404,15 @@ export default function AppointmentsSection() {
         </div>
       )}
 
-      {/* <-- THAY ĐỔI: Truyền hàm refresh vào Dialog --> */}
       <EditAppointmentDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         appointment={selectedAppointment}
-        onSaveSuccess={fetchAllData}
+        onSaveSuccess={onRefreshData} // Dùng hàm refresh từ props
+      />
+      <CreateAppointmentDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
     </div>
   );
