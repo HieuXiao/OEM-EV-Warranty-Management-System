@@ -22,19 +22,15 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
   useEffect(() => {
     if (!job?.claimId) return;
 
-    // Lấy thông tin claim (VIN, Claim Date, Description)
     const fetchClaimInfo = async () => {
       try {
-        const res = await axiosPrivate.get(
-          `${API_ENDPOINTS.CLAIMS}/${job.claimId}`
-        );
+        const res = await axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${job.claimId}`);
         setClaimInfo(res.data);
       } catch (err) {
         console.error("[RepairForm] Fetch claim info failed:", err);
       }
     };
 
-    // Lấy danh sách repair parts (chỉ từ under_warranty)
     const fetchRepairParts = async () => {
       try {
         const [checkRes, underWarrantyRes] = await Promise.all([
@@ -50,11 +46,8 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
           return;
         }
 
-        const underWarrantyParts = Array.isArray(underWarrantyRes.data)
-          ? underWarrantyRes.data
-          : [];
+        const underWarrantyParts = Array.isArray(underWarrantyRes.data) ? underWarrantyRes.data : [];
 
-        // Gộp namePart, price, brand, model từ under_warranty
         const merged = repairList.map((p) => {
           const found = underWarrantyParts.find(
             (u) => u.partId?.toUpperCase() === p.partNumber?.toUpperCase()
@@ -136,8 +129,9 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
       console.log("[RepairForm] Workflow URL:", url);
       await axiosPrivate.post(url);
 
+      // <-- SỬA: KHÔNG RELOAD, CHỈ GỌI onComplete() -->
       onComplete?.();
-      window.location.reload();
+      onClose?.();
     } catch (e) {
       console.error("[RepairForm] Complete Repair failed:", e);
       alert(

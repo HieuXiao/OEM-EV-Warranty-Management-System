@@ -10,7 +10,6 @@ import { ImagePlus } from "lucide-react";
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
-  FILE_UPLOAD: () => `/api/warranty-files/combined/upload-create`,
   CLAIM_PART_CHECK_CREATE: "/api/claim-part-check/create",
   SKIP_REPAIR: (claimId, technicianId) =>
     `/api/warranty-claims/workflow/${claimId}/technician/skip-repair?technicianId=${technicianId}`,
@@ -47,10 +46,8 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     const fetchParts = async () => {
       try {
         const res = await axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY);
-
-        // FIX PARTS API RETURN
         const formattedParts = (Array.isArray(res.data) ? res.data : []).map((p) => ({
-          namePart: p.partName || p.partId,  // fallback nếu API không trả name
+          namePart: p.partName || p.partId,
           partNumber: p.partId,
         }));
 
@@ -82,12 +79,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         alert("Mỗi bộ phận chỉ được upload tối đa 3 ảnh.");
         return prev;
       }
-
-      const newFiles = files.map((f) => ({
-        file: f,
-        url: URL.createObjectURL(f),
-      }));
-
+      const newFiles = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
       return { ...prev, [key]: [...current, ...newFiles].slice(0, 3) };
     });
 
@@ -109,13 +101,11 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
   const handleUploadAllParts = async () => {
     if (!claimId) return;
-
     try {
       const formData = new FormData();
       Object.entries(partImages).forEach(([_, imgs]) => {
         imgs.forEach((img) => img.file && formData.append("files", img.file));
       });
-
       const uploadUrl = `/api/warranty-files/combined/upload-create?fileId=${claimId}&claimId=${claimId}`;
       await axiosPrivate.post(uploadUrl, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -126,19 +116,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   };
 
   const handleCompleteCheck = async () => {
-  const testPayloads = partsList
-    .filter((p) => partSelections[p.namePart])
-    .map((p) => ({
-      partNumber: p.partNumber || p.partId || "UNKNOWN_PART",
-      partId: p.partNumber || p.partId || "UNKNOWN_PART",
-      warrantyId: claimInfo?.claimId || claimId,
-      vin: claimInfo?.vin || "UNKNOWN",
-      quantity: partQuantities[p.namePart] > 0 ? partQuantities[p.namePart] : 1,
-      isRepair: partSelections[p.namePart] === "REPAIR",
-    }));
-
-  console.log("=== [TEST] Payloads to send ===", testPayloads);
-    
     if (!claimId) return;
     setUploading(true);
 
@@ -146,23 +123,18 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
       const payloads = partsList
         .filter((p) => partSelections[p.namePart])
         .map((p) => ({
-          partNumber: p.partNumber,
-          partId: p.partNumber,
-          warrantyId: claimId,
+          partNumber: p.partNumber || p.partId || "UNKNOWN_PART",
+          partId: p.partNumber || p.partId || "UNKNOWN_PART",
+          warrantyId: claimInfo?.claimId || claimId,
           vin: claimInfo?.vin || "UNKNOWN",
-          quantity: partQuantities[p.namePart] || 1,
+          quantity: partQuantities[p.namePart] > 0 ? partQuantities[p.namePart] : 1,
           isRepair: partSelections[p.namePart] === "REPAIR",
         }));
 
       const hasRepair = payloads.some((p) => p.isRepair);
 
-      try {
-        for (const payload of testPayloads) {
-          console.log("Sending payload:", payload);
-          await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
-        }
-      } catch (err) {
-        console.error("[TEST] Error on payload:", err.response?.data || err);
+      for (const payload of payloads) {
+        await axiosPrivate.post(API_ENDPOINTS.CLAIM_PART_CHECK_CREATE, payload);
       }
 
       if (hasRepair) {
@@ -171,15 +143,14 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         await axiosPrivate.post(API_ENDPOINTS.SKIP_REPAIR(claimId, technicianId));
       }
 
-      try {``
+      try {
         await axiosPrivate.post("/api/warranty-claims/assign-evm/auto");
       } catch (autoErr) {
         console.warn("[CheckForm] Auto-assign EVM failed:", autoErr);
       }
 
-      onComplete?.(claimId);
+      onComplete?.(claimId); // refresh data in parent
       onClose?.();
-      window.location.reload();
     } catch (err) {
       console.error("[CheckForm] Complete failed:", err.response || err);
       alert("Hoàn tất kiểm tra thất bại! Kiểm tra console để xem chi tiết.");
