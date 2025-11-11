@@ -50,9 +50,7 @@ export default function EvmWareReceive({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // ----------------------------------------------------
-  // 1. DATA PROCESSING
-  // ----------------------------------------------------
+  // ============= 1. DATA PROCESSING =============
 
   /**
    * Get the current warehouse object with its parts data.
@@ -99,12 +97,12 @@ export default function EvmWareReceive({
     return currentWarehouse.lowPart || [];
   }, [currentWarehouse]);
 
-  // ----------------------------------------------------
-  // 2. FORM HANDLERS
-  // ----------------------------------------------------
+  // ============= 2. FORM HANDLERS =============
 
   /**
    * Updates the state for the quantity to be received for a specific part.
+   * @param {string} partId - The part number.
+   * @param {string} value - The input value (quantity).
    */
   const handleQuantityChange = (partId, value) => {
     // Ensure quantity is a non-negative integer
@@ -117,6 +115,7 @@ export default function EvmWareReceive({
 
   /**
    * Handles warehouse selection change and resets quantities.
+   * @param {string} value - The selected warehouse ID.
    */
   const handleWarehouseChange = (value) => {
     setSelectedWhId(value);
@@ -138,6 +137,7 @@ export default function EvmWareReceive({
 
     // Filter parts where the received quantity is greater than 0
     const partsToUpdate = Object.entries(quantitiesToReceive).filter(
+      // Ensure quantity is a valid number > 0
       ([, quantity]) => quantity > 0
     );
 
@@ -194,132 +194,145 @@ export default function EvmWareReceive({
     }
   };
 
-  // ----------------------------------------------------
-  // 3. RENDER LOGIC
-  // ----------------------------------------------------
+  // ============= 3. RENDER LOGIC =============
 
   const partsDisplayList = partsCurrentlyInStock;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-      {/* --- Warehouse Selector --- */}
-      <div className="space-y-2">
-        <Label htmlFor="warehouse">Select Warehouse</Label>
-        <Select onValueChange={handleWarehouseChange} value={selectedWhId}>
-          <SelectTrigger id="warehouse">
-            <SelectValue placeholder="Choose a warehouse..." />
-          </SelectTrigger>
-          {/* FIX: Thêm position="popper" và class="w-full" để căn chỉnh dropdown item */}
-          <SelectContent position="popper" className="w-full">
-            {warehouses.map((wh) => (
-              <SelectItem key={wh.whId} value={String(wh.whId)}>
-                {wh.name} ({wh.location})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* --- Low/Missing Stock Warning --- */}
-      {selectedWhId && partsLowOrMissing.length > 0 && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Low/Missing Stock Warning</AlertTitle>
-          <AlertDescription className="text-sm">
-            The following parts are currently missing or low in this warehouse:
-            <ul className="list-disc list-inside mt-1 ml-2 space-y-0.5">
-              {partsLowOrMissing.slice(0, 5).map((name, index) => (
-                <li key={index}>{name}</li>
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 pt-2 flex flex-col h-full"
+    >
+      {/* 💡 SCROLLABLE CONTENT WRAPPER */}
+      {/* Giới hạn chiều cao và cho phép cuộn dọc */}
+      <div
+        className="flex-grow overflow-y-auto pr-2"
+        style={{ maxHeight: "60vh" }}
+      >
+        {/* --- Warehouse Selector --- */}
+        <div className="space-y-2 mb-4">
+          <Label htmlFor="warehouse">Select Warehouse</Label>
+          <Select onValueChange={handleWarehouseChange} value={selectedWhId}>
+            <SelectTrigger id="warehouse">
+              <SelectValue placeholder="Choose a warehouse..." />
+            </SelectTrigger>
+            <SelectContent position="popper" className="w-full">
+              {warehouses.map((wh) => (
+                <SelectItem key={wh.whId} value={String(wh.whId)}>
+                  {wh.name} ({wh.location})
+                </SelectItem>
               ))}
-              {partsLowOrMissing.length > 5 && (
-                <li>and {partsLowOrMissing.length - 5} more...</li>
-              )}
-            </ul>
-            <p className="font-semibold mt-2">
-              This form is only for adding stock to parts that already exist
-              (Quantity &gt; 0).
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* --- Existing Parts List --- */}
-      {selectedWhId && partsDisplayList.length > 0 ? (
-        <div className="space-y-2">
-          <Label className="text-md font-bold block mb-3">
-            Update Quantity for Existing Stock ({partsDisplayList.length} items)
-          </Label>
-
-          <div className="border rounded-lg overflow-hidden w-full">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Part Name</TableHead>
-                  <TableHead>Part Number</TableHead>
-                  <TableHead className="text-right">Current Qty</TableHead>
-
-                  <TableHead className="w-[150px]">
-                    Quantity to Receive
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {partsDisplayList.map((part) => (
-                  <TableRow key={part.partNumber}>
-                    <TableCell className="font-medium">
-                      {part.partName}
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground text-sm">
-                      {part.partNumber}
-                    </TableCell>
-
-                    <TableCell className="font-bold text-blue-600 text-right">
-                      {part.currentQuantity}
-                    </TableCell>
-
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                        value={quantitiesToReceive[part.partNumber] || ""}
-                        onChange={(e) =>
-                          handleQuantityChange(part.partNumber, e.target.value)
-                        }
-                        className="w-full text-center"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+            </SelectContent>
+          </Select>
         </div>
-      ) : selectedWhId &&
-        partsDisplayList.length === 0 &&
-        partsLowOrMissing.length === 0 ? (
-        <Alert className="mt-4 bg-yellow-50 border-yellow-300 text-yellow-800">
-          <PackageOpen className="h-4 w-4" />
-          <AlertTitle>Warehouse Empty</AlertTitle>
-          <AlertDescription>
-            There are no existing parts in this warehouse to receive new stock
-            for.
-          </AlertDescription>
-        </Alert>
-      ) : null}
 
-      {/* --- Error Message --- */}
-      {error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {/* --- Low/Missing Stock Warning --- */}
+        {selectedWhId && partsLowOrMissing.length > 0 && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Low/Missing Stock Warning</AlertTitle>
+            <AlertDescription className="text-sm">
+              The following parts are currently missing or low in this
+              warehouse:
+              <ul className="list-disc list-inside mt-1 ml-2 space-y-0.5">
+                {partsLowOrMissing.slice(0, 5).map((name, index) => (
+                  <li key={index}>{name}</li>
+                ))}
+                {partsLowOrMissing.length > 5 && (
+                  <li>and {partsLowOrMissing.length - 5} more...</li>
+                )}
+              </ul>
+              <p className="font-semibold mt-2">
+                This form is only for adding stock to parts that already exist
+                (Quantity &gt; 0).
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* --- Existing Parts List (Table) --- */}
+        {selectedWhId && partsDisplayList.length > 0 ? (
+          <div className="space-y-2 mt-4">
+            <Label className="text-md font-bold block mb-3">
+              Update Quantity for Existing Stock ({partsDisplayList.length}{" "}
+              items)
+            </Label>
+
+            <div className="border rounded-lg overflow-x-auto w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Part Name</TableHead>
+                    <TableHead>Part Number</TableHead>
+                    <TableHead className="text-right">Current Qty</TableHead>
+
+                    <TableHead className="w-[150px]">
+                      Quantity to Receive
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {partsDisplayList.map((part) => (
+                    <TableRow key={part.partNumber}>
+                      <TableCell className="font-medium">
+                        {part.partName}
+                      </TableCell>
+
+                      <TableCell className="text-muted-foreground text-sm">
+                        {part.partNumber}
+                      </TableCell>
+
+                      <TableCell className="font-bold text-blue-600 text-right">
+                        {part.currentQuantity}
+                      </TableCell>
+
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Qty"
+                          value={quantitiesToReceive[part.partNumber] || ""}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              part.partNumber,
+                              e.target.value
+                            )
+                          }
+                          className="w-full text-center"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : selectedWhId &&
+          partsDisplayList.length === 0 &&
+          partsLowOrMissing.length === 0 ? (
+          <Alert className="mt-4 bg-yellow-50 border-yellow-300 text-yellow-800">
+            <PackageOpen className="h-4 w-4" />
+            <AlertTitle>Warehouse Empty</AlertTitle>
+            <AlertDescription>
+              There are no existing parts in this warehouse to receive new stock
+              for.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {/* --- Error Message (bên trong scrollable wrapper) --- */}
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </div>
+      {/* 💡 END SCROLLABLE CONTENT WRAPPER */}
 
       {/* --- Action Buttons --- */}
-      <div className="flex justify-end gap-4 pt-4">
+      <div className="flex justify-end gap-4 pt-4 flex-shrink-0">
         <Button
           type="button"
           variant="outline"

@@ -25,7 +25,11 @@ import {
 // API Endpoint for registering a new part type into a warehouse
 const REGISTER_PART_API_URL = "/api/parts";
 
-// Helper function to format currency (giống như trong EvmWareDetail.jsx)
+/**
+ * Helper function to format currency for display.
+ * @param {string | number} amount
+ * @returns {string} Formatted currency string (VND).
+ */
 const formatCurrency = (amount) => {
   if (amount === undefined || amount === null) return "";
   const num = parseFloat(amount);
@@ -63,40 +67,48 @@ export default function EvmWareDetaRegister({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // ----------------------------------------------------
-  // 1. DATA PROCESSING
-  // ----------------------------------------------------
+  // ============= 1. DATA PROCESSING =============
 
-  // Map các part đã có trong kho hiện tại để dễ dàng kiểm tra
+  /**
+   * Identifies part numbers already registered in the current warehouse.
+   */
   const existingPartNumbers = useMemo(() => {
     return new Set((warehouse.parts || []).map((p) => p.partNumber));
   }, [warehouse]);
 
-  // Danh sách các part từ catalog CHƯA tồn tại trong kho này
+  /**
+   * Filters the master part catalog to show only parts NOT yet registered in this warehouse.
+   */
   const availablePartsToRegister = useMemo(() => {
+    // FIX: Ensure partCatalog is defined before filtering (to prevent TypeErrors).
     if (!partCatalog || partCatalog.length === 0) {
       return [];
     }
     return partCatalog.filter((part) => !existingPartNumbers.has(part.partId));
   }, [partCatalog, existingPartNumbers]);
 
-  // Map catalog partId -> part object để tra cứu nhanh
+  /**
+   * Creates a map for quick lookup of part details (Name, Price) by partId.
+   */
   const catalogMap = useMemo(() => {
     if (!partCatalog) return new Map();
     return new Map(partCatalog.map((p) => [p.partId, p]));
   }, [partCatalog]);
 
-  // ----------------------------------------------------
-  // 2. HANDLERS
-  // ----------------------------------------------------
+  // ============= 2. HANDLERS =============
 
+  /**
+   * Handles changes in non-auto-filled input fields (like Quantity).
+   */
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
   /**
-   * Handles selection of a Part Number from the dropdown.
+   * Handles selection of a Part Number from the dropdown (Select).
+   * Automatically populates Name and Price fields.
+   * @param {string} selectedPartNumber - The value (partId) selected.
    */
   const handlePartSelect = (selectedPartNumber) => {
     const selectedPart = catalogMap.get(selectedPartNumber);
@@ -105,12 +117,12 @@ export default function EvmWareDetaRegister({
       setFormData((prev) => ({
         ...prev,
         partNumber: selectedPart.partId,
-        // Tự động điền Name và Price từ Catalog
+        // Auto-fill Name and Price from Catalog
         namePart: selectedPart.partName,
         price: String(parseFloat(selectedPart.price) || 0),
       }));
     } else {
-      // Reset fields if selection is invalid or cleared
+      // Handles selection reset or unexpected value.
       setFormData((prev) => ({
         ...prev,
         partNumber: selectedPartNumber,
@@ -121,13 +133,16 @@ export default function EvmWareDetaRegister({
     setError(null); // Clear error on new selection
   };
 
+  /**
+   * Handles form submission and calls the POST /api/parts endpoint.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
     const { partNumber, namePart, quantity, price } = formData;
 
-    // Input validation
+    // Input validation: Check if required fields are selected/filled
     if (!partNumber || partNumber === "" || !namePart || !warehouse.whId) {
       setError(
         "Please select a Part Number and ensure all required fields are filled."
@@ -138,6 +153,7 @@ export default function EvmWareDetaRegister({
     const quantityInt = parseInt(quantity, 10);
     const priceFloat = parseFloat(price);
 
+    // Numeric validation
     if (
       quantityInt <= 0 ||
       isNaN(quantityInt) ||
@@ -166,7 +182,7 @@ export default function EvmWareDetaRegister({
         headers: { Authorization: `Bearer ${auth.token}` },
       });
 
-      // Success! Pass warehouse ID back to refresh detail page
+      // Success! Pass warehouse ID back to refresh detail page in parent
       onSuccess(warehouse.whId);
     } catch (err) {
       console.error("Error registering new part:", err);
@@ -180,9 +196,7 @@ export default function EvmWareDetaRegister({
     }
   };
 
-  // ----------------------------------------------------
-  // 3. RENDER
-  // ----------------------------------------------------
+  // ============= 3. RENDER FUNCTION =============
 
   const isNoPartsAvailable = availablePartsToRegister.length === 0;
 
@@ -214,7 +228,7 @@ export default function EvmWareDetaRegister({
             </SelectTrigger>
             <SelectContent>
               {isNoPartsAvailable ? (
-                // FIX: Dùng giá trị không phải chuỗi rỗng khi không có item nào để chọn
+                // FIX: Use a non-empty string value for disabled item
                 <SelectItem value="NO_PARTS_AVAILABLE" disabled>
                   All available parts are already registered in this warehouse.
                 </SelectItem>
@@ -262,13 +276,12 @@ export default function EvmWareDetaRegister({
           <div className="space-y-1">
             <Label htmlFor="price">Unit Price (VND)</Label>
             <Input
-              id="price-display" // Dùng id khác để tránh xung đột
-              type="text" // Đổi sang text để hiển thị định dạng tiền tệ
-              value={formatCurrency(formData.price)} // 💡 CHỈNH SỬA: Hiển thị giá trị đã format
+              id="price-display"
+              type="text"
+              value={formatCurrency(formData.price)}
               disabled
               className="bg-muted/50 font-medium text-right"
             />
-            {/* Vẫn giữ giá trị gốc trong formData.price (string) */}
           </div>
         </div>
 
@@ -291,7 +304,7 @@ export default function EvmWareDetaRegister({
         </Button>
         <Button
           type="submit"
-          // Disable nếu chưa chọn part hoặc đang submit
+          // Disable if part is not selected OR quantity is <= 0 OR submitting
           disabled={
             isSubmitting ||
             !formData.partNumber ||

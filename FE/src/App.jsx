@@ -82,11 +82,11 @@ function App() {
 
         {/* EVMStaff */}
         <Route element={<RequireAuth allowedRoles={["EVM_STAFF"]} />}>
-          <Route path="/evmstaff/products" element={<EVMStaffProductPart />} />
+          {/* <Route path="/evmstaff/products" element={<EVMStaffProductPart />} />
           <Route
             path="/evmstaff/products/:id"
             element={<EVMStaffDetailPart />}
-          />
+          /> */}
           <Route
             path="/evmstaff/warranty"
             element={<EVMStaffWarrantyClaim />}
