@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useReducer } from "react";
 import { Folder } from "lucide-react";
 import axiosPrivate from "@/api/axios";
 import {
@@ -8,60 +8,83 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function ScsWarrPart({ warrantyId }) {
-  const [parts, setParts] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+// API endpoints
+const API_ENDPOINTS = {
+  CLAIM_PART_CHECK: "/api/claim-part-check/search/warranty/",
+  PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
+};
+
+// initial state
+const initialState = {
+  parts: [],
+  loading: false,
+  open: false,
+};
+
+// reducer function
+function reducer(state, action) {
+  switch (action.type) {
+    case "SET_OPEN":
+      return { ...state, open: action.payload };
+    case "SET_LOADING":
+      return { ...state, loading: action.payload };
+    case "SET_PARTS":
+      return { ...state, parts: action.payload };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
+export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { parts, loading, open } = state;
 
   useEffect(() => {
-    if (!open || !warrantyId) return;
+    if (!warrantyId) return;
 
     const fetchParts = async () => {
       try {
-        setLoading(true);
+        dispatch({ type: "SET_LOADING", payload: true });
 
-        // Lấy parts check và parts trong warehouse 1
         const [checkRes, allPartsRes] = await Promise.all([
-          axiosPrivate.get(`/api/claim-part-check/search/warranty/${warrantyId}`),
-          axiosPrivate.get("/api/parts"),
+          axiosPrivate.get(`${API_ENDPOINTS.CLAIM_PART_CHECK}${warrantyId}`),
+          axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
         ]);
 
         const checkedParts = checkRes.data || [];
         const allParts = allPartsRes.data || [];
 
-        // Chỉ lấy part ở warehouse whId = 1
-        const wh1Parts = allParts.filter((p) => p.warehouse?.whId === 1);
-
-        // Lọc các part có isRepair = true
+        // Chỉ lấy các part có isRepair = true, map tên từ partId của under-warranty
         const repairParts = checkedParts
           .filter((p) => p.isRepair)
           .map((p) => {
-            const matched = wh1Parts.find((a) => a.partNumber === p.partNumber);
+            const matched = allParts.find((a) => a.partId === p.partNumber);
             return {
               partNumber: p.partNumber,
-              namePart: matched?.namePart || "—",
+              namePart: matched?.partName || "—",
               quantity: p.quantity,
             };
           });
 
-        setParts(repairParts);
+        dispatch({ type: "SET_PARTS", payload: repairParts });
       } catch (err) {
         console.error("Error loading parts:", err);
-        setParts([]);
+        dispatch({ type: "SET_PARTS", payload: [] });
       } finally {
-        setLoading(false);
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
-    fetchParts();
-  }, [open, warrantyId]);
+    if (autoLoad) fetchParts();
+  }, [warrantyId, autoLoad]);
 
   return (
     <>
-      {/* Folder icon mở form */}
       <div
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 border-t pt-4 mt-4"
-        onClick={() => setOpen(true)}
+        onClick={() => dispatch({ type: "SET_OPEN", payload: true })}
       >
         <Folder className="h-5 w-5 text-yellow-600" />
         <h4 className="text-sm font-medium text-muted-foreground">
@@ -69,8 +92,7 @@ export default function ScsWarrPart({ warrantyId }) {
         </h4>
       </div>
 
-      {/* Dialog hiển thị danh sách part */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(val) => dispatch({ type: "SET_OPEN", payload: val })}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">
