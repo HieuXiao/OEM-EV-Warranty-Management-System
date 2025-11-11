@@ -201,9 +201,9 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
   const today = new Date();
   const matchedCampaigns = allCampaigns.filter((c) => {
-    // Chỉ lấy campaign có model phù hợp
+
     const modelMatch = Array.isArray(c.model) && c.model.includes(model);
-    // Chỉ lấy campaign đang hoạt động: today >= startDate && today <= endDate
+
     const start = new Date(c.startDate);
     const end = new Date(c.endDate);
     const dateMatch = today >= start && today <= end;

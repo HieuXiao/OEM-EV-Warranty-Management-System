@@ -75,35 +75,44 @@ export default function ScsDashTable({ claims }) {
         </CardHeader>
 
         <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-                {claims
-                .filter((c) => c.status?.toUpperCase() === "HANDOVER") // 👈 chỉ hiển thị claim HANDOVER
+          <div className="grid gap-4 md:grid-cols-2">
+            {claims.filter(c => c.status?.toUpperCase() === "HANDOVER").length > 0 ? (
+              claims
+                .filter((c) => c.status?.toUpperCase() === "HANDOVER")
                 .slice(0, 6)
                 .map((claim) => (
-                    <div
+                  <div
                     key={claim.claimId}
                     className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
+                  >
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1">
                         <p className="font-medium text-sm">{claim.claimId}</p>
-                        <Badge variant="outline" className={cn("text-xs capitalize")}>
-                            {claim.status}
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs capitalize")}
+                        >
+                          {claim.status}
                         </Badge>
-                        </div>
+                      </div>
 
-                        <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {claim.vehicleModel} - {claim.vehiclePlate}
-                        </p>
+                      </p>
 
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                         {claim.issueDescription}
-                        </p>
+                      </p>
                     </div>
-                    </div>
-                ))}
-            </div>
-            </CardContent>
+                  </div>
+                ))
+            ) : (
+              <p className="text-sm text-center text-muted-foreground col-span-2">
+                No claims found
+              </p>
+            )}
+          </div>
+        </CardContent>
       </div>
     </div>
   );
