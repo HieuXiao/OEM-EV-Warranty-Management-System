@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 // IMPORT PUBLIC
 import Login from "./pages/LoginPage";
+import UserProfile from "./pages/UserProfile";
 // IMPORT ADMIN
 import AdminUserManagement from "./pages/AdminUserManagement";
 import AdminWarehouseArea from "./pages/AdminWarehouseArea";
@@ -38,6 +39,15 @@ function App() {
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route
+          element={
+            <RequireAuth
+              allowedRoles={["ADMIN", "SC_STAFF", "SC_TECHNICIAN", "EVM_STAFF"]}
+            />
+          }
+        >
+          <Route path="/profile" element={<UserProfile />} />
+        </Route>
 
         {/* Admin */}
         <Route element={<RequireAuth allowedRoles={["ADMIN"]} />}>
@@ -45,7 +55,10 @@ function App() {
           <Route path="/admin/users" element={<AdminUserManagement />} />
           <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
           <Route path="/admin/parts-policy" element={<AdminPartsPolicy />} />
-          <Route path="/admin/service-centers" element={<AdminServiceCenter />} />
+          <Route
+            path="/admin/service-centers"
+            element={<AdminServiceCenter />}
+          />
         </Route>
 
         {/* ScStaff */}
