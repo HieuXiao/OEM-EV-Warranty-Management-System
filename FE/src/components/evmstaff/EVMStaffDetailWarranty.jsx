@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import {
   Dialog,
@@ -32,24 +32,64 @@ const API_ENDPOINTS = {
   REPAIR_PARTS_ADD_QUANTITY: "/api/repair-parts/add-quantity",
 };
 
-export default function EVMStaffDetailWarranty({
-  open,
-  onOpenChange,
-  warranty,
-}) {
+// Reducer
+const initialState = {
+  imagesModalOpen: false,
+  fullscreenImage: null,
+  partApprovals: {},
+  approveAllActive: false,
+  rejectAllActive: false,
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "SET_IMAGES_MODAL":
+      return { ...state, imagesModalOpen: action.payload };
+    case "SET_FULLSCREEN_IMAGE":
+      return { ...state, fullscreenImage: action.payload };
+    case "SET_PART_APPROVAL":
+      return {
+        ...state,
+        partApprovals: { ...state.partApprovals, [action.index]: action.payload },
+      };
+    case "SET_APPROVE_ALL":
+      return {
+        ...state,
+        approveAllActive: action.payload,
+        rejectAllActive: false,
+        partApprovals: Object.fromEntries(
+          Object.keys(state.partApprovals).map((i) => [i, { approved: action.payload, rejected: false }])
+        ),
+      };
+    case "SET_REJECT_ALL":
+      return {
+        ...state,
+        rejectAllActive: action.payload,
+        approveAllActive: false,
+        partApprovals: Object.fromEntries(
+          Object.keys(state.partApprovals).map((i) => [i, { approved: false, rejected: action.payload }])
+        ),
+      };
+    case "SET_PARTS":
+      const approvals = {};
+      action.payload.forEach((_, i) => (approvals[i] = { approved: false, rejected: false }));
+      return { ...state, partApprovals: approvals };
+    default:
+      return state;
+  }
+}
+
+export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty }) {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
-  const [comment, setComment] = useState("");
-  const [isFormValid, setIsFormValid] = useState(false);
-  const [partApprovals, setPartApprovals] = useState({});
-  const [approveAllActive, setApproveAllActive] = useState(false);
-  const [rejectAllActive, setRejectAllActive] = useState(false);
+
+  const [state, dispatch] = useReducer(reducer, initialState);
   const [claimDetails, setClaimDetails] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [mergedParts, setMergedParts] = useState([]);
   const [warrantyFiles, setWarrantyFiles] = useState([]);
-  const [imagesModalOpen, setImagesModalOpen] = useState(false);
-  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [comment, setComment] = useState("");
+  const [isFormValid, setIsFormValid] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   const claimId = warranty?.claimId;
@@ -57,11 +97,9 @@ export default function EVMStaffDetailWarranty({
   useEffect(() => {
     if (open) {
       setComment("");
-      setPartApprovals({});
-      setApproveAllActive(false);
-      setRejectAllActive(false);
-      setImagesModalOpen(false);
-      setFullscreenImage(null);
+      dispatch({ type: "SET_IMAGES_MODAL", payload: false });
+      dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null });
+      dispatch({ type: "SET_PARTS", payload: mergedParts });
     }
 
     const loadAll = async () => {
@@ -69,9 +107,7 @@ export default function EVMStaffDetailWarranty({
       try {
         const [claimRes, checkRes, underPartRes, vehiclesRes, filesRes] =
           await Promise.all([
-            axiosPrivate.get(
-              `${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`
-            ),
+            axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
             axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
             axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
             axiosPrivate.get(API_ENDPOINTS.VEHICLES),
@@ -83,9 +119,7 @@ export default function EVMStaffDetailWarranty({
         if (claimData?.evmDescription) setComment(claimData.evmDescription);
 
         const checks = Array.isArray(checkRes?.data) ? checkRes.data : [];
-        const underParts = Array.isArray(underPartRes?.data)
-          ? underPartRes.data
-          : [];
+        const underParts = Array.isArray(underPartRes?.data) ? underPartRes.data : [];
 
         const repairChecks = checks.filter((c) => c.isRepair === true);
 
@@ -101,23 +135,14 @@ export default function EVMStaffDetailWarranty({
           };
         });
         setMergedParts(merged);
+        dispatch({ type: "SET_PARTS", payload: merged });
 
-        const vehicles = Array.isArray(vehiclesRes?.data)
-          ? vehiclesRes.data
-          : [];
-        const matchedVehicle = vehicles.find(
-          (v) => v.vin === (claimData?.vin || warranty?.vin)
-        );
+        const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+        const matchedVehicle = vehicles.find((v) => v.vin === (claimData?.vin || warranty?.vin));
         setVehicle(matchedVehicle || null);
 
         const files = Array.isArray(filesRes?.data) ? filesRes.data : [];
         setWarrantyFiles(files);
-
-        const initialApprovals = {};
-        merged.forEach((_, idx) => {
-          initialApprovals[idx] = { approved: false, rejected: false };
-        });
-        setPartApprovals(initialApprovals);
       } catch (err) {
         console.error("[EVMDetail] Fetch error:", err?.response || err);
       }
@@ -127,16 +152,11 @@ export default function EVMStaffDetailWarranty({
   }, [claimId, open, warranty]);
 
   useEffect(() => {
-    setIsFormValid(
-      Boolean(claimDetails && comment && comment.trim().length > 0)
-    );
+    setIsFormValid(Boolean(claimDetails && comment && comment.trim().length > 0));
   }, [comment, claimDetails]);
 
   const formatCurrency = (amount) =>
-    new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount ?? 0);
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount ?? 0);
 
   const getStatusBadge = (status) => {
     const s = String(status || "").toUpperCase();
@@ -158,204 +178,91 @@ export default function EVMStaffDetailWarranty({
   };
 
   const handleApprovalChange = (index, type) => {
-    setPartApprovals((prev) => ({
-      ...prev,
-      [index]: {
-        approved: type === "approved" ? !prev[index]?.approved : false,
-        rejected: type === "rejected" ? !prev[index]?.rejected : false,
-      },
-    }));
-  };
-
-  const handleApproveAll = () => {
-    const newState = !approveAllActive;
-    setApproveAllActive(newState);
-    setRejectAllActive(false);
-    const updated = {};
-    mergedParts.forEach(
-      (_, i) => (updated[i] = { approved: newState, rejected: false })
-    );
-    setPartApprovals(updated);
-  };
-
-  const handleRejectAll = () => {
-    const newState = !rejectAllActive;
-    setRejectAllActive(newState);
-    setApproveAllActive(false);
-    const updated = {};
-    mergedParts.forEach(
-      (_, i) => (updated[i] = { approved: false, rejected: newState })
-    );
-    setPartApprovals(updated);
+    const prev = state.partApprovals[index] || { approved: false, rejected: false };
+    if (type === "approved") dispatch({ type: "SET_PART_APPROVAL", index, payload: { approved: !prev.approved, rejected: false } });
+    else if (type === "rejected") dispatch({ type: "SET_PART_APPROVAL", index, payload: { approved: false, rejected: !prev.rejected } });
   };
 
   const totalCost = mergedParts.reduce((sum, p, idx) => {
-    if (partApprovals[idx]?.approved)
-      return sum + (p.price ?? 0) * (p.quantity ?? 1);
+    if (state.partApprovals[idx]?.approved) return sum + (p.price ?? 0) * (p.quantity ?? 1);
     return sum;
   }, 0);
 
   const handleDone = async () => {
-    if (!claimId || !evmId) {
-      console.warn("[EVMDetail] Thiếu claimId hoặc evmId:", { claimId, evmId });
-      return;
-    }
+    if (!claimId || !evmId) return;
     if (processing) return;
     setProcessing(true);
-
     try {
-      console.groupCollapsed("[EVMDetail] HANDLE DONE START");
-      console.log("claimId:", claimId);
-      console.log("evmId:", evmId);
-      console.log("comment:", comment);
-      console.log("mergedParts:", mergedParts);
-      console.log("partApprovals:", partApprovals);
-
       const approvedIndexes = [];
       const rejectedIndexes = [];
-
       mergedParts.forEach((_, idx) => {
-        if (partApprovals[idx]?.approved) approvedIndexes.push(idx);
-        else if (partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
+        if (state.partApprovals[idx]?.approved) approvedIndexes.push(idx);
+        else if (state.partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
       });
-
-      console.log("approvedIndexes:", approvedIndexes);
-      console.log("rejectedIndexes:", rejectedIndexes);
 
       // Gửi các part bị từ chối
       for (const idx of rejectedIndexes) {
         const part = mergedParts[idx];
-        const body = {
-          partNumber: part.partNumber,
-          warrantyId: claimId,
-          vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
-          quantity: part.quantity || 0,
-          isRepair: false,
-          partId: part.partId || "",
-        };
-        console.log(`Reject Part [${idx}]`, body);
         await axiosPrivate.put(
-          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
-            encodeURIComponent(claimId),
-            encodeURIComponent(part.partNumber)
-          ),
-          body
+          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(encodeURIComponent(claimId), encodeURIComponent(part.partNumber)),
+          {
+            partNumber: part.partNumber,
+            warrantyId: claimId,
+            vin: part.vehicle?.vin || claimDetails?.vin || warranty?.vin || "",
+            quantity: part.quantity || 0,
+            isRepair: false,
+            partId: part.partId || "",
+          }
         );
       }
 
-      // Nếu có part được duyệt
       if (approvedIndexes.length > 0) {
         const centerMatch = claimId.match(/WC-(\d+)-/);
         const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
-        console.log("centerId:", centerId);
-
         const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
         const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
-        console.log("allParts length:", allParts.length);
-
         const groupedParts = {};
         for (const idx of approvedIndexes) {
           const part = mergedParts[idx];
-          if (!groupedParts[part.partNumber]) {
-            groupedParts[part.partNumber] = Number(part.quantity || 0);
-          }
+          if (!groupedParts[part.partNumber]) groupedParts[part.partNumber] = Number(part.quantity || 0);
         }
-        console.log("groupedParts:", groupedParts);
 
         for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
           const foundPart = allParts.find((p) => p.partNumber === partNumber);
           const foundWarehouse = foundPart?.warehouse;
-
-          if (!foundPart) {
-            console.warn(`Không tìm thấy part: ${partNumber}`);
-          } else if (!foundWarehouse) {
-            console.warn(`Không có warehouse cho: ${partNumber}`);
-          } else if (centerId !== foundWarehouse.whId) {
-            console.log(
-              `Bỏ qua ${partNumber}: centerId ${centerId} ≠ warehouse ${foundWarehouse.whId}`
-            );
-          } else {
-            const patchUrl = `${
-              API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY
-            }?partNumber=${encodeURIComponent(
-              partNumber
-            )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
-            console.log("PATCH URL:", patchUrl);
-            try {
-              await axiosPrivate.patch(patchUrl);
-              console.log(`Đã cập nhật tồn kho cho ${partNumber}`);
-
-              const updatedPartsRes = await axiosPrivate.get(
-                API_ENDPOINTS.PARTS
-              );
-              const updatedPart = Array.isArray(updatedPartsRes.data)
-                ? updatedPartsRes.data.find((p) => p.partNumber === partNumber)
-                : null;
-
-              if (updatedPart) {
-                console.log("Dữ liệu sau khi cập nhật:", {
-                  partNumber: updatedPart.partNumber,
-                  warehouse: updatedPart.warehouse?.whId,
-                  quantity: updatedPart.quantity,
-                });
-              } else {
-                console.warn(
-                  `Không tìm thấy dữ liệu part sau cập nhật: ${partNumber}`
-                );
-              }
-            } catch (err) {
-              console.error(
-                `Update lỗi cho ${partNumber}:`,
-                err?.response || err
-              );
-            }
+          if (foundPart && foundWarehouse && centerId === foundWarehouse.whId) {
+            const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(partNumber)}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
+            await axiosPrivate.patch(patchUrl);
           }
         }
 
-        console.log("Gửi EVM Description API");
+        // Gửi EVM Description
         await axiosPrivate.post(
-          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
-            evmId
-          )}&description=${encodeURIComponent(comment || "")}`
+          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(evmId)}&description=${encodeURIComponent(comment || "")}`
         );
       } else {
-        console.log("Không có part nào được approve → Gửi Decision Handover");
+        // Nếu không approve part → gửi decision handover
         await axiosPrivate.post(
-          `${API_ENDPOINTS.DECISION_HANDOVER(
-            claimId
-          )}?evmId=${encodeURIComponent(
-            evmId
-          )}&description=${encodeURIComponent(comment || "")}`
+          `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(evmId)}&description=${encodeURIComponent(comment || "")}`
         );
       }
 
-      console.groupEnd();
-      console.log("handleDone hoàn tất thành công");
       onOpenChange(false);
-
       window.location.reload();
     } catch (err) {
       console.error("[EVMDetail] Done failed:", err?.response || err);
-      alert(
-        "Hoàn tất xử lý thất bại. Vui lòng kiểm tra console để xem chi tiết."
-      );
+      alert("Hoàn tất xử lý thất bại. Vui lòng kiểm tra console để xem chi tiết.");
     } finally {
       setProcessing(false);
     }
-    window.location.reload();
   };
 
   return (
     <>
       <Dialog open={open} modal={false}>
-        <DialogContent
-          showCloseButton={false}
-          className="max-w-4xl max-h-[90vh] overflow-y-auto"
-        >
+        <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Warranty Claim Details
-            </DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -363,9 +270,7 @@ export default function EVMStaffDetailWarranty({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Claim ID</p>
-                <p className="font-semibold">
-                  {claimDetails?.claimId || warranty?.claimId}
-                </p>
+                <p className="font-semibold">{claimDetails?.claimId || warranty?.claimId}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
@@ -373,9 +278,7 @@ export default function EVMStaffDetailWarranty({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
-                <p className="font-semibold">
-                  {claimDetails?.vin || vehicle?.vin || ""}
-                </p>
+                <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Model</p>
@@ -387,15 +290,11 @@ export default function EVMStaffDetailWarranty({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold">
-                  {vehicle?.customer?.customerName || ""}
-                </p>
+                <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Description</p>
-                <p className="font-semibold">
-                  {claimDetails?.description || ""}
-                </p>
+                <p className="font-semibold">{claimDetails?.description || ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Submitted Date</p>
@@ -413,28 +312,20 @@ export default function EVMStaffDetailWarranty({
                   <div className="text-left">Part Information</div>
                   <div className="flex justify-center items-center">
                     <Button
-                      variant={approveAllActive ? "default" : "outline"}
+                      variant={state.approveAllActive ? "default" : "outline"}
                       size="sm"
-                      className={`transition-all ${
-                        approveAllActive
-                          ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
-                          : "text-green-700 border-green-600 hover:bg-green-100"
-                      }`}
-                      onClick={handleApproveAll}
+                      onClick={() => dispatch({ type: "SET_APPROVE_ALL", payload: !state.approveAllActive })}
+                      className={`transition-all ${state.approveAllActive ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105" : "text-green-700 border-green-600 hover:bg-green-100"}`}
                     >
                       Approve
                     </Button>
                   </div>
                   <div className="flex justify-center items-center">
                     <Button
-                      variant={rejectAllActive ? "default" : "outline"}
+                      variant={state.rejectAllActive ? "default" : "outline"}
                       size="sm"
-                      className={`transition-all ${
-                        rejectAllActive
-                          ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
-                          : "text-red-700 border-red-600 hover:bg-red-100"
-                      }`}
-                      onClick={handleRejectAll}
+                      onClick={() => dispatch({ type: "SET_REJECT_ALL", payload: !state.rejectAllActive })}
+                      className={`transition-all ${state.rejectAllActive ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105" : "text-red-700 border-red-600 hover:bg-red-100"}`}
                     >
                       Reject
                     </Button>
@@ -442,51 +333,20 @@ export default function EVMStaffDetailWarranty({
                 </div>
 
                 {mergedParts.map((part, index) => {
-                  const approved = partApprovals[index]?.approved || false;
-                  const rejected = partApprovals[index]?.rejected || false;
+                  const approved = state.partApprovals[index]?.approved || false;
+                  const rejected = state.partApprovals[index]?.rejected || false;
                   return (
-                    <div
-                      key={index}
-                      className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${
-                        approved
-                          ? "bg-green-50"
-                          : rejected
-                          ? "bg-red-50"
-                          : "bg-transparent"
-                      }`}
-                    >
+                    <div key={index} className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${approved ? "bg-green-50" : rejected ? "bg-red-50" : "bg-transparent"}`}>
                       <div className="space-y-1 text-left">
-                        <p className="font-semibold text-base">
-                          {part.namePart || part.partNumber}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Qty: {part.quantity} | Model: {part.vehicleModel}
-                        </p>
-                        <p className="text-base font-semibold text-primary">
-                          {formatCurrency(part.price)}
-                        </p>
+                        <p className="font-semibold text-base">{part.namePart || part.partNumber}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {part.quantity} | Model: {part.vehicleModel}</p>
+                        <p className="text-base font-semibold text-primary">{formatCurrency(part.price)}</p>
                       </div>
-
                       <div className="flex justify-center items-center">
-                        <input
-                          type="checkbox"
-                          className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
-                          checked={approved}
-                          onChange={() =>
-                            handleApprovalChange(index, "approved")
-                          }
-                        />
+                        <input type="checkbox" className="h-5 w-5 accent-green-600 cursor-pointer mx-auto" checked={approved} onChange={() => handleApprovalChange(index, "approved")} />
                       </div>
-
                       <div className="flex justify-center items-center">
-                        <input
-                          type="checkbox"
-                          className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
-                          checked={rejected}
-                          onChange={() =>
-                            handleApprovalChange(index, "rejected")
-                          }
-                        />
+                        <input type="checkbox" className="h-5 w-5 accent-red-600 cursor-pointer mx-auto" checked={rejected} onChange={() => handleApprovalChange(index, "rejected")} />
                       </div>
                     </div>
                   );
@@ -495,9 +355,7 @@ export default function EVMStaffDetailWarranty({
 
               <div className="flex justify-between items-center text-lg pt-4">
                 <p className="font-bold">Total Cost</p>
-                <p className="font-bold text-primary text-xl">
-                  {formatCurrency(totalCost)}
-                </p>
+                <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
               </div>
             </div>
 
@@ -509,37 +367,24 @@ export default function EVMStaffDetailWarranty({
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => setImagesModalOpen(true)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" || e.key === " "
-                      ? setImagesModalOpen(true)
-                      : null
-                  }
+                  onClick={() => dispatch({ type: "SET_IMAGES_MODAL", payload: true })}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " " ? dispatch({ type: "SET_IMAGES_MODAL", payload: true }) : null)}
                   className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
                 >
                   <Folder className="w-8 h-8 text-amber-600" />
                   <div className="flex flex-col">
-                    <span className="font-medium">
-                      {claimId || "Claim images"}
-                    </span>
+                    <span className="font-medium">{claimId || "Claim images"}</span>
                     <span className="text-sm text-muted-foreground">
-                      {warrantyFiles.reduce(
-                        (acc, f) => acc + (f.mediaUrls?.length || 0),
-                        0
-                      )}{" "}
-                      image(s)
+                      {warrantyFiles.reduce((acc, f) => acc + (f.mediaUrls?.length || 0), 0)} image(s)
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">
-                      Click to view images
-                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">Click to view images</span>
                   </div>
                 </div>
               </div>
             )}
 
-            <Separator />
-
             {/* Comment */}
+            <Separator className="my-4" />
             <div className="space-y-2">
               <Label htmlFor="comment">Comment</Label>
               <Textarea
@@ -553,29 +398,23 @@ export default function EVMStaffDetailWarranty({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="destructive" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDone}
-                disabled={!isFormValid || processing}
-              >
+            <div className="flex justify-end gap-4 pt-4">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button disabled={!isFormValid || processing} onClick={handleDone}>
                 {processing ? "Processing..." : "Done"}
               </Button>
             </div>
           </div>
-
-          {/* Image viewer */}
         </DialogContent>
       </Dialog>
 
-      {imagesModalOpen && (
+      {/* Images Modal */}
+      {state.imagesModalOpen && (
         <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setImagesModalOpen(false)}
+            onClick={() => dispatch({ type: "SET_IMAGES_MODAL", payload: false })}
             className="absolute top-6 right-6 text-white z-50"
           >
             <X className="w-6 h-6" />
@@ -589,7 +428,7 @@ export default function EVMStaffDetailWarranty({
                 <div
                   key={`claim-image-${i}`}
                   className="relative overflow-hidden rounded-lg cursor-pointer"
-                  onClick={() => setFullscreenImage(url)}
+                  onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: url })}
                 >
                   <img
                     src={url}
@@ -602,24 +441,23 @@ export default function EVMStaffDetailWarranty({
         </div>
       )}
 
-      {fullscreenImage &&
+      {/* Fullscreen Image */}
+      {state.fullscreenImage &&
         createPortal(
           <div
             className="fixed inset-0 z-[10000] bg-black/95 flex items-center justify-center"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setFullscreenImage(null);
-            }}
+            onClick={(e) => e.target === e.currentTarget && dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null })}
           >
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setFullscreenImage(null)}
+              onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null })}
               className="absolute top-4 right-4 text-white z-[99999] p-2 w-10 h-10 hover:bg-white/20"
             >
               <X className="w-6 h-6" />
             </Button>
             <img
-              src={fullscreenImage}
+              src={state.fullscreenImage}
               alt="fullscreen"
               className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-lg pointer-events-none"
             />
