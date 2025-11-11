@@ -75,8 +75,6 @@ export default function SCStaffDashboard() {
     };
   });
 
-  console.log("[Dashboard] Filtered + Sorted Claims:", filteredClaims);
-
   return (
     <div className="min-h-screen bg-muted/30">
       <SCStaffSibebar />
@@ -86,12 +84,8 @@ export default function SCStaffDashboard() {
           <Card className="p-4">
             {loading ? (
               <p className="text-center text-muted-foreground">Loading...</p>
-            ) : mergedData.length > 0 ? (
-              <ScsDashTable claims={mergedData} />
             ) : (
-              <p className="text-center text-muted-foreground">
-                No claims found 
-              </p>
+              <ScsDashTable claims={mergedData} />
             )}
           </Card>
         </div>

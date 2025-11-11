@@ -188,28 +188,39 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
   // Update vehicleModel + campaigns when selectedVin changes
   useEffect(() => {
-    if (!selectedVin) {
-      dispatch({
-        type: "SET_MULTIPLE",
-        payload: { vehicleModel: "", campaignFound: false, selectedCampaign: "", isCampaignChecked: false },
-      })
-      return
-    }
-
-    const selectedVehicle = manualVinMode ? null : vehicles.find((v) => v.vin === selectedVin)
-    const model = manualVinMode ? state.vehicleModel : selectedVehicle?.model || ""
-    const matchedCampaigns = allCampaigns.filter((c) => Array.isArray(c.model) && c.model.includes(model))
+  if (!selectedVin) {
     dispatch({
       type: "SET_MULTIPLE",
-      payload: {
-        vehicleModel: model,
-        campaigns: matchedCampaigns,
-        campaignFound: matchedCampaigns.length > 0,
-        selectedCampaign: matchedCampaigns.length > 0 ? matchedCampaigns[0].campaignId.toString() : "",
-        isCampaignChecked: matchedCampaigns.length > 0,
-      },
-    })
-  }, [selectedVin, vehicles, allCampaigns, manualVinMode])
+      payload: { vehicleModel: "", campaignFound: false, selectedCampaign: "", isCampaignChecked: false },
+    });
+    return;
+  }
+
+  const selectedVehicle = manualVinMode ? null : vehicles.find((v) => v.vin === selectedVin);
+  const model = manualVinMode ? state.vehicleModel : selectedVehicle?.model || "";
+
+  const today = new Date();
+  const matchedCampaigns = allCampaigns.filter((c) => {
+
+    const modelMatch = Array.isArray(c.model) && c.model.includes(model);
+
+    const start = new Date(c.startDate);
+    const end = new Date(c.endDate);
+    const dateMatch = today >= start && today <= end;
+    return modelMatch && dateMatch;
+  });
+
+  dispatch({
+    type: "SET_MULTIPLE",
+    payload: {
+      vehicleModel: model,
+      campaigns: matchedCampaigns,
+      campaignFound: matchedCampaigns.length > 0,
+      selectedCampaign: matchedCampaigns.length > 0 ? matchedCampaigns[0].campaignId.toString() : "",
+      isCampaignChecked: matchedCampaigns.length > 0,
+    },
+  });
+}, [selectedVin, vehicles, allCampaigns, manualVinMode]);
 
   // Check VIN under warranty
   useEffect(() => {
