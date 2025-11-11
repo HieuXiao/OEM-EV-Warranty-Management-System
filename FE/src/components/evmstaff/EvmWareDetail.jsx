@@ -35,6 +35,11 @@ const ROWS_PER_PAGE = 10;
 const LOW_STOCK_THRESHOLD = 50;
 
 // === HELPER FUNCTIONS ===
+/**
+ * Formats a number as Vietnamese currency (VND).
+ * @param {number} amount
+ * @returns {string}
+ */
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -48,9 +53,7 @@ export default function EvmWareDetail({
   onBack,
   onReceiveSuccess,
 }) {
-  // ----------------------------------------------------
-  // 1. INPUT VALIDATION
-  // ----------------------------------------------------
+  // ============= 1. INPUT VALIDATION & INITIALIZATION =============
   if (!warehouse) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -72,13 +75,11 @@ export default function EvmWareDetail({
   const [selectedPart, setSelectedPart] = useState(null);
   const [showRegisterPart, setShowRegisterPart] = useState(false);
 
-  // ----------------------------------------------------
-  // 2. DATA PROCESSING (Simplified and focused on calculation)
-  // ----------------------------------------------------
+  // ============= 2. DATA PROCESSING =============
 
   /**
    * Processes the raw part data from the warehouse API.
-   * Calculates totalValue and sets the 'isLow' flag.
+   * Calculates Total Value and sets the 'isLow' flag based on LOW_STOCK_THRESHOLD.
    */
   const processedParts = useMemo(() => {
     return (warehouse?.parts || []).map((part) => {
@@ -97,6 +98,9 @@ export default function EvmWareDetail({
   }, [warehouse]);
 
   // === FILTERING & PAGINATION LOGIC ===
+  /**
+   * Filters parts based on user search input (Part Name or Part Number).
+   */
   const filteredParts = useMemo(() => {
     return processedParts.filter(
       (part) =>
@@ -105,6 +109,9 @@ export default function EvmWareDetail({
     );
   }, [processedParts, searchTerm]);
 
+  /**
+   * Applies pagination to the filtered list.
+   */
   const totalPages = Math.ceil(filteredParts.length / ROWS_PER_PAGE);
   const safeCurrentPage = Math.min(currentPage, totalPages || 1);
   const currentParts = filteredParts.slice(
@@ -112,11 +119,9 @@ export default function EvmWareDetail({
     safeCurrentPage * ROWS_PER_PAGE
   );
 
-  // ----------------------------------------------------
-  // 3. HANDLERS
-  // ----------------------------------------------------
+  // ============= 3. HANDLERS =============
 
-  // === MAIN TABLE HANDLERS ===
+  // === PAGINATION HANDLERS ===
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
@@ -124,25 +129,37 @@ export default function EvmWareDetail({
     setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
-  // === MINI-MODAL HANDLERS ===
+  // === MODAL HANDLERS ===
+  /**
+   * Opens the mini 'Receive' modal for a specific part.
+   * @param {object} part - The part object from the table row.
+   */
   const handleOpenMiniReceive = (part) => {
     setSelectedPart(part);
     setShowMiniReceive(true);
   };
 
+  /**
+   * Called upon successful stock update from the mini 'Receive' modal.
+   * Triggers data refresh in the parent component.
+   * @param {number} whId - The warehouse ID to refresh.
+   */
   const handleMiniReceiveSuccess = (whId = warehouse.whId) => {
     setShowMiniReceive(false);
     onReceiveSuccess(whId);
   };
 
+  /**
+   * Called upon successful part registration from the 'Register' modal.
+   * Triggers data refresh in the parent component.
+   * @param {number} whId - The warehouse ID to refresh.
+   */
   const handleRegisterSuccess = (whId = warehouse.whId) => {
     setShowRegisterPart(false);
     onReceiveSuccess(whId);
   };
 
-  // ----------------------------------------------------
-  // 4. RENDER
-  // ----------------------------------------------------
+  // ============= 4. RENDER FUNCTION =============
 
   return (
     <div className="space-y-6">
@@ -303,7 +320,7 @@ export default function EvmWareDetail({
       {/* --- MODAL: Register Part --- */}
       <Dialog open={showRegisterPart} onOpenChange={setShowRegisterPart}>
         <DialogContent className="max-w-xl">
-          <EvmWareDetaRegister // Component đăng ký part mới
+          <EvmWareDetaRegister
             warehouse={warehouse}
             partCatalog={partCatalog} // Pass catalog cho form register
             onSuccess={handleRegisterSuccess}

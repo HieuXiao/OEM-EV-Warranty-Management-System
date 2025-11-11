@@ -54,7 +54,7 @@ export default function LoginForm({
       if (role === "ADMIN") navigate("/admin/users");
       if (role === "SC_STAFF") navigate("/scstaff/dashboard");
       if (role === "SC_TECHNICIAN") navigate("/sctechnician/dashboard");
-      if (role === "EVM_STAFF") navigate("/evmstaff/products");
+      if (role === "EVM_STAFF") navigate("/evmstaff/warranty");
     } catch (err) {
       if (!err?.response) {
         setError("No Server Response");

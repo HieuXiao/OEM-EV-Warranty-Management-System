@@ -35,9 +35,9 @@ export default function EVMStaffSideBar() {
             funcName={"Warranty Claim"}
           />
           <NavigationItem
-            path={"/evmstaff/reports"}
-            icon={BarChart3}
-            funcName={"Reporting & Analysis"}
+            path={"/evmstaff/campaign"}
+            icon={TriangleAlert}
+            funcName={"Campaign"}
           />
           <NavigationItem
             path={"/evmstaff/warehouse"}
@@ -45,9 +45,9 @@ export default function EVMStaffSideBar() {
             funcName={"Warehouse"}
           />
           <NavigationItem
-            path={"/evmstaff/campaign"}
-            icon={TriangleAlert}
-            funcName={"Campaign"}
+            path={"/evmstaff/reports"}
+            icon={BarChart3}
+            funcName={"Reporting & Analysis"}
           />
         </nav>
         <div className="p-4 border-t border-border space-y-2">
