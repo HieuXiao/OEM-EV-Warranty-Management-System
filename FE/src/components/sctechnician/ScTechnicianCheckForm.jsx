@@ -9,6 +9,7 @@ import { ImagePlus } from "lucide-react";
 
 const API = {
   CLAIMS: "/api/warranty-claims",
+  VEHICLE: (vin) => `/api/vehicles/${vin}`,
   PARTS: "/api/part-under-warranty-controller",
   CREATE_CHECK: "/api/claim-part-check/create",
   UPLOAD_FILES: (claimId, fileId) =>
@@ -65,17 +66,30 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const claimId = job?.claimId || job?.id;
 
   const [claimInfo, setClaimInfo] = useState(null);
+  const [vehiclePlate, setVehiclePlate] = useState("UNKNOWN");
   const [checkStarted, setCheckStarted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [parts, dispatch] = useReducer(partsReducer, []);
   const [formError, setFormError] = useState("");
 
+  // Fetch claim info
   useEffect(() => {
     if (!claimId) return;
     const fetchClaimInfo = async () => {
       try {
         const res = await axiosPrivate.get(`${API.CLAIMS}/${claimId}`);
         setClaimInfo(res.data);
+
+        // Fetch vehicle plate
+        if (res.data.vin) {
+          try {
+            const vehicleRes = await axiosPrivate.get(API.VEHICLE(res.data.vin));
+            setVehiclePlate(vehicleRes.data.plate || "UNKNOWN");
+          } catch (err) {
+            console.error("Fetch vehicle plate failed:", err);
+            setVehiclePlate("UNKNOWN");
+          }
+        }
       } catch (err) {
         console.error("fetchClaimInfo failed:", err);
       }
@@ -83,6 +97,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     fetchClaimInfo();
   }, [claimId]);
 
+  // Fetch parts
   useEffect(() => {
     const fetchParts = async () => {
       try {
@@ -181,7 +196,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
           partNumber: p.partNumber,
           partId: p.partNumber,
           warrantyId: claimInfo?.claimId || claimId,
-          vin: claimInfo?.vin || "UNKNOWN",
+          vin: vehiclePlate, // dùng vehicle plate
           quantity: p.quantity,
           isRepair: p.selection === "REPAIR",
         }));
@@ -220,7 +235,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
 
         {claimInfo ? (
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border-b">
-            <div><Label>VIN</Label><p>{claimInfo.vin}</p></div>
+            <div><Label>Vehicle Plate</Label><p>{vehiclePlate}</p></div>
             <div><Label>Claim Date</Label><p>{claimInfo.claimDate}</p></div>
             <div className="md:col-span-2">
               <Label>Description</Label>

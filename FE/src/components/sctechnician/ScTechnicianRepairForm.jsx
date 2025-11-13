@@ -11,6 +11,7 @@ const API = {
   CLAIM_WORKFLOW: "/api/warranty-claims/workflow",
   PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
   CLAIMS: "/api/warranty-claims",
+  VEHICLE: (vin) => `/api/vehicles/${vin}`,
   FILE_UPLOAD: "/api/warranty-files/combined/upload-create",
 };
 
@@ -75,6 +76,7 @@ function reducer(state, action) {
 export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
   const [state, dispatch] = useReducer(reducer, []);
   const [claimInfo, setClaimInfo] = useState(null);
+  const [vehiclePlate, setVehiclePlate] = useState("UNKNOWN");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -88,6 +90,20 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         ]);
 
         setClaimInfo(claimRes.data);
+
+        // Fetch vehicle plate
+        if (claimRes.data.vin) {
+          try {
+            const vehicleRes = await axiosPrivate.get(
+              API.VEHICLE(claimRes.data.vin)
+            );
+            setVehiclePlate(vehicleRes.data.plate || "UNKNOWN");
+          } catch (err) {
+            console.error("Fetch vehicle plate failed:", err);
+            setVehiclePlate("UNKNOWN");
+          }
+        }
+
         const claimParts = Array.isArray(checkRes.data)
           ? checkRes.data.filter((p) => p.isRepair === true)
           : [];
@@ -236,8 +252,8 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
           {claimInfo ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
               <div>
-                <Label>VIN</Label>
-                <p>{claimInfo.vin}</p>
+                <Label>Vehicle Plate</Label>
+                <p>{vehiclePlate}</p>
               </div>
               <div>
                 <Label>Claim Date</Label>
