@@ -32,9 +32,7 @@ const API_ENDPOINTS = {
   REPAIR_PARTS_ADD_QUANTITY: "/api/repair-parts/add-quantity",
 };
 
-// Reducer
 const initialState = {
-  imagesModalOpen: false,
   fullscreenImage: null,
   partApprovals: {},
   approveAllActive: false,
@@ -43,8 +41,6 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case "SET_IMAGES_MODAL":
-      return { ...state, imagesModalOpen: action.payload };
     case "SET_FULLSCREEN_IMAGE":
       return { ...state, fullscreenImage: action.payload };
     case "SET_PART_APPROVAL":
@@ -58,7 +54,10 @@ function reducer(state, action) {
         approveAllActive: action.payload,
         rejectAllActive: false,
         partApprovals: Object.fromEntries(
-          Object.keys(state.partApprovals).map((i) => [i, { approved: action.payload, rejected: false }])
+          Object.keys(state.partApprovals).map((i) => [
+            i,
+            { approved: action.payload, rejected: false },
+          ])
         ),
       };
     case "SET_REJECT_ALL":
@@ -67,12 +66,17 @@ function reducer(state, action) {
         rejectAllActive: action.payload,
         approveAllActive: false,
         partApprovals: Object.fromEntries(
-          Object.keys(state.partApprovals).map((i) => [i, { approved: false, rejected: action.payload }])
+          Object.keys(state.partApprovals).map((i) => [
+            i,
+            { approved: false, rejected: action.payload },
+          ])
         ),
       };
     case "SET_PARTS":
       const approvals = {};
-      action.payload.forEach((_, i) => (approvals[i] = { approved: false, rejected: false }));
+      action.payload.forEach(
+        (_, i) => (approvals[i] = { approved: false, rejected: false })
+      );
       return { ...state, partApprovals: approvals };
     default:
       return state;
@@ -91,13 +95,13 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [comment, setComment] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [openImagePart, setOpenImagePart] = useState(null);
 
   const claimId = warranty?.claimId;
 
   useEffect(() => {
     if (open) {
       setComment("");
-      dispatch({ type: "SET_IMAGES_MODAL", payload: false });
       dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null });
       dispatch({ type: "SET_PARTS", payload: mergedParts });
     }
@@ -169,9 +173,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
-      <span
-        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[110px] ${cls}`}
-      >
+      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[110px] ${cls}`}>
         {status}
       </span>
     );
@@ -179,12 +181,23 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
   const handleApprovalChange = (index, type) => {
     const prev = state.partApprovals[index] || { approved: false, rejected: false };
-    if (type === "approved") dispatch({ type: "SET_PART_APPROVAL", index, payload: { approved: !prev.approved, rejected: false } });
-    else if (type === "rejected") dispatch({ type: "SET_PART_APPROVAL", index, payload: { approved: false, rejected: !prev.rejected } });
+    if (type === "approved")
+      dispatch({
+        type: "SET_PART_APPROVAL",
+        index,
+        payload: { approved: !prev.approved, rejected: false },
+      });
+    else if (type === "rejected")
+      dispatch({
+        type: "SET_PART_APPROVAL",
+        index,
+        payload: { approved: false, rejected: !prev.rejected },
+      });
   };
 
   const totalCost = mergedParts.reduce((sum, p, idx) => {
-    if (state.partApprovals[idx]?.approved) return sum + (p.price ?? 0) * (p.quantity ?? 1);
+    if (state.partApprovals[idx]?.approved)
+      return sum + (p.price ?? 0) * (p.quantity ?? 1);
     return sum;
   }, 0);
 
@@ -200,11 +213,14 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         else if (state.partApprovals[idx]?.rejected) rejectedIndexes.push(idx);
       });
 
-      // Gửi các part bị từ chối
+      // reject parts
       for (const idx of rejectedIndexes) {
         const part = mergedParts[idx];
         await axiosPrivate.put(
-          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(encodeURIComponent(claimId), encodeURIComponent(part.partNumber)),
+          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+            encodeURIComponent(claimId),
+            encodeURIComponent(part.partNumber)
+          ),
           {
             partNumber: part.partNumber,
             warrantyId: claimId,
@@ -224,26 +240,33 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         const groupedParts = {};
         for (const idx of approvedIndexes) {
           const part = mergedParts[idx];
-          if (!groupedParts[part.partNumber]) groupedParts[part.partNumber] = Number(part.quantity || 0);
+          if (!groupedParts[part.partNumber])
+            groupedParts[part.partNumber] = Number(part.quantity || 0);
         }
 
         for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
           const foundPart = allParts.find((p) => p.partNumber === partNumber);
           const foundWarehouse = foundPart?.warehouse;
           if (foundPart && foundWarehouse && centerId === foundWarehouse.whId) {
-            const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(partNumber)}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
+            const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(
+              partNumber
+            )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
             await axiosPrivate.patch(patchUrl);
           }
         }
 
-        // Gửi EVM Description
         await axiosPrivate.post(
-          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(evmId)}&description=${encodeURIComponent(comment || "")}`
+          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
         );
       } else {
-        // Nếu không approve part → gửi decision handover
         await axiosPrivate.post(
-          `${API_ENDPOINTS.DECISION_HANDOVER(claimId)}?evmId=${encodeURIComponent(evmId)}&description=${encodeURIComponent(comment || "")}`
+          `${API_ENDPOINTS.DECISION_HANDOVER(
+            claimId
+          )}?evmId=${encodeURIComponent(
+            evmId
+          )}&description=${encodeURIComponent(comment || "")}`
         );
       }
 
@@ -257,10 +280,19 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     }
   };
 
+  // ✅ Sửa đúng: lọc ảnh theo fileId (không phải claimId)
+  const getPartImages = (partName) => {
+    if (!partName) return [];
+    const lowerName = partName.toLowerCase();
+    return warrantyFiles
+      .filter((f) => f.fileId?.toLowerCase().includes(lowerName))
+      .flatMap((f) => f.mediaUrls || []);
+  };
+
   return (
     <>
       <Dialog open={open} modal={false}>
-        <DialogContent showCloseButton={false} className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent showCloseButton={false} className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Warranty Claim Details</DialogTitle>
           </DialogHeader>
@@ -284,22 +316,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                 <p className="text-sm text-muted-foreground">Model</p>
                 <p className="font-semibold">{vehicle?.model || ""}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Vehicle Plate</p>
-                <p className="font-semibold">{vehicle?.plate || ""}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold">{vehicle?.customer?.customerName || ""}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Description</p>
-                <p className="font-semibold">{claimDetails?.description || ""}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Submitted Date</p>
-                <p className="font-semibold">{claimDetails?.claimDate || ""}</p>
-              </div>
             </div>
 
             <Separator />
@@ -308,24 +324,43 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             <div>
               <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
               <div className="border rounded-md">
-                <div className="grid grid-cols-3 font-semibold text-center border-b bg-muted py-2 px-4">
+                <div className="grid grid-cols-4 font-semibold text-center border-b bg-muted py-2 px-4">
                   <div className="text-left">Part Information</div>
-                  <div className="flex justify-center items-center">
+                  <div>Image</div>
+                  <div>
                     <Button
                       variant={state.approveAllActive ? "default" : "outline"}
                       size="sm"
-                      onClick={() => dispatch({ type: "SET_APPROVE_ALL", payload: !state.approveAllActive })}
-                      className={`transition-all ${state.approveAllActive ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105" : "text-green-700 border-green-600 hover:bg-green-100"}`}
+                      onClick={() =>
+                        dispatch({
+                          type: "SET_APPROVE_ALL",
+                          payload: !state.approveAllActive,
+                        })
+                      }
+                      className={`transition-all ${
+                        state.approveAllActive
+                          ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
+                          : "text-green-700 border-green-600 hover:bg-green-100"
+                      }`}
                     >
                       Approve
                     </Button>
                   </div>
-                  <div className="flex justify-center items-center">
+                  <div>
                     <Button
                       variant={state.rejectAllActive ? "default" : "outline"}
                       size="sm"
-                      onClick={() => dispatch({ type: "SET_REJECT_ALL", payload: !state.rejectAllActive })}
-                      className={`transition-all ${state.rejectAllActive ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105" : "text-red-700 border-red-600 hover:bg-red-100"}`}
+                      onClick={() =>
+                        dispatch({
+                          type: "SET_REJECT_ALL",
+                          payload: !state.rejectAllActive,
+                        })
+                      }
+                      className={`transition-all ${
+                        state.rejectAllActive
+                          ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
+                          : "text-red-700 border-red-600 hover:bg-red-100"
+                      }`}
                     >
                       Reject
                     </Button>
@@ -335,19 +370,97 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                 {mergedParts.map((part, index) => {
                   const approved = state.partApprovals[index]?.approved || false;
                   const rejected = state.partApprovals[index]?.rejected || false;
+                  const partImages = getPartImages(part.namePart || part.partNumber);
+
                   return (
-                    <div key={index} className={`grid grid-cols-3 items-center border-b last:border-none py-3 px-4 transition-all ${approved ? "bg-green-50" : rejected ? "bg-red-50" : "bg-transparent"}`}>
+                    <div
+                      key={index}
+                      className={`grid grid-cols-4 items-center border-b last:border-none py-3 px-4 transition-all ${
+                        approved
+                          ? "bg-green-50"
+                          : rejected
+                          ? "bg-red-50"
+                          : "bg-transparent"
+                      }`}
+                    >
                       <div className="space-y-1 text-left">
-                        <p className="font-semibold text-base">{part.namePart || part.partNumber}</p>
-                        <p className="text-sm text-muted-foreground">Qty: {part.quantity} | Model: {part.vehicleModel}</p>
-                        <p className="text-base font-semibold text-primary">{formatCurrency(part.price)}</p>
+                        <p className="font-semibold text-base">
+                          {part.namePart || part.partNumber}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Qty: {part.quantity}
+                        </p>
+                        <p className="text-base font-semibold text-primary">
+                          {formatCurrency(part.price)}
+                        </p>
                       </div>
+
+                      {/* Folder icon */}
+                      <div className="flex justify-center">
+                        {partImages.length > 0 ? (
+                          <Folder
+                            className="w-6 h-6 text-amber-600 cursor-pointer hover:scale-110 transition-transform"
+                            onClick={() => setOpenImagePart(index)}
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            No images
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Approve */}
                       <div className="flex justify-center items-center">
-                        <input type="checkbox" className="h-5 w-5 accent-green-600 cursor-pointer mx-auto" checked={approved} onChange={() => handleApprovalChange(index, "approved")} />
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
+                          checked={approved}
+                          onChange={() => handleApprovalChange(index, "approved")}
+                        />
                       </div>
+
+                      {/* Reject */}
                       <div className="flex justify-center items-center">
-                        <input type="checkbox" className="h-5 w-5 accent-red-600 cursor-pointer mx-auto" checked={rejected} onChange={() => handleApprovalChange(index, "rejected")} />
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 accent-red-600 cursor-pointer mx-auto"
+                          checked={rejected}
+                          onChange={() => handleApprovalChange(index, "rejected")}
+                        />
                       </div>
+
+                      {/* Modal xem ảnh từng part */}
+                      {openImagePart === index && (
+                        <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setOpenImagePart(null)}
+                            className="absolute top-6 right-6 text-white z-50"
+                          >
+                            <X className="w-6 h-6" />
+                          </Button>
+
+                          <h2 className="text-white text-2xl font-bold mb-6">
+                            {part.namePart || part.partNumber}
+                          </h2>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
+                            {partImages.map((url, i) => (
+                              <div
+                                key={`part-image-${i}`}
+                                className="relative overflow-hidden rounded-lg"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`part-image-${i}`}
+                                  className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
+                                  onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: url })}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -355,35 +468,12 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
               <div className="flex justify-between items-center text-lg pt-4">
                 <p className="font-bold">Total Cost</p>
-                <p className="font-bold text-primary text-xl">{formatCurrency(totalCost)}</p>
+                <p className="font-bold text-primary text-xl">
+                  {formatCurrency(totalCost)}
+                </p>
               </div>
             </div>
 
-            {/* Images */}
-            {warrantyFiles.length > 0 && (
-              <div>
-                <Separator className="my-4" />
-                <h3 className="text-lg font-semibold mb-3">Attached Images</h3>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => dispatch({ type: "SET_IMAGES_MODAL", payload: true })}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " " ? dispatch({ type: "SET_IMAGES_MODAL", payload: true }) : null)}
-                  className="flex items-center gap-3 border rounded-lg p-4 cursor-pointer hover:bg-muted transition-all shadow-sm hover:shadow-md"
-                >
-                  <Folder className="w-8 h-8 text-amber-600" />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{claimId || "Claim images"}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {warrantyFiles.reduce((acc, f) => acc + (f.mediaUrls?.length || 0), 0)} image(s)
-                    </span>
-                    <span className="text-xs text-muted-foreground mt-1">Click to view images</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Comment */}
             <Separator className="my-4" />
             <div className="space-y-2">
               <Label htmlFor="comment">Comment</Label>
@@ -397,10 +487,15 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               />
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-4 pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button disabled={!isFormValid || processing} onClick={handleDone}>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDone}
+                disabled={!isFormValid || processing}
+                className="bg-primary text-white px-6"
+              >
                 {processing ? "Processing..." : "Done"}
               </Button>
             </div>
@@ -408,58 +503,16 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         </DialogContent>
       </Dialog>
 
-      {/* Images Modal */}
-      {state.imagesModalOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => dispatch({ type: "SET_IMAGES_MODAL", payload: false })}
-            className="absolute top-6 right-6 text-white z-50"
-          >
-            <X className="w-6 h-6" />
-          </Button>
-
-          <h2 className="text-white text-2xl font-bold mb-6">Claim Images</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-            {warrantyFiles
-              .flatMap((f) => f.mediaUrls || [])
-              .map((url, i) => (
-                <div
-                  key={`claim-image-${i}`}
-                  className="relative overflow-hidden rounded-lg cursor-pointer"
-                  onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: url })}
-                >
-                  <img
-                    src={url}
-                    alt={`claim-image-${i}`}
-                    className="w-full h-64 object-cover hover:scale-105 transition-transform"
-                  />
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen Image */}
       {state.fullscreenImage &&
         createPortal(
           <div
-            className="fixed inset-0 z-[10000] bg-black/95 flex items-center justify-center"
-            onClick={(e) => e.target === e.currentTarget && dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null })}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+            onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null })}
           >
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: null })}
-              className="absolute top-4 right-4 text-white z-[99999] p-2 w-10 h-10 hover:bg-white/20"
-            >
-              <X className="w-6 h-6" />
-            </Button>
             <img
               src={state.fullscreenImage}
               alt="fullscreen"
-              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-lg pointer-events-none"
+              className="max-w-full max-h-full object-contain"
             />
           </div>,
           document.body

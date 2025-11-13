@@ -112,7 +112,7 @@ export default function SCTechnicianCheck() {
           claimId: claim.claimId,
           jobNumber: `CLM-${claim.claimId}`,
           vin: claim.vin || "N/A",
-          vehicleModel: vehicle?.model || "N/A",
+          plate: vehicle?.plate || "N/A",
           claimDate: claim.claimDate,
           createdAt: claim.claimDate,
           comment: claim.description || vehicle?.campaign?.serviceDescription || "",
@@ -151,7 +151,7 @@ export default function SCTechnicianCheck() {
 
   // --- filtering / sorting / pagination ---
   const filteredJobs = jobs.filter((job) =>
-    [job.jobNumber, job.vin, job.vehicleModel].some((field) =>
+    [job.jobNumber, job.plate].some((field) =>
       field?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -284,8 +284,7 @@ export default function SCTechnicianCheck() {
                           </div>
                           <div className="space-y-1.5 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle:</span>{" "}
-                              {job.vehicleModel} - {job.vin}
+                              <span className="font-medium">Vehicle Plate:</span> {job.plate}
                             </p>
                             <p className="text-muted-foreground">
                               <span className="font-medium">Date:</span>{" "}
