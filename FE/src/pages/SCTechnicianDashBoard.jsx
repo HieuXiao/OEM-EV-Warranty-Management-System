@@ -15,6 +15,12 @@ import { ArrowRight, ClipboardCheck, Wrench, RefreshCcw } from "lucide-react";
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
+const API_ENDPOINTS = {
+  WARRANTY_CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts",
+};
+
 const initialState = {
   claims: [],
   loading: true,
@@ -59,15 +65,29 @@ export default function SCTechnicianDashboard() {
 
     dispatch({ type: "FETCH_START" });
     try {
-      const res = await axiosPrivate.get(`/api/warranty-claims`);
-      const allClaims = Array.isArray(res.data) ? res.data : [];
+      const [claimsRes, vehiclesRes] = await Promise.all([
+        axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS),
+        axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+      ]);
 
-      const technicianClaims = allClaims.filter(
-        (claim) =>
-          ["CHECK", "REPAIR"].includes(claim.status?.toUpperCase()) &&
-          claim.serviceCenterTechnicianId?.toUpperCase() ===
-            techId?.toUpperCase()
+      const allClaims = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+      const vehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
+
+      const vehicleMap = Object.fromEntries(
+        vehicles.map((v) => [v.vin, v.plate || "N/A"])
       );
+
+      const technicianClaims = allClaims
+        .filter(
+          (claim) =>
+            ["CHECK", "REPAIR"].includes(claim.status?.toUpperCase()) &&
+            claim.serviceCenterTechnicianId?.toUpperCase() ===
+              techId?.toUpperCase()
+        )
+        .map((claim) => ({
+          ...claim,
+          plate: vehicleMap[claim.vin] || "N/A",
+        }));
 
       const sortedClaims = [...technicianClaims].sort((a, b) => {
         const dateA = new Date(a.claimDate);
@@ -194,7 +214,7 @@ export default function SCTechnicianDashboard() {
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              VIN: {job.vin || "—"}
+                              Plate: {job.plate || "—"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Date: {formatDate(job.claimDate)}
@@ -254,7 +274,7 @@ export default function SCTechnicianDashboard() {
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              VIN: {job.vin || "—"}
+                              Plate: {job.plate || "—"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Date: {formatDate(job.claimDate)}

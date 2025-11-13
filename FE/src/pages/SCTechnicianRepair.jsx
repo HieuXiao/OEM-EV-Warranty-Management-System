@@ -100,8 +100,7 @@ export default function SCTechnicianRepair() {
           id: claim.claimId,
           claimId: claim.claimId,
           jobNumber: `CLM-${claim.claimId}`,
-          vin: claim.vin || "N/A",
-          vehicleModel: vehicle?.model || claim.model || "N/A",
+          plate: claim.plate || vehicle?.plate || "N/A",
           claimDate: claim.claimDate,
           createdAt: claim.claimDate,
           comment: claim.description || vehicle?.campaign?.serviceDescription || "",
@@ -129,18 +128,17 @@ export default function SCTechnicianRepair() {
   const handleOpenReport = (job) => setSelectedJob(job);
   const handleCloseReport = () => setSelectedJob(null);
 
-  // --- Khi hoàn tất repair ---
   const handleCompleteRepair = () => {
     setSelectedJob(null);
-    fetchClaimsAndEnrich(true); // refresh dữ liệu, giống Check
+    fetchClaimsAndEnrich(true);
   };
 
   // --- filtering / sorting / pagination ---
   const filteredJobs = jobs.filter((job) =>
-    [job.jobNumber, job.vin, job.vehicleModel].some((field) =>
-      field?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+        [job.jobNumber, job.plate].some((field) =>
+          field?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
 
   const sortedJobs = [...filteredJobs].sort((a, b) => {
     const dateA = new Date(a.claimDate || a.createdAt);
@@ -185,7 +183,7 @@ export default function SCTechnicianRepair() {
           <div className="flex gap-3 mb-4">
             <Search className="text-muted-foreground" />
             <Input
-              placeholder="Search by job number, VIN or model..."
+              placeholder="Search by job number or plate..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -269,16 +267,13 @@ export default function SCTechnicianRepair() {
                           </div>
                           <div className="space-y-1.5 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle:</span>{" "}
-                              {job.vehicleModel} - {job.vin}
+                              <span className="font-medium">Vehicle Plate:</span> {job.plate}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Date:</span>{" "}
-                              {formatDateTime(job.claimDate || job.createdAt)}
+                              <span className="font-medium">Date:</span> {formatDateTime(job.claimDate || job.createdAt)}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">SC Staff:</span>{" "}
-                              {job.scStaff?.fullName || "N/A"}
+                              <span className="font-medium">SC Staff:</span> {job.scStaff?.fullName || "N/A"}
                             </p>
                           </div>
                         </div>
