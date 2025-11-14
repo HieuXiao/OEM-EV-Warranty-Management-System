@@ -262,7 +262,7 @@ export default function SCStaffWarrantyClaim() {
                             {claim.status}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-2 gap-4 text-sm" >
                           <div>
                             <span className="text-muted-foreground">Vehicle Plate: </span>
                             <span className="font-medium">{claim.plate}</span>
