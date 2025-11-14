@@ -59,7 +59,6 @@ function partsReducer(state, action) {
   }
 }
 
-/* --------------------------- 🔹 Main Component --------------------------- */
 export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const { auth } = useAuth();
   const technicianId = auth?.accountId || auth?.id || "";
@@ -181,45 +180,48 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   };
 
   const handleCompleteCheck = async () => {
-    if (!claimId || uploading) return;
-    if (!validateAllParts()) {
-      setFormError("Please complete all required fields before submitting.");
-      return;
-    }
+  if (!claimId || uploading) return;
+  if (!validateAllParts()) {
+    setFormError("Please complete all required fields before submitting.");
+    return;
+  }
 
-    setUploading(true);
-    setFormError("");
-    try {
-      const payloads = parts
-        .filter((p) => p.selection)
-        .map((p) => ({
-          partNumber: p.partNumber,
-          partId: p.partNumber,
-          warrantyId: claimInfo?.claimId || claimId,
-          vin: vehiclePlate, // dùng vehicle plate
-          quantity: p.quantity,
-          isRepair: p.selection === "REPAIR",
-        }));
+  setUploading(true);
+  setFormError("");
+  try {
+    const payloads = parts
+      .filter((p) => p.selection)
+      .map((p) => ({
+        partNumber: p.partNumber,
+        partId: p.partNumber,
+        warrantyId: claimInfo?.claimId || claimId,
+        vin: claimInfo?.vin,
+        quantity: p.quantity,
+        isRepair: p.selection === "REPAIR",
+      }));
 
-      const hasRepair = payloads.some((p) => p.isRepair);
+    const hasRepair = payloads.some((p) => p.isRepair);
 
-      for (const data of payloads)
-        await axiosPrivate.post(API.CREATE_CHECK, data);
+    for (const data of payloads)
+      await axiosPrivate.post(API.CREATE_CHECK, data);
 
-      if (hasRepair) await handleUploadAllParts();
-      else await axiosPrivate.post(API.SKIP_REPAIR(claimId, technicianId));
-
+    if (hasRepair){
+      await handleUploadAllParts();
       await axiosPrivate.post(API.ASSIGN_EVM);
+    } 
+    else{
+      await axiosPrivate.post(API.SKIP_REPAIR(claimId, technicianId));
+    } 
 
-      onComplete?.(claimId);
-      onClose?.();
-    } catch (err) {
-      console.error("[CheckForm] Complete failed:", err);
-      setFormError("Failed to complete check. Please try again later.");
-    } finally {
-      setUploading(false);
-    }
-  };
+    onComplete?.(claimId);
+    onClose?.();
+  } catch (err) {
+    console.error("[CheckForm] Complete failed:", err);
+    setFormError("Failed to complete check. Please try again later.");
+  } finally {
+    setUploading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
