@@ -56,26 +56,45 @@ export default function SCStaffWarrantyClaim() {
   const [dateFrom, setDateFrom] = useState(getDefaultDateFrom())
   const [dateTo, setDateTo] = useState(getDefaultDateTo())
   const [sortBy, setSortBy] = useState("date-desc")
-  const [userCenterId, setUserCenterId] = useState(null) 
+  const [userCenterId, setUserCenterId] = useState(null)
+  const [vehicles, setVehicles] = useState([]);
 
   useEffect(() => {
-    const fetchClaims = async () => {
-      try {
-        setLoading(true)
-        const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
+  const fetchClaims = async () => {
+    try {
+      setLoading(true);
+
+      const [claimsRes, vehiclesRes] = await Promise.all([
+        axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
           params: { dateFrom, dateTo },
-        })
-        setClaims(Array.isArray(response.data) ? response.data : [])
-        console.log("[WarrantyClaim] Claims fetched:", response.data)
-      } catch (error) {
-        console.error("Failed to fetch claims:", error)
-        setClaims([])
-      } finally {
-        setLoading(false)
-      }
+        }),
+        axiosPrivate.get("/api/vehicles")
+      ]);
+
+      const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+      const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
+
+      const vehicleMap = Object.fromEntries(
+        vehiclesData.map(v => [v.vin, v.plate || "—"])
+      );
+
+      const merged = claimsData.map(c => ({
+        ...c,
+        plate: vehicleMap[c.vin] || "—",
+      }));
+
+      setClaims(merged);
+
+    } catch (error) {
+      console.error("Failed to fetch claims:", error);
+      setClaims([]);
+    } finally {
+      setLoading(false);
     }
-    fetchClaims()
-  }, [dateFrom, dateTo])
+  };
+
+  fetchClaims();
+}, [dateFrom, dateTo]);
 
   useEffect(() => {
     const fetchCenterId = async () => {
@@ -245,8 +264,8 @@ export default function SCStaffWarrantyClaim() {
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">VIN: </span>
-                            <span className="font-medium">{claim.vin}</span>
+                            <span className="text-muted-foreground">Vehicle Plate: </span>
+                            <span className="font-medium">{claim.plate}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Date: </span>
