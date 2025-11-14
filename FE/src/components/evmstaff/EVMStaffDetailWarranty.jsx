@@ -141,9 +141,14 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         setMergedParts(merged);
         dispatch({ type: "SET_PARTS", payload: merged });
 
-        const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
-        const matchedVehicle = vehicles.find((v) => v.vin === (claimData?.vin || warranty?.vin));
-        setVehicle(matchedVehicle || null);
+        if (claimData?.vin || warranty?.vin) {
+          const vehicleRes = await axiosPrivate.get(
+            `${API_ENDPOINTS.VEHICLES}/${encodeURIComponent(
+              claimData?.vin || warranty?.vin
+            )}`
+          );
+          setVehicle(vehicleRes?.data || null);
+        }
 
         const files = Array.isArray(filesRes?.data) ? filesRes.data : [];
         setWarrantyFiles(files);
@@ -309,8 +314,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                 {getStatusBadge(claimDetails?.status || warranty?.status)}
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Vehicle (VIN)</p>
-                <p className="font-semibold">{claimDetails?.vin || vehicle?.vin || ""}</p>
+                <p className="text-sm text-muted-foreground">Vehicle Plate</p>
+                <p className="font-semibold">{vehicle?.plate || ""}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Model</p>

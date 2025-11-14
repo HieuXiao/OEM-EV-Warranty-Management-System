@@ -23,6 +23,11 @@ import EVMStaffDetailWarranty from "@/components/evmstaff/EVMStaffDetailWarranty
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
+const API_ENDPOINTS = {
+  CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+};
+
 export default function EVMStaffWarrantyClaim() {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
@@ -40,8 +45,8 @@ export default function EVMStaffWarrantyClaim() {
     const fetchData = async () => {
       try {
         const [resClaims, resVehicles] = await Promise.all([
-          axiosPrivate.get("/api/warranty-claims"),
-          axiosPrivate.get("/api/vehicles"),
+          axiosPrivate.get(API_ENDPOINTS.CLAIMS),
+          axiosPrivate.get(API_ENDPOINTS.VEHICLES),
         ]);
 
         const claims = Array.isArray(resClaims.data) ? resClaims.data : [];
@@ -57,6 +62,7 @@ export default function EVMStaffWarrantyClaim() {
           const vehicle = vehicles.find((v) => v.vin === claim.vin);
           return {
             ...claim,
+            plate: vehicle?.plate || "Unknown",
             vehicleModel: vehicle?.model || "Unknown",
             vehicleType: vehicle?.type || "Unknown",
             customerName: vehicle?.customer?.customerName || "Unknown",
@@ -65,7 +71,6 @@ export default function EVMStaffWarrantyClaim() {
               vehicle?.customer?.serviceCenter?.centerName || "Unknown",
           };
         });
-
         const sortedClaims = [...enrichedClaims].sort((a, b) => {
           const dateA = new Date(a.claimDate);
           const dateB = new Date(b.claimDate);
@@ -94,7 +99,7 @@ export default function EVMStaffWarrantyClaim() {
   const filteredWarranties = warranties.filter((claim) => {
     const matchesSearch =
       (claim.claimId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (claim.vin || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (claim.plate || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (claim.vehicleModel || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
@@ -156,7 +161,7 @@ export default function EVMStaffWarrantyClaim() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by VIN, claim ID or model..."
+                  placeholder="Search by plate, claim ID or model..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -208,7 +213,7 @@ export default function EVMStaffWarrantyClaim() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[120px]">Claim ID</TableHead>
-                    <TableHead className="w-[140px]">VIN</TableHead>
+                    <TableHead className="w-[140px]">Vehicle Plate</TableHead>
                     <TableHead className="w-[160px]">Model</TableHead>
                     <TableHead className="w-[240px]">Description</TableHead>
                     <TableHead className="w-[120px] text-center">
@@ -226,7 +231,7 @@ export default function EVMStaffWarrantyClaim() {
                       <TableCell className="font-medium align-middle">
                         {claim.claimId}
                       </TableCell>
-                      <TableCell className="align-middle">{claim.vin}</TableCell>
+                      <TableCell className="align-middle">{claim.plate}</TableCell>
                       <TableCell className="align-middle">
                         {claim.vehicleModel}
                       </TableCell>
