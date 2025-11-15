@@ -332,7 +332,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Vehicle VIN *</label>
+              <label className="text-sm font-medium">Vehicle Plate *</label>
               {manualVinMode ? (
                 <Input
                   placeholder="Enter VIN manually"
@@ -348,7 +348,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
                   <SelectContent>
                     {vehicles.map((v) => (
                       <SelectItem key={v.vin} value={v.vin}>
-                        {v.vin}
+                        {v.plate || v.vin}
                       </SelectItem>
                     ))}
                   </SelectContent>

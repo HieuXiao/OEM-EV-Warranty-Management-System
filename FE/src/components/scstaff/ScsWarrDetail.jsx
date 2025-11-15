@@ -161,8 +161,8 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">VIN</h4>
-                <p className="font-medium">{claim.vin}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Vehicle Plate</h4>
+                <p className="font-medium">{vehicle?.plate || "—"}</p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Model</h4>
@@ -209,7 +209,6 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               <p className="text-sm italic text-muted-foreground">No campaign associated.</p>
             )}
 
-            {/* ✅ Auto load repair parts */}
             <ScsWarrPart warrantyId={claim?.claimId} autoLoad={true} />
 
             <Button
