@@ -38,6 +38,66 @@ const getDefaultDateTo = () => {
   return new Date().toISOString().split("T")[0]
 }
 
+// COMPONENT: Timeline hiển thị ngay dưới mỗi warranty
+const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
+  const STATUS_ORDER = ["CHECK", "DECIDE", "REPAIR", "HANDOVER", "DONE"];
+  const STATUS_COLORS = {
+    CHECK: "bg-blue-500",
+    DECIDE: "bg-yellow-500",
+    REPAIR: "bg-orange-500",
+    HANDOVER: "bg-purple-500",
+    DONE: "bg-green-500",
+  };
+
+  const statusTimes = timeline.reduce((acc, item) => {
+    const match = item.match(/^(\w+)\s*:\s*(.+)$/);
+    if (match) {
+      const status = match[1];
+      const timeStr = match[2];
+      acc[status] = new Date(timeStr);
+    }
+    return acc;
+  }, {});
+
+  const formatTime = (date) => {
+    if (!date) return "—";
+    const h = String(date.getHours()).padStart(2, "0");
+    const m = String(date.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  };
+
+  return (
+    <div className="flex items-center mt-4 gap-2">
+      {STATUS_ORDER.map((status, index) => {
+        const hasTime = !!statusTimes[status];
+        const reached = STATUS_ORDER.indexOf(currentStatus) >= index;
+        return (
+          <div key={status} className="flex-1 flex flex-col items-center relative">
+            <div
+              className={`w-6 h-6 rounded-full border-2 ${
+                hasTime
+                  ? STATUS_COLORS[status]
+                  : "border-gray-300 bg-gray-200 opacity-50"
+              }`}
+            />
+            {index < STATUS_ORDER.length && (
+              <div
+                className={`h-1 w-full mt-1 ${
+                  hasTime
+                    ? STATUS_COLORS[status]
+                    : "bg-gray-200 opacity-50"
+                }`}
+              />
+            )}
+            <div className="mt-1 text-xs text-center font-semibold">{status}</div>
+            <div className="text-[10px] text-muted-foreground">{hasTime ? formatTime(statusTimes[status]) : "—"}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function SCStaffWarrantyClaim() {
   const { auth } = useAuth()
   const currentUser = {
@@ -57,51 +117,39 @@ export default function SCStaffWarrantyClaim() {
   const [dateTo, setDateTo] = useState(getDefaultDateTo())
   const [sortBy, setSortBy] = useState("date-desc")
   const [userCenterId, setUserCenterId] = useState(null)
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState([])
 
   useEffect(() => {
-  const fetchClaims = async () => {
-    try {
-      setLoading(true);
+    const fetchClaims = async () => {
+      try {
+        setLoading(true)
+        const [claimsRes, vehiclesRes] = await Promise.all([
+          axiosPrivate.get(API_ENDPOINTS.CLAIMS, { params: { dateFrom, dateTo } }),
+          axiosPrivate.get("/api/vehicles")
+        ])
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
+        const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
 
-      const [claimsRes, vehiclesRes] = await Promise.all([
-        axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
-          params: { dateFrom, dateTo },
-        }),
-        axiosPrivate.get("/api/vehicles")
-      ]);
+        const vehicleMap = Object.fromEntries(vehiclesData.map(v => [v.vin, v.plate || "—"]))
+        const merged = claimsData.map(c => ({ ...c, plate: vehicleMap[c.vin] || "—" }))
 
-      const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
-      const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [];
-
-      const vehicleMap = Object.fromEntries(
-        vehiclesData.map(v => [v.vin, v.plate || "—"])
-      );
-
-      const merged = claimsData.map(c => ({
-        ...c,
-        plate: vehicleMap[c.vin] || "—",
-      }));
-
-      setClaims(merged);
-
-    } catch (error) {
-      console.error("Failed to fetch claims:", error);
-      setClaims([]);
-    } finally {
-      setLoading(false);
+        setClaims(merged)
+      } catch (error) {
+        console.error("Failed to fetch claims:", error)
+        setClaims([])
+      } finally {
+        setLoading(false)
+      }
     }
-  };
-
-  fetchClaims();
-}, [dateFrom, dateTo]);
+    fetchClaims()
+  }, [dateFrom, dateTo])
 
   useEffect(() => {
     const fetchCenterId = async () => {
       try {
         const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
         const account = Array.isArray(res.data)
-          ? res.data.find((a) => a.accountId.toUpperCase() === auth?.accountId?.toUpperCase())
+          ? res.data.find(a => a.accountId.toUpperCase() === auth?.accountId?.toUpperCase())
           : null
         if (account?.serviceCenter?.centerId) {
           setUserCenterId(account.serviceCenter.centerId)
@@ -117,7 +165,7 @@ export default function SCStaffWarrantyClaim() {
   }, [auth?.accountId])
 
   const filteredClaims = claims
-    .filter((claim) => {
+    .filter(claim => {
       if (userCenterId && claim.claimId?.includes("-")) {
         const parts = claim.claimId.split("-")
         const claimCenterId = parseInt(parts[1]) || 0
@@ -125,7 +173,7 @@ export default function SCStaffWarrantyClaim() {
       }
       return claim.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase()
     })
-    .filter((claim) => {
+    .filter(claim => {
       const matchesSearch =
         claim.claimId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         claim.vin?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -154,7 +202,7 @@ export default function SCStaffWarrantyClaim() {
       }
     })
 
-  const userClaims = claims.filter((claim) => {
+  const userClaims = claims.filter(claim => {
     if (userCenterId && claim.claimId?.includes("-")) {
       const parts = claim.claimId.split("-")
       const claimCenterId = parseInt(parts[1]) || 0
@@ -164,10 +212,10 @@ export default function SCStaffWarrantyClaim() {
   })
 
   const totalClaims = userClaims.length
-  const checkClaims = userClaims.filter((c) => c.status === "CHECK").length
-  const decideClaims = userClaims.filter((c) => c.status === "DECIDE").length
-  const repairClaims = userClaims.filter((c) => c.status === "REPAIR").length
-  const doneClaims = userClaims.filter((c) => c.status === "DONE").length
+  const checkClaims = userClaims.filter(c => c.status === "CHECK").length
+  const decideClaims = userClaims.filter(c => c.status === "DECIDE").length
+  const repairClaims = userClaims.filter(c => c.status === "REPAIR").length
+  const doneClaims = userClaims.filter(c => c.status === "DONE").length
 
   const handleViewClaim = (claim) => {
     setSelectedClaim(claim)
@@ -176,9 +224,7 @@ export default function SCStaffWarrantyClaim() {
 
   const handleClaimCreated = async () => {
     try {
-      const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
-        params: { dateFrom, dateTo },
-      })
+      const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, { params: { dateFrom, dateTo } })
       setClaims(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error("Failed to refresh claims:", error)
@@ -199,7 +245,7 @@ export default function SCStaffWarrantyClaim() {
                 { label: "Decide", value: decideClaims },
                 { label: "Repair", value: repairClaims },
                 { label: "Done", value: doneClaims },
-              ].map((item) => (
+              ].map(item => (
                 <Card key={item.label}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{item.label}</CardTitle>
@@ -262,7 +308,7 @@ export default function SCStaffWarrantyClaim() {
                             {claim.status}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-2 gap-4 text-sm" >
                           <div>
                             <span className="text-muted-foreground">Vehicle Plate: </span>
                             <span className="font-medium">{claim.plate}</span>
@@ -272,6 +318,11 @@ export default function SCStaffWarrantyClaim() {
                             <span className="font-medium">{claim.claimDate}</span>
                           </div>
                         </div>
+
+                        {/* Timeline */}
+                        {claim.timeline && claim.timeline.length > 0 && (
+                          <WarrantyTimeline timeline={claim.timeline} currentStatus={claim.status} />
+                        )}
                       </div>
                       <Button
                         variant="ghost"
