@@ -334,25 +334,20 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                             </div>
                             <div className="flex gap-2 flex-wrap">
                               {part.images.map((img, idx) => (
-                                <div key={idx} className="fix" >
-                                  <img
-                                    src={img.url}
-                                    alt=""
-                                    className="w-16 h-16 object-cover rounded border"
-                                  />
-                                  <button
-                                    onClick={() =>
-                                      dispatch({
-                                        type: "DELETE_IMAGE",
-                                        key: part.key,
-                                        index: idx,
-                                      })
-                                    }
-                                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-[5px]"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
+                               <div key={idx} className="fix">
+                                <img
+                                  src={img.url}
+                                  alt=""
+                                  onClick={() =>
+                                    dispatch({
+                                      type: "DELETE_IMAGE",
+                                      key: part.key,
+                                      index: idx,
+                                    })
+                                  }
+                                  className="w-16 h-16 object-cover rounded border cursor-pointer hover:brightness-50 transition"
+                                />
+                              </div>
                               ))}
                             </div>
                           </div>
