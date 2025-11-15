@@ -334,7 +334,7 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                             </div>
                             <div className="flex gap-2 flex-wrap">
                               {part.images.map((img, idx) => (
-                                <div key={idx} className="relative">
+                                <div key={idx} className="fix" >
                                   <img
                                     src={img.url}
                                     alt=""
