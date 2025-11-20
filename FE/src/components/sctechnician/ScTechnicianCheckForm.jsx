@@ -104,7 +104,6 @@ useEffect(() => {
     try {
       const vehicleRes = await axiosPrivate.get(API.VEHICLE(claimInfo.vin));
       const vehicleModel = vehicleRes.data?.model || "";
-      console.log("Vehicle model:", vehicleModel);
 
       const policyRes = await axiosPrivate.get(API.POLICIES);
 
@@ -114,10 +113,10 @@ useEffect(() => {
           const part = p.partUnderWarranty;
           const matchModel =
             part.vehicleModel === "select-all" ||
-            part.vehicleModel === vehicleModel;
+            part.vehicleModel.split(",").map(m => m.trim()).includes(vehicleModel);
 
           if (!matchModel) return null;
-          
+
           return {
             namePart: part.partName,
             partNumber: part.partId,
