@@ -17,6 +17,7 @@ const API = {
   SKIP_REPAIR: (claimId, techId) =>
     `/api/warranty-claims/workflow/${claimId}/technician/skip-repair?technicianId=${techId}`,
   ASSIGN_EVM: "/api/warranty-claims/assign-evm/auto",
+  POLICIES: "/api/policies",
 };
 
 function partsReducer(state, action) {
@@ -25,6 +26,8 @@ function partsReducer(state, action) {
       return action.parts.map((p) => ({
         key: p.namePart,
         partNumber: p.partNumber,
+        availableYear: p.availableYear,
+      kilometer: p.kilometer,
         selection: "",
         quantity: 1,
         images: [],
@@ -71,7 +74,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
   const [parts, dispatch] = useReducer(partsReducer, []);
   const [formError, setFormError] = useState("");
 
-  // Fetch claim info
   useEffect(() => {
     if (!claimId) return;
     const fetchClaimInfo = async () => {
@@ -79,7 +81,6 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
         const res = await axiosPrivate.get(`${API.CLAIMS}/${claimId}`);
         setClaimInfo(res.data);
 
-        // Fetch vehicle plate
         if (res.data.vin) {
           try {
             const vehicleRes = await axiosPrivate.get(API.VEHICLE(res.data.vin));
@@ -96,25 +97,44 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
     fetchClaimInfo();
   }, [claimId]);
 
-  // Fetch parts
-  useEffect(() => {
-    const fetchParts = async () => {
-      try {
-        const res = await axiosPrivate.get(API.PARTS);
-        const formatted = (Array.isArray(res.data) ? res.data : []).map((p) => ({
-          namePart: p.partName || p.partId,
-          partNumber: p.partId,
-        }));
-        const list = claimInfo?.warrantyClaimParts?.length
-          ? claimInfo.warrantyClaimParts
-          : formatted;
-        dispatch({ type: "SET_PARTS", parts: list });
-      } catch (e) {
-        console.error("fetchParts failed:", e);
-      }
-    };
-    fetchParts();
-  }, [claimInfo]);
+useEffect(() => {
+  const fetchParts = async () => {
+    if (!claimInfo?.vin) return;
+
+    try {
+      const vehicleRes = await axiosPrivate.get(API.VEHICLE(claimInfo.vin));
+      const vehicleModel = vehicleRes.data?.model || "";
+      console.log("Vehicle model:", vehicleModel);
+
+      const policyRes = await axiosPrivate.get(API.POLICIES);
+
+      const list = (Array.isArray(policyRes.data) ? policyRes.data : [])
+        .filter((p) => p.isEnable && p.partUnderWarranty?.isEnable)
+        .map((p) => {
+          const part = p.partUnderWarranty;
+          const matchModel =
+            part.vehicleModel === "select-all" ||
+            part.vehicleModel === vehicleModel;
+
+          if (!matchModel) return null;
+          
+          return {
+            namePart: part.partName,
+            partNumber: part.partId,
+            availableYear: p.availableYear,
+            kilometer: p.kilometer,
+          };
+        })
+        .filter(Boolean);
+
+      dispatch({ type: "SET_PARTS", parts: list });
+    } catch (e) {
+      console.error("fetchParts failed:", e);
+    }
+  };
+
+  fetchParts();
+}, [claimInfo]);
 
   const handleImageUpload = (key, e) => {
     const files = Array.from(e.target.files || []);
@@ -273,7 +293,12 @@ export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
                     )}
                   >
                     <div className="flex justify-between mb-3">
-                      <span className="font-semibold text-sm">{part.key}</span>
+                      <div>
+                        <span className="font-semibold text-sm">{part.key}</span>
+                        <p className="text-xs text-gray-500">
+                          Year: {part.availableYear} — Km: {part.kilometer}
+                        </p>
+                      </div>
                       {part.selection === "REPAIR" && (
                         <label className="cursor-pointer text-cyan-600 flex items-center gap-1">
                           <ImagePlus className="w-5 h-5" />
