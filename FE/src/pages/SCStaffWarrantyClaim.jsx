@@ -124,6 +124,7 @@ const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
             )}
 
             <div className="text-[10px] text-muted-foreground text-center">
+              <div className="mt-1 text-xs text-center font-semibold">{status}</div>
               {hasTime ? (
                 <>
                   <div>{formatTime(statusTimes[status]).day}</div>
@@ -360,7 +361,6 @@ export default function SCStaffWarrantyClaim() {
                             <span className="font-medium">{claim.claimDate}</span>
                           </div>
                         </div>
-
                         {claim.timeline && claim.timeline.length > 0 && (
                           <WarrantyTimeline timeline={claim.timeline} currentStatus={claim.status} />
                         )}
