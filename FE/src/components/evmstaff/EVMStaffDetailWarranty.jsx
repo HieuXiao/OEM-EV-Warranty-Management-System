@@ -161,7 +161,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   }, [claimId, open, warranty]);
 
   useEffect(() => {
-    setIsFormValid(Boolean(claimDetails && comment && comment.trim().length > 0));
+    const isCommentValid = comment && comment.trim().length > 0;
+    setIsFormValid(Boolean(claimDetails && isCommentValid));
   }, [comment, claimDetails]);
 
   const formatCurrency = (amount) =>
@@ -205,6 +206,11 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       return sum + (p.price ?? 0) * (p.quantity ?? 1);
     return sum;
   }, 0);
+
+  const allPartsReviewed = mergedParts.every((_, idx) => {
+    const ap = state.partApprovals[idx];
+    return ap && (ap.approved || ap.rejected);
+  });
 
   const handleDone = async () => {
     if (!claimId || !evmId) return;
@@ -285,7 +291,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
     }
   };
 
-  // ✅ Sửa đúng: lọc ảnh theo fileId (không phải claimId)
   const getPartImages = (partName) => {
     if (!partName) return [];
     const lowerName = partName.toLowerCase();
@@ -325,7 +330,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
 
             <Separator />
 
-            {/* Cost Breakdown */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
               <div className="border rounded-md">
@@ -400,7 +404,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         </p>
                       </div>
 
-                      {/* Folder icon */}
                       <div className="flex justify-center">
                         {partImages.length > 0 ? (
                           <Folder
@@ -414,7 +417,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         )}
                       </div>
 
-                      {/* Approve */}
                       <div className="flex justify-center items-center">
                         <input
                           type="checkbox"
@@ -424,7 +426,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         />
                       </div>
 
-                      {/* Reject */}
                       <div className="flex justify-center items-center">
                         <input
                           type="checkbox"
@@ -434,7 +435,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         />
                       </div>
 
-                      {/* Modal xem ảnh từng part */}
                       {openImagePart === index && (
                         <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-6 overflow-y-auto">
                           <Button
@@ -498,7 +498,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               </Button>
               <Button
                 onClick={handleDone}
-                disabled={!isFormValid || processing}
+                disabled={!isFormValid || !allPartsReviewed || processing}
                 className="bg-primary text-white px-6"
               >
                 {processing ? "Processing..." : "Done"}
