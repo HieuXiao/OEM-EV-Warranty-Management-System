@@ -134,26 +134,26 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         dispatch({ type: "SET_PARTS", payload: merged });
 
         const checkAvailability = async () => {
-        const partsRes = await axiosPrivate.get(API.PARTS);
-        const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
+          const partsRes = await axiosPrivate.get(API.PARTS);
+          const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
 
-        const availability = {};
-        merged.forEach((part, idx) => {
-          const foundPart = allParts.find(p => p.partNumber === part.partNumber);
-          if (!foundPart) {
-            availability[idx] = false; // Not found
-          } else {
-            const centerMatch = claimId?.match(/WC-(\d+)-/);
-            const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
-            const warehouse = foundPart.warehouses?.find(w => w.whId === centerId);
-            const warehouseQty = warehouse?.parts?.[0]?.quantity ?? 0;
-            if (!warehouse || (part.quantity || 0) > warehouseQty) {
-              availability[idx] = false; // Not enough
+          const availability = {};
+          merged.forEach((part, idx) => {
+            const foundPart = allParts.find(p => p.partNumber === part.partNumber);
+            if (!foundPart) {
+              availability[idx] = false; 
             } else {
-              availability[idx] = true;
+              const centerMatch = claimId?.match(/WC-(\d+)-/);
+              const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+              const warehouse = foundPart.warehouses?.find(w => w.whId === centerId);
+              const warehouseQty = warehouse?.parts?.[0]?.quantity ?? 0;
+              if (!warehouse || (part.quantity || 0) > warehouseQty) {
+                availability[idx] = false; 
+              } else {
+                availability[idx] = true;
+              }
             }
-          }
-        });
+          });
 
         setPartAvailability(availability);
 
@@ -305,6 +305,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             groupedParts[part.partNumber] = Number(part.quantity || 0);
         }
 
+        /*
         for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
           const foundPart = allParts.find(p => p.partNumber === partNumber);
           const foundWarehouse = foundPart?.warehouses?.find(w => w.whId === centerId);
@@ -320,6 +321,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             }
           }
         }
+        */
 
         await axiosPrivate.post(
           `${API.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
