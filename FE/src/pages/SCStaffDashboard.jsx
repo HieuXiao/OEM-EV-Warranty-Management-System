@@ -6,17 +6,24 @@ import axiosPrivate from "@/api/axios";
 import ScsDashTable from "@/components/scstaff/ScsDashTable";
 import useAuth from "@/hook/useAuth";
 
-const API_ENDPOINTS = {
+const API = {
   CLAIMS: "/api/warranty-claims",
   VEHICLES: "/api/vehicles",
   ACCOUNTS: "/api/accounts/",
+  CAMPAIGNS: "/api/campaigns/all",
+  APPOINTMENTS: "/api/service-appointments"
 };
 
 export default function SCStaffDashboard() {
   const { auth } = useAuth();
+
   const [claims, setClaims] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [accounts, setAccounts] = useState([]);
+
+  const [campaigns, setCampaigns] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -25,26 +32,36 @@ export default function SCStaffDashboard() {
 
   useEffect(() => {
     document.title = "SC Staff Dashboard";
+
     const fetchData = async () => {
       try {
-        const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
-          axiosPrivate.get(API_ENDPOINTS.CLAIMS),
-          axiosPrivate.get(API_ENDPOINTS.VEHICLES),
-          axiosPrivate.get(API_ENDPOINTS.ACCOUNTS),
+        const [
+          claimsRes,
+          vehiclesRes,
+          accountsRes,
+          campaignsRes,
+          appointmentsRes
+        ] = await Promise.all([
+          axiosPrivate.get(API.CLAIMS),
+          axiosPrivate.get(API.VEHICLES),
+          axiosPrivate.get(API.ACCOUNTS),
+          axiosPrivate.get(API.CAMPAIGNS),
+          axiosPrivate.get(API.APPOINTMENTS)
         ]);
 
-        setClaims(Array.isArray(claimsRes.data) ? claimsRes.data : []);
-        setVehicles(Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []);
-        setAccounts(Array.isArray(accountsRes.data) ? accountsRes.data : []);
+        setClaims(claimsRes.data || []);
+        setVehicles(vehiclesRes.data || []);
+        setAccounts(accountsRes.data || []);
+        setCampaigns(campaignsRes.data || []);
+        setAppointments(appointmentsRes.data || []);
 
-        console.log("[Dashboard] Claims fetched:", claimsRes.data);
-        console.log("[Dashboard] Current Auth:", auth);
       } catch (err) {
         console.error("[Dashboard] Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [auth]);
 
@@ -70,6 +87,7 @@ export default function SCStaffDashboard() {
     const staff = accounts.find(
       (a) => a.accountId === claim.serviceCenterStaffId
     );
+
     return {
       ...claim,
       vehicleModel: vehicle?.model || "",
@@ -78,6 +96,42 @@ export default function SCStaffDashboard() {
       staffName: staff?.fullName || "",
     };
   });
+
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const completedThisMonth = mergedData.filter(c => {
+    const isOwner =
+      c.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase();
+    const isDone = c.status?.toUpperCase() === "DONE";
+
+    if (!isOwner || !isDone) return false;
+
+    const d = new Date(c.claimDate);
+
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }).length;
+
+  const activeCampaigns = campaigns.filter((c) => {
+    const start = new Date(c.startDate);
+    const end = new Date(c.endDate);
+    return today >= start && today <= end;
+  }).length;
+
+  const todayAppointments = appointments.filter((app) => {
+    const appDate = new Date(app.date);
+    const isToday =
+      appDate.getFullYear() === today.getFullYear() &&
+      appDate.getMonth() === today.getMonth() &&
+      appDate.getDate() === today.getDate();
+
+    const sameCenter =
+      app.vehicle?.customer?.serviceCenter?.centerId ===
+      auth?.centerId;
+
+    return isToday && sameCenter;
+  }).length;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -92,7 +146,12 @@ export default function SCStaffDashboard() {
             {loading ? (
               <p className="text-center text-muted-foreground">Loading...</p>
             ) : (
-              <ScsDashTable claims={mergedData} />
+              <ScsDashTable
+                claims={mergedData}
+                activeCampaigns={activeCampaigns}
+                todayAppointments={todayAppointments}
+                completedThisMonth={completedThisMonth}
+              />
             )}
           </Card>
         </div>

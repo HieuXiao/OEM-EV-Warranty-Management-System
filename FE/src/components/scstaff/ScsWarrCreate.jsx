@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import axiosPrivate from "@/api/axios"
 import useAuth from "@/hook/useAuth"
 
-const API_ENDPOINTS = {
+const API = {
   CLAIMS: "/api/warranty-claims",
   CUSTOMERS: "/api/customers",
   VEHICLES: "/api/vehicles",
@@ -96,12 +96,12 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const generateClaimId = async () => {
     const dateStr = new Date().toISOString().split("T")[0]
     try {
-      const accountRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
+      const accountRes = await axiosPrivate.get(`${API.ACCOUNTS}${currentUser.accountId}`)
       const centerId = accountRes?.data?.serviceCenter?.centerId || "000"
 
       let nextSerial = "001"
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
+        const res = await axiosPrivate.get(API.CLAIMS)
         const claims = Array.isArray(res.data) ? res.data : []
         const sameDay = claims.filter((c) => c.claimId?.includes(`WC-${centerId}-${dateStr}`))
         nextSerial = (sameDay.length + 1).toString().padStart(3, "0")
@@ -118,11 +118,11 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
   const fetchTechnicians = async () => {
     try {
       dispatch({ type: "SET_LOADING_TECHNICIANS", value: true })
-      const accountDetailRes = await axiosPrivate.get(`${API_ENDPOINTS.ACCOUNTS}${currentUser.accountId}`)
+      const accountDetailRes = await axiosPrivate.get(`${API.ACCOUNTS}${currentUser.accountId}`)
       const currentCenterId = accountDetailRes.data?.serviceCenter?.centerId
       if (!currentCenterId) return dispatch({ type: "SET_MULTIPLE", payload: { technicians: [] } })
 
-      const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
+      const res = await axiosPrivate.get(API.ACCOUNTS)
       const list = Array.isArray(res.data) ? res.data : []
       const techs = list.filter(
         (a) => a.roleName === "SC_TECHNICIAN" && a.enabled && String(a.serviceCenter?.centerId) === String(currentCenterId)
@@ -138,7 +138,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
   const fetchCampaigns = async () => {
     try {
-      const res = await axiosPrivate.get(API_ENDPOINTS.CAMPAIGNS)
+      const res = await axiosPrivate.get(API.CAMPAIGNS)
       dispatch({ type: "SET_FIELD", field: "allCampaigns", value: Array.isArray(res.data) ? res.data : [] })
     } catch (err) {
       console.error("Error fetching campaigns:", err)
@@ -156,12 +156,12 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     const fetchData = async () => {
       try {
         dispatch({ type: "SET_LOADING_VEHICLES", value: true })
-        const customersRes = await axiosPrivate.get(API_ENDPOINTS.CUSTOMERS)
+        const customersRes = await axiosPrivate.get(API.CUSTOMERS)
         const customers = Array.isArray(customersRes.data) ? customersRes.data : []
         const foundCustomer = customers.find((c) => String(c.customerPhone).trim() === String(customerPhone).trim())
 
         if (foundCustomer) {
-          const vehiclesRes = await axiosPrivate.get(API_ENDPOINTS.VEHICLES)
+          const vehiclesRes = await axiosPrivate.get(API.VEHICLES)
           const allVehicles = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
           const relatedVehicles = allVehicles.filter((v) => v.customer?.customerId === foundCustomer.customerId)
 
@@ -228,7 +228,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
 
     const checkVinWarranty = async () => {
       try {
-        const claimRes = await axiosPrivate.get(API_ENDPOINTS.CLAIMS)
+        const claimRes = await axiosPrivate.get(API.CLAIMS)
         const claims = Array.isArray(claimRes.data) ? claimRes.data : []
         const related = claims.filter((c) => c.vin === selectedVin).sort((a, b) => new Date(b.claimDate) - new Date(a.claimDate))
         const underWarranty = related.length > 0 && related[0].status && related[0].status !== "DONE"
@@ -246,11 +246,11 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
     const checkAndCreateAppointment = async () => {
       if (!isCampaignChecked || !selectedCampaign || !selectedVin) return
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.APPOINTMENTS)
+        const res = await axiosPrivate.get(API.APPOINTMENTS)
         const appointments = Array.isArray(res.data) ? res.data : []
         const last = appointments.filter((a) => a.vehicle?.vin === selectedVin).sort((a, b) => new Date(b.date) - new Date(a.date))[0]
         if (!last || last.status === "COMPLETED") {
-          await axiosPrivate.post(API_ENDPOINTS.APPOINTMENTS, {
+          await axiosPrivate.post(API.APPOINTMENTS, {
             vin: selectedVin,
             campaignId: Number(selectedCampaign),
             date: new Date().toISOString(),
@@ -284,7 +284,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         campaignIds: isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
       }
 
-      await axiosPrivate.post(API_ENDPOINTS.CLAIMS, payload)
+      await axiosPrivate.post(API.CLAIMS, payload)
       dispatch({ type: "RESET_FORM" })
       onOpenChange(false)
       onClaimCreated?.()

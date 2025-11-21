@@ -18,7 +18,7 @@ import {
 import useAuth from "@/hook/useAuth";
 import axiosPrivate from "@/api/axios";
 
-const API_ENDPOINTS = {
+const API = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
 };
@@ -182,23 +182,14 @@ export default function SCStaffWarrantyClaim() {
       try {
         setLoading(true);
         const [claimsRes, vehiclesRes] = await Promise.all([
-          axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
-            params: { dateFrom, dateTo },
-          }),
-          axiosPrivate.get("/api/vehicles"),
-        ]);
-        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
-        const vehiclesData = Array.isArray(vehiclesRes.data)
-          ? vehiclesRes.data
-          : [];
+          axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
+          axiosPrivate.get("/api/vehicles")
+        ])
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
+        const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
 
-        const vehicleMap = Object.fromEntries(
-          vehiclesData.map((v) => [v.vin, v.plate || "—"])
-        );
-        const merged = claimsData.map((c) => ({
-          ...c,
-          plate: vehicleMap[c.vin] || "—",
-        }));
+        const vehicleMap = Object.fromEntries(vehiclesData.map(v => [v.vin, v.plate || "—"]))
+        const merged = claimsData.map(c => ({ ...c, plate: vehicleMap[c.vin] || "—" }))
 
         setClaims(merged);
       } catch (error) {
@@ -214,7 +205,7 @@ export default function SCStaffWarrantyClaim() {
   useEffect(() => {
     const fetchCenterId = async () => {
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS);
+        const res = await axiosPrivate.get(API.ACCOUNTS)
         const account = Array.isArray(res.data)
           ? res.data.find(
               (a) =>
@@ -308,10 +299,8 @@ export default function SCStaffWarrantyClaim() {
 
   const handleClaimCreated = async () => {
     try {
-      const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
-        params: { dateFrom, dateTo },
-      });
-      setClaims(Array.isArray(response.data) ? response.data : []);
+      const response = await axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } })
+      setClaims(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error("Failed to refresh claims:", error);
     }
