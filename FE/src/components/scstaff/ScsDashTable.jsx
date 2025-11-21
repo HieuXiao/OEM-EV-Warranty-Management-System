@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Clock, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function ScsDashTable({ claims }) {
+export default function ScsDashTable({ claims, activeCampaigns, todayAppointments, completedThisMonth }) {
   const totalClaims = claims.length;
-  const needHandOver = claims.filter(
-    (c) => c.status === "completed" || c.status === "rejected"
+  const needHandover = claims.filter(
+    c => c.status?.toUpperCase() === "HANDOVER"
   ).length;
 
   return (
@@ -17,26 +17,21 @@ export default function ScsDashTable({ claims }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="p-4 border rounded-lg bg-card">
           <div className="flex items-center justify-between pb-2">
-            <p className="text-sm font-medium">Active Claims</p>
+            <p className="text-sm font-medium">Total Claims</p>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="text-2xl font-bold">{totalClaims}</div>
           <p className="text-xs text-yellow-600 mt-1">
-            {needHandOver} Need Handover
+            {needHandover} Need Handover
           </p>
         </div>
 
         <div className="p-4 border rounded-lg bg-card">
           <div className="flex items-center justify-between pb-2">
-            <p className="text-sm font-medium">Completed This Month</p>
+            <p className="text-sm font-medium">Claims Completed This Month</p>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-bold">
-            {claims.filter((c) => c.status === "completed").length}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Monthly completed claims
-          </p>
+          <div className="text-2xl font-bold">{completedThisMonth}</div>
         </div>
 
         <div className="p-4 border rounded-lg bg-card">
@@ -44,10 +39,7 @@ export default function ScsDashTable({ claims }) {
             <p className="text-sm font-medium">Active Campaigns</p>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-bold">—</div>
-          <p className="text-xs text-muted-foreground mt-1 text-yellow-600">
-            Data from campaigns (not implemented)
-          </p>
+          <div className="text-2xl font-bold">{activeCampaigns}</div>
         </div>
 
         <div className="p-4 border rounded-lg bg-card">
@@ -55,9 +47,8 @@ export default function ScsDashTable({ claims }) {
             <p className="text-sm font-medium">Today’s Appointments</p>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-bold">—</div>
-          <p className="text-xs text-muted-foreground mt-1">Placeholder</p>
-        </div>
+          <div className="text-2xl font-bold">{todayAppointments}</div>
+        </div>  
       </div>
 
       {/* Table */}
