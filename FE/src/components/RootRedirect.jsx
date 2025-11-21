@@ -1,6 +1,6 @@
 import useAuth from "@/hook/useAuth";
 
-export default function RootRedirect(params) {
+export default function RootRedirect() {
   const { auth } = useAuth();
 
   if (auth?.role) {
