@@ -88,7 +88,6 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [openImagePart, setOpenImagePart] = useState(null);
   const [partAvailability, setPartAvailability] = useState({});
   
-
   const claimId = warranty?.claimId;
 
   useEffect(() => {
@@ -231,24 +230,30 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       });
   };
 
+  const isAllApproved = () => {
+    return mergedParts.length > 0 && mergedParts.every((_, idx) => state.partApprovals[idx]?.approved);
+  };
+
+  const isAllRejected = () => {
+    return mergedParts.length > 0 && mergedParts.every((_, idx) => state.partApprovals[idx]?.rejected);
+  };
+
   const handleApproveAll = () => {
     const approvals = {};
-    Object.keys(state.partApprovals).forEach((i) => {
-      approvals[i] = partAvailability[i]
+    mergedParts.forEach((_, idx) => {
+      approvals[idx] = partAvailability[idx]
         ? { approved: true, rejected: false }
         : { approved: false, rejected: true };
     });
     dispatch({ type: "SET_PART_APPROVALS_BATCH", payload: approvals });
-    dispatch({ type: "SET_APPROVE_ALL", payload: true });
   };
 
   const handleRejectAll = () => {
     const approvals = {};
-    Object.keys(state.partApprovals).forEach((i) => {
-      approvals[i] = { approved: false, rejected: true };
+    mergedParts.forEach((_, idx) => {
+      approvals[idx] = { approved: false, rejected: true };
     });
     dispatch({ type: "SET_PART_APPROVALS_BATCH", payload: approvals });
-    dispatch({ type: "SET_REJECT_ALL", payload: true });
   };
 
   const totalCost = mergedParts.reduce((sum, p, idx) => {
@@ -395,7 +400,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                   <div>Image</div>
                   <div>
                     <Button
-                      variant={state.approveAllActive ? "default" : "outline"}
+                      variant={isAllApproved() ? "default" : "outline"}
                       size="sm"
                       onClick={handleApproveAll}
                     >
@@ -404,7 +409,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                   </div>
                   <div>
                     <Button
-                      variant={state.rejectAllActive ? "default" : "outline"}
+                      variant={isAllRejected() ? "default" : "outline"}
                       size="sm"
                       onClick={handleRejectAll}
                     >
@@ -494,7 +499,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                             {partImages.map((url, i) => {
                               let widthClass = "w-full"; 
                               if (partImages.length === 2) widthClass = "w-[48%]"; 
-                              else if (partImages.length === 3) widthClass = "w-[32%]"; 
+                              else if (partImages.length === 3) widthClass = "w-[30%]"; 
                               else if (partImages.length >= 4) widthClass = "w-[23%]"; 
 
                               return (
