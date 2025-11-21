@@ -1,6 +1,7 @@
 import useAuth from "@/hook/useAuth";
+import { Navigate } from "react-router-dom";
 
-export default function RootRedirect(params) {
+export default function RootRedirect() {
   const { auth } = useAuth();
 
   if (auth?.role) {
