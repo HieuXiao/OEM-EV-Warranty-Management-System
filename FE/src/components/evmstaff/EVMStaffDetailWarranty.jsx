@@ -490,20 +490,27 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                           <h2 className="text-white text-2xl font-bold mb-6">
                             {part.namePart || part.partNumber}
                           </h2>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-                            {partImages.map((url, i) => (
-                              <div
-                                key={`part-image-${i}`}
-                                className="relative overflow-hidden rounded-lg"
-                              >
-                                <img
-                                  src={url}
-                                  alt={`part-image-${i}`}
-                                  className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
-                                  onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: url })}
-                                />
-                              </div>
-                            ))}
+                          <div className="flex flex-wrap justify-center gap-4 w-full max-w-6xl mx-auto">
+                            {partImages.map((url, i) => {
+                              let widthClass = "w-full"; 
+                              if (partImages.length === 2) widthClass = "w-[48%]"; 
+                              else if (partImages.length === 3) widthClass = "w-[32%]"; 
+                              else if (partImages.length >= 4) widthClass = "w-[23%]"; 
+
+                              return (
+                                <div
+                                  key={`part-image-${i}`}
+                                  className={`${widthClass} relative overflow-hidden rounded-lg`}
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`part-image-${i}`}
+                                    className="w-full h-64 object-cover hover:scale-105 transition-transform cursor-pointer"
+                                    onClick={() => dispatch({ type: "SET_FULLSCREEN_IMAGE", payload: url })}
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
