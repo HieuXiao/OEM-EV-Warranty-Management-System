@@ -25,6 +25,10 @@ export default function SCStaffDashboard() {
   const [appointments, setAppointments] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   useEffect(() => {
     document.title = "SC Staff Dashboard";
@@ -131,9 +135,12 @@ export default function SCStaffDashboard() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSibebar />
+      <SCStaffSibebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
           <Card className="p-4">
             {loading ? (
