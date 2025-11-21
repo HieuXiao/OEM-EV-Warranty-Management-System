@@ -339,6 +339,7 @@ export default function SCStaffWarrantyClaim() {
             </div>
 
             <div className="flex items-end gap-4 w-full">
+              
               <div className="flex flex-col">
                 <label className="text-xs text-muted-foreground mb-1">Date From</label>
                 <Input
