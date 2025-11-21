@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 // IMPORT PUBLIC
+import NotFound from "./pages/NotFound";
 import Login from "./pages/LoginPage";
 import UserProfile from "./pages/UserProfile";
 // IMPORT ADMIN
@@ -39,6 +40,7 @@ function App() {
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="*" element={<NotFound />} />
         <Route
           element={
             <RequireAuth
