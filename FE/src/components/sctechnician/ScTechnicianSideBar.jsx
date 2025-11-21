@@ -6,21 +6,39 @@ import {
   Phone,
 } from "lucide-react";
 import { Button } from "../ui/button";
+import { X } from "lucide-react";
 import { useEffect } from "react";
 import UserInfo from "../UserInfo";
 import NavigationItem from "../NavigationItem";
 import Logo from "../Logo";
+import { cn } from "@/lib/utils";
 
-export default function SCTechnicianSidebar() {
+export default function SCTechnicianSidebar({ isMobileOpen, onClose }) {
   useEffect(() => {
     document.title = "SC Technician Page";
   }, []);
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 -translate-x-full">
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out",
+        "lg:translate-x-0",
+        isMobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       <div className="flex flex-col h-full">
-        {/* Logo */}
-        <Logo />
+        <div className="flex items-center justify-between p-4 border-b border-border h-16">
+          {/* Logo */}
+          <Logo />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose} // <-- SỬ DỤNG PROP onClose
+            className="lg:hidden" // Chỉ hiển thị trên màn hình nhỏ
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
         {/* User Info */}
         <UserInfo />
         {/* Navigation */}

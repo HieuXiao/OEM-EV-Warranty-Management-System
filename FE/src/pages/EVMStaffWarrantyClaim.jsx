@@ -31,6 +31,10 @@ const API_ENDPOINTS = {
 export default function EVMStaffWarrantyClaim() {
   const { auth } = useAuth();
   const evmId = auth?.accountId || auth?.id || "";
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -50,7 +54,9 @@ export default function EVMStaffWarrantyClaim() {
         ]);
 
         const claims = Array.isArray(resClaims.data) ? resClaims.data : [];
-        const vehicles = Array.isArray(resVehicles.data) ? resVehicles.data : [];
+        const vehicles = Array.isArray(resVehicles.data)
+          ? resVehicles.data
+          : [];
 
         const filteredClaims = claims.filter(
           (claim) =>
@@ -148,10 +154,13 @@ export default function EVMStaffWarrantyClaim() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <EVMStaffSideBar />
-      <div className="flex-1 flex flex-col ml-64">
-        <Header />
+    <div className="min-h-screen bg-muted/30">
+      <EVMStaffSideBar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <div className="lg:pl-64">
+        <Header onMenuClick={handleOpenMenu} />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-3xl font-bold">Warranty Claim Management</h1>
@@ -231,7 +240,9 @@ export default function EVMStaffWarrantyClaim() {
                       <TableCell className="font-medium align-middle">
                         {claim.claimId}
                       </TableCell>
-                      <TableCell className="align-middle">{claim.plate}</TableCell>
+                      <TableCell className="align-middle">
+                        {claim.plate}
+                      </TableCell>
                       <TableCell className="align-middle">
                         {claim.vehicleModel}
                       </TableCell>

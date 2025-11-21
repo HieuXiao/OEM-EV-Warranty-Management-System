@@ -11,12 +11,15 @@ import AdWareCreate from "@/components/admin/AdWareCreate";
 import AdWareTable from "@/components/admin/AdWareTable";
 import axiosPrivate from "@/api/axios";
 
-
 export default function AdminWarehouseArea() {
   // ===============State Management================
   const [warehouses, setWarehouses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // ===============Data Fetching================
   /**
@@ -93,9 +96,9 @@ export default function AdminWarehouseArea() {
   // ===============RENDER================
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             {/* Title and Create Button */}

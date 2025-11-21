@@ -8,8 +8,6 @@ import ScsCampaignPraticipants from "@/components/scstaff/ScsCampParticipant";
 import ScsReportSection from "@/components/scstaff/ScsRepoSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axiosPrivate from "@/api/axios";
-import { Loader2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 // --- API URLs ---
 const CAMPAIGN_URL = "/api/campaigns/all";
@@ -60,6 +58,10 @@ export default function SCStaffCampaign() {
   const [state, dispatch] = useReducer(dataFetchReducer, initialState);
   // Tách status và error ra khỏi dataProps
   const { status, error, ...dataProps } = state;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // --- Hàm tải TẤT CẢ dữ liệu ---
   const fetchAllData = useCallback(async () => {
@@ -106,9 +108,12 @@ export default function SCStaffCampaign() {
   // --- Giao diện giữ nguyên, chỉ bọc logic loading/error ---
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSibebar />
+      <SCStaffSibebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <Tabs defaultValue="overview" className="space-y-6">

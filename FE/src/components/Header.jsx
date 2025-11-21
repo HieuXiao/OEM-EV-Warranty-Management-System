@@ -6,14 +6,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Settings, Menu } from "lucide-react";
 import { clearAuth } from "@/lib/auth";
 import useAuth from "@/hook/useAuth";
 import { useNavigate } from "react-router-dom";
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { auth, setAuth } = useAuth();
   const navigate = useNavigate();
 
@@ -30,13 +30,19 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 h-16 bg-card border-b border-border">
       <div className="h-full px-4 flex items-center justify-between gap-4">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onMenuClick}
+          className="lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <div className="flex-1" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
-              <span className="hidden sm:inline text-sm font-medium">
-                {auth.fullName}
-              </span>
+              <span className="text-sm font-medium">{auth.fullName}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
