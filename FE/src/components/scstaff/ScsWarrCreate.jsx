@@ -249,7 +249,7 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         const res = await axiosPrivate.get(API.APPOINTMENTS)
         const appointments = Array.isArray(res.data) ? res.data : []
         const last = appointments.filter((a) => a.vehicle?.vin === selectedVin).sort((a, b) => new Date(b.date) - new Date(a.date))[0]
-        if (!last || last.status === "COMPLETED") {
+        if (!last || last.status.toUpperCase() === "COMPLETED") {
           await axiosPrivate.post(API.APPOINTMENTS, {
             vin: selectedVin,
             campaignId: Number(selectedCampaign),

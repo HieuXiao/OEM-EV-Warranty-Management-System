@@ -21,7 +21,8 @@ import axiosPrivate from "@/api/axios";
 const API = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
-};
+  VEHICLES: "/api/vehicles",
+}
 
 const getStatusColor = (status) => {
   const colors = {
@@ -183,7 +184,7 @@ export default function SCStaffWarrantyClaim() {
         setLoading(true);
         const [claimsRes, vehiclesRes] = await Promise.all([
           axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
-          axiosPrivate.get("/api/vehicles")
+          axiosPrivate.get(API.VEHICLES)
         ])
         const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
         const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
@@ -337,7 +338,30 @@ export default function SCStaffWarrantyClaim() {
               ))}
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex items-end gap-4 w-full">
+              
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Date From</label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-[160px]"
+                  max={dateTo}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Date To</label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-[160px]"
+                  min={dateFrom}
+                />
+              </div>
+
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -347,20 +371,24 @@ export default function SCStaffWarrantyClaim() {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="CHECK">Check</SelectItem>
-                  <SelectItem value="DECIDE">Decide</SelectItem>
-                  <SelectItem value="REPAIR">Repair</SelectItem>
-                  <SelectItem value="HANDOVER">Handover</SelectItem>
-                  <SelectItem value="DONE">Done</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="w-[150px]">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="CHECK">Check</SelectItem>
+                    <SelectItem value="DECIDE">Decide</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
+                    <SelectItem value="HANDOVER">Handover</SelectItem>
+                    <SelectItem value="DONE">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
                 className="bg-black hover:bg-gray-800 text-white"
