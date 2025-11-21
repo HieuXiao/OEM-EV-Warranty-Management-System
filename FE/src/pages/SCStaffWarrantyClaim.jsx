@@ -16,6 +16,7 @@ import axiosPrivate from "@/api/axios"
 const API = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
+  VEHICLES: "/api/vehicles",
 }
 
 const getStatusColor = (status) => {
@@ -168,7 +169,7 @@ export default function SCStaffWarrantyClaim() {
         setLoading(true)
         const [claimsRes, vehiclesRes] = await Promise.all([
           axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
-          axiosPrivate.get("/api/vehicles")
+          axiosPrivate.get(API.VEHICLES)
         ])
         const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
         const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
