@@ -9,11 +9,14 @@ import {
 } from "@/components/ui/dialog";
 import axiosPrivate from "@/api/axios";
 import ScsWarrPart from "@/components/scstaff/ScsWarrPart";
+import useAuth from "@/hook/useAuth";
 
-const API_CLAIMS = "/api/warranty-claims";
-const API_VEHICLES = "/api/vehicles";
-const API_ACCOUNTS = "/api/accounts/";
-const API_APPOINTMENTS = "/api/service-appointments";
+const API = {
+  CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+  APPOINTMENTS: "/api/service-appointments",
+};
 
 const getStatusColor = (status) => {
   const colors = {
@@ -27,6 +30,8 @@ const getStatusColor = (status) => {
 };
 
 export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
+  const { auth } = useAuth();
+  
   const [loading, setLoading] = useState(false);
   const [claim, setClaim] = useState(null);
   const [vehicle, setVehicle] = useState(null);
@@ -38,13 +43,13 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       if (!selectedClaim?.claimId || !isOpen) return;
       try {
         setFetching(true);
-
+        
         const [claimsRes, vehiclesRes, accountsRes, appointmentsRes] =
           await Promise.all([
-            axiosPrivate.get(API_CLAIMS),
-            axiosPrivate.get(API_VEHICLES),
-            axiosPrivate.get(API_ACCOUNTS),
-            axiosPrivate.get(API_APPOINTMENTS),
+            axiosPrivate.get(API.CLAIMS),
+            axiosPrivate.get(API.VEHICLES),
+            axiosPrivate.get(API.ACCOUNTS),
+            axiosPrivate.get(API.APPOINTMENTS),
           ]);
 
         // Claim
@@ -86,13 +91,14 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
   const handleMarkComplete = async () => {
     if (!claim || claim.status !== "HANDOVER") return;
-
+    if (claim.serviceCenterStaffId.toUpperCase() !== auth?.accountId?.toUpperCase()) return;
+    
     try {
       setLoading(true);
       const staffId = claim.serviceCenterStaffId;
 
       await axiosPrivate.post(
-        `${API_CLAIMS}/workflow/${claim.claimId}/staff/done`,
+        `${API.CLAIMS}/workflow/${claim.claimId}/staff/done`,
         null,
         { params: { staffId, done: true } }
       );
@@ -100,7 +106,7 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       // Update appointment status
       if (claim.campaignIds?.length > 0 && claim.vin) {
         try {
-          const matchedAppointment = await axiosPrivate.get(API_APPOINTMENTS);
+          const matchedAppointment = await axiosPrivate.get(API.APPOINTMENTS);
           const appointment = matchedAppointment.data.find(
             (a) =>
               a.vehicle?.vin === claim.vin &&
@@ -109,7 +115,7 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
           if (appointment && appointment.status === "Scheduled") {
             await axiosPrivate.put(
-              `${API_APPOINTMENTS}/${appointment.appointmentId}/status`,
+              `${API.APPOINTMENTS}/${appointment.appointmentId}/status`,
               null,
               { params: { status: "Completed" } }
             );
@@ -213,7 +219,11 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
             <Button
               onClick={handleMarkComplete}
-              disabled={claim.status !== "HANDOVER" || loading}
+              disabled={
+                claim.status !== "HANDOVER" ||
+                loading ||
+                claim.serviceCenterStaffId.toUpperCase() !== auth?.accountId?.toUpperCase()
+              }
               className="w-full bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading

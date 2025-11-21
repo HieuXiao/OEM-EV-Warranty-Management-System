@@ -14,7 +14,7 @@ import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 import { Folder, X } from "lucide-react";
 
-const API_ENDPOINTS = {
+const API = {
   CLAIMS: "/api/warranty-claims",
   PARTS: "/api/parts",
   PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
@@ -53,24 +53,12 @@ function reducer(state, action) {
         ...state,
         approveAllActive: action.payload,
         rejectAllActive: false,
-        partApprovals: Object.fromEntries(
-          Object.keys(state.partApprovals).map((i) => [
-            i,
-            { approved: action.payload, rejected: false },
-          ])
-        ),
       };
     case "SET_REJECT_ALL":
       return {
         ...state,
         rejectAllActive: action.payload,
         approveAllActive: false,
-        partApprovals: Object.fromEntries(
-          Object.keys(state.partApprovals).map((i) => [
-            i,
-            { approved: false, rejected: action.payload },
-          ])
-        ),
       };
     case "SET_PARTS":
       const approvals = {};
@@ -78,6 +66,8 @@ function reducer(state, action) {
         (_, i) => (approvals[i] = { approved: false, rejected: false })
       );
       return { ...state, partApprovals: approvals };
+    case "SET_PART_APPROVALS_BATCH":
+      return { ...state, partApprovals: action.payload };
     default:
       return state;
   }
@@ -96,6 +86,8 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
   const [isFormValid, setIsFormValid] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [openImagePart, setOpenImagePart] = useState(null);
+  const [partAvailability, setPartAvailability] = useState({});
+  
 
   const claimId = warranty?.claimId;
 
@@ -111,11 +103,11 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       try {
         const [claimRes, checkRes, underPartRes, vehiclesRes, filesRes] =
           await Promise.all([
-            axiosPrivate.get(`${API_ENDPOINTS.CLAIMS}/${encodeURIComponent(claimId)}`),
-            axiosPrivate.get(API_ENDPOINTS.CLAIM_PART_CHECK_SEARCH(claimId)),
-            axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
-            axiosPrivate.get(API_ENDPOINTS.VEHICLES),
-            axiosPrivate.get(API_ENDPOINTS.WARRANTY_FILES(claimId)),
+            axiosPrivate.get(`${API.CLAIMS}/${encodeURIComponent(claimId)}`),
+            axiosPrivate.get(API.CLAIM_PART_CHECK_SEARCH(claimId)),
+            axiosPrivate.get(API.PARTS_UNDER_WARRANTY),
+            axiosPrivate.get(API.VEHICLES),
+            axiosPrivate.get(API.WARRANTY_FILES(claimId)),
           ]);
 
         const claimData = claimRes?.data ?? null;
@@ -141,9 +133,47 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
         setMergedParts(merged);
         dispatch({ type: "SET_PARTS", payload: merged });
 
+        const checkAvailability = async () => {
+          const partsRes = await axiosPrivate.get(API.PARTS);
+          const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
+
+          const availability = {};
+          merged.forEach((part, idx) => {
+            const foundPart = allParts.find(p => p.partNumber === part.partNumber);
+            if (!foundPart) {
+              availability[idx] = false; 
+            } else {
+              const centerMatch = claimId?.match(/WC-(\d+)-/);
+              const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
+              const warehouse = foundPart.warehouses?.find(w => w.whId === centerId);
+              const warehouseQty = warehouse?.parts?.[0]?.quantity ?? 0;
+              if (!warehouse || (part.quantity || 0) > warehouseQty) {
+                availability[idx] = false; 
+              } else {
+                availability[idx] = true;
+              }
+            }
+          });
+
+        setPartAvailability(availability);
+
+        // Automatically reject unavailable parts
+        Object.entries(availability).forEach(([idx, available]) => {
+          if (!available) {
+            dispatch({
+              type: "SET_PART_APPROVAL",
+              index: parseInt(idx, 10),
+              payload: { approved: false, rejected: true }
+            });
+          }
+        });
+      };
+
+      if (merged.length > 0) checkAvailability();
+
         if (claimData?.vin || warranty?.vin) {
           const vehicleRes = await axiosPrivate.get(
-            `${API_ENDPOINTS.VEHICLES}/${encodeURIComponent(
+            `${API.VEHICLES}/${encodeURIComponent(
               claimData?.vin || warranty?.vin
             )}`
           );
@@ -201,6 +231,26 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       });
   };
 
+  const handleApproveAll = () => {
+    const approvals = {};
+    Object.keys(state.partApprovals).forEach((i) => {
+      approvals[i] = partAvailability[i]
+        ? { approved: true, rejected: false }
+        : { approved: false, rejected: true };
+    });
+    dispatch({ type: "SET_PART_APPROVALS_BATCH", payload: approvals });
+    dispatch({ type: "SET_APPROVE_ALL", payload: true });
+  };
+
+  const handleRejectAll = () => {
+    const approvals = {};
+    Object.keys(state.partApprovals).forEach((i) => {
+      approvals[i] = { approved: false, rejected: true };
+    });
+    dispatch({ type: "SET_PART_APPROVALS_BATCH", payload: approvals });
+    dispatch({ type: "SET_REJECT_ALL", payload: true });
+  };
+
   const totalCost = mergedParts.reduce((sum, p, idx) => {
     if (state.partApprovals[idx]?.approved)
       return sum + (p.price ?? 0) * (p.quantity ?? 1);
@@ -228,7 +278,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       for (const idx of rejectedIndexes) {
         const part = mergedParts[idx];
         await axiosPrivate.put(
-          API_ENDPOINTS.CLAIM_PART_CHECK_UPDATE(
+          API.CLAIM_PART_CHECK_UPDATE(
             encodeURIComponent(claimId),
             encodeURIComponent(part.partNumber)
           ),
@@ -246,7 +296,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
       if (approvedIndexes.length > 0) {
         const centerMatch = claimId.match(/WC-(\d+)-/);
         const centerId = centerMatch ? parseInt(centerMatch[1], 10) : null;
-        const partsRes = await axiosPrivate.get(API_ENDPOINTS.PARTS);
+        const partsRes = await axiosPrivate.get(API.PARTS);
         const allParts = Array.isArray(partsRes.data) ? partsRes.data : [];
         const groupedParts = {};
         for (const idx of approvedIndexes) {
@@ -255,25 +305,32 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
             groupedParts[part.partNumber] = Number(part.quantity || 0);
         }
 
+        /*
         for (const [partNumber, totalQty] of Object.entries(groupedParts)) {
-          const foundPart = allParts.find((p) => p.partNumber === partNumber);
-          const foundWarehouse = foundPart?.warehouse;
-          if (foundPart && foundWarehouse && centerId === foundWarehouse.whId) {
-            const patchUrl = `${API_ENDPOINTS.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(
-              partNumber
-            )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
-            await axiosPrivate.patch(patchUrl);
+          const foundPart = allParts.find(p => p.partNumber === partNumber);
+          const foundWarehouse = foundPart?.warehouses?.find(w => w.whId === centerId);
+          if (foundPart && foundWarehouse) {
+            const warehousePartQty = foundWarehouse.parts?.[0]?.quantity ?? 0;
+            if (warehousePartQty >= totalQty) {
+              const patchUrl = `${API.REPAIR_PARTS_ADD_QUANTITY}?partNumber=${encodeURIComponent(
+                partNumber
+              )}&quantity=-${totalQty}&warehouseId=${foundWarehouse.whId}`;
+              await axiosPrivate.patch(patchUrl);
+            } else {
+              console.warn(`[EVMDetail] Not enough stock for ${partNumber}, skipping deduction`);
+            }
           }
         }
+        */
 
         await axiosPrivate.post(
-          `${API_ENDPOINTS.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
+          `${API.EVMDESCRIPTION(claimId)}?evmId=${encodeURIComponent(
             evmId
           )}&description=${encodeURIComponent(comment || "")}`
         );
       } else {
         await axiosPrivate.post(
-          `${API_ENDPOINTS.DECISION_HANDOVER(
+          `${API.DECISION_HANDOVER(
             claimId
           )}?evmId=${encodeURIComponent(
             evmId
@@ -340,17 +397,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     <Button
                       variant={state.approveAllActive ? "default" : "outline"}
                       size="sm"
-                      onClick={() =>
-                        dispatch({
-                          type: "SET_APPROVE_ALL",
-                          payload: !state.approveAllActive,
-                        })
-                      }
-                      className={`transition-all ${
-                        state.approveAllActive
-                          ? "bg-green-600 text-white hover:bg-green-700 shadow-md scale-105"
-                          : "text-green-700 border-green-600 hover:bg-green-100"
-                      }`}
+                      onClick={handleApproveAll}
                     >
                       Approve
                     </Button>
@@ -359,17 +406,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                     <Button
                       variant={state.rejectAllActive ? "default" : "outline"}
                       size="sm"
-                      onClick={() =>
-                        dispatch({
-                          type: "SET_REJECT_ALL",
-                          payload: !state.rejectAllActive,
-                        })
-                      }
-                      className={`transition-all ${
-                        state.rejectAllActive
-                          ? "bg-red-600 text-white hover:bg-red-700 shadow-md scale-105"
-                          : "text-red-700 border-red-600 hover:bg-red-100"
-                      }`}
+                      onClick={handleRejectAll}
                     >
                       Reject
                     </Button>
@@ -402,6 +439,9 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                         <p className="text-base font-semibold text-primary">
                           {formatCurrency(part.price)}
                         </p>
+                        {!partAvailability[index] && (
+                          <p className="text-sm text-red-600 font-bold">Missing parts in WareHouse</p>
+                        )}
                       </div>
 
                       <div className="flex justify-center">
@@ -423,6 +463,7 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
                           className="h-5 w-5 accent-green-600 cursor-pointer mx-auto"
                           checked={approved}
                           onChange={() => handleApprovalChange(index, "approved")}
+                          disabled={!partAvailability[index]}
                         />
                       </div>
 

@@ -9,7 +9,7 @@ import { Search, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
-const API_ENDPOINTS = {
+const API = {
   WARRANTY_CLAIMS: "/api/warranty-claims",
   VEHICLES: "/api/vehicles",
   ACCOUNTS: "/api/accounts/",
@@ -94,9 +94,9 @@ export default function SCTechnicianCheck() {
     dispatch({ type: "FETCH_START" });
     try {
       const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
-        axiosPrivate.get(API_ENDPOINTS.WARRANTY_CLAIMS),
-        axiosPrivate.get(API_ENDPOINTS.VEHICLES),
-        axiosPrivate.get(API_ENDPOINTS.ACCOUNTS),
+        axiosPrivate.get(API.WARRANTY_CLAIMS),
+        axiosPrivate.get(API.VEHICLES),
+        axiosPrivate.get(API.ACCOUNTS),
       ]);
 
       const claims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];

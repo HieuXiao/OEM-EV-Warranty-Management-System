@@ -27,7 +27,7 @@ function partsReducer(state, action) {
         key: p.namePart,
         partNumber: p.partNumber,
         availableYear: p.availableYear,
-      kilometer: p.kilometer,
+        kilometer: p.kilometer,
         selection: "",
         quantity: 1,
         images: [],

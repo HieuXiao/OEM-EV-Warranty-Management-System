@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 // IMPORT PUBLIC
+import NotFound from "./pages/NotFound";
 import Login from "./pages/LoginPage";
 import UserProfile from "./pages/UserProfile";
 // IMPORT ADMIN
@@ -31,14 +32,16 @@ import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 import EVMStaffReportDetail from "./components/evmstaff/EVMStaffReportDetail";
 import EVMStaffWarehouseDetail from "./components/evmstaff/EvmWareDetail";
 import RequireAuth from "./components/RequireAuth";
+import RootRedirect from "./components/RootRedirect";
 
 function App() {
   return (
     <>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
+        <Route path="*" element={<NotFound />} />
         <Route
           element={
             <RequireAuth
