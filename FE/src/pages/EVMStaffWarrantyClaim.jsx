@@ -23,7 +23,7 @@ import EVMStaffDetailWarranty from "@/components/evmstaff/EVMStaffDetailWarranty
 import axiosPrivate from "@/api/axios";
 import useAuth from "@/hook/useAuth";
 
-const API_ENDPOINTS = {
+const API = {
   CLAIMS: "/api/warranty-claims",
   VEHICLES: "/api/vehicles",
 };
@@ -45,8 +45,8 @@ export default function EVMStaffWarrantyClaim() {
     const fetchData = async () => {
       try {
         const [resClaims, resVehicles] = await Promise.all([
-          axiosPrivate.get(API_ENDPOINTS.CLAIMS),
-          axiosPrivate.get(API_ENDPOINTS.VEHICLES),
+          axiosPrivate.get(API.CLAIMS),
+          axiosPrivate.get(API.VEHICLES),
         ]);
 
         const claims = Array.isArray(resClaims.data) ? resClaims.data : [];
