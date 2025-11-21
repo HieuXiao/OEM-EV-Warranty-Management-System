@@ -185,7 +185,7 @@ export default function SCStaffCampaignSummary({
     status === "success" && (
       <>
         {/* ====== HEADER SUMMARY ====== */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -199,6 +199,7 @@ export default function SCStaffCampaignSummary({
               </div>
             </CardContent>
           </Card>
+          {/* ... Các card thống kê khác (Upcoming, Ongoing, Completed) áp dụng tương tự ... */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -240,18 +241,17 @@ export default function SCStaffCampaignSummary({
           </Card>
         </div>
 
-        {/* ===== BODY SUMMMARY ===== */}
+        {/* BODY SUMMARY */}
         <Card>
-          {/* SECTION 1 - BODY */}
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle>Campaign Information</CardTitle>
-                <CardDescription>
-                  Campaign detatails and process
-                </CardDescription>
+                <CardDescription>Campaign details and process</CardDescription>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+
+              {/* Controls: Stack on mobile */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -262,7 +262,7 @@ export default function SCStaffCampaignSummary({
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -276,12 +276,11 @@ export default function SCStaffCampaignSummary({
             </div>
           </CardHeader>
 
-          {/* SECTION 2 - BODY */}
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             <div className="space-y-4">
               {filteredCampaigns.length === 0 ? (
                 <p className="text-center text-muted-foreground h-40 flex items-center justify-center">
-                  No campaigns match your criteria for this service center.
+                  No campaigns match your criteria.
                 </p>
               ) : (
                 filteredCampaigns.map((campaign) => (
@@ -289,10 +288,10 @@ export default function SCStaffCampaignSummary({
                     key={campaign.campaignId}
                     className="hover:shadow-md transition-shadow"
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
                             <h3 className="text-lg font-semibold">
                               {campaign.campaignName}
                             </h3>
@@ -306,7 +305,8 @@ export default function SCStaffCampaignSummary({
 
                           <h4 className="font-medium mb-2">{campaign.title}</h4>
 
-                          <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                          {/* Grid thông tin nhỏ */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-3">
                             <div>
                               <span className="text-muted-foreground">
                                 Affected Models:{" "}
@@ -329,6 +329,7 @@ export default function SCStaffCampaignSummary({
                             </div>
                           </div>
 
+                          {/* Progress Bar */}
                           <div className="mt-3">
                             <div className="flex justify-between text-xs text-muted-foreground mb-1">
                               <span>Progress (Your Center)</span>
@@ -356,7 +357,7 @@ export default function SCStaffCampaignSummary({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleViewCampaign(campaign)}
-                          className="ml-4"
+                          className="w-full sm:w-auto"
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           View

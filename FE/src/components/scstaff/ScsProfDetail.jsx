@@ -46,6 +46,7 @@ const VEHICLES_BY_ID_URL = "/api/vehicles/search/";
 const VEHICLE_CREATE_URL = "/api/vehicles";
 
 export default function CustomerDetail() {
+  // ... (giữ nguyên các state và logic, chỉ thay đổi phần render)
   const { id } = useParams();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -56,19 +57,28 @@ export default function CustomerDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editStatus, setEditStatus] = useState({
     loading: false,
-    errors: {}, // { customerPhone: "Lỗi" }
-    success: false, // Để hiển thị "Saved!"
+    errors: {},
+    success: false,
+  });
+  const [formVinData, setFormVinData] = useState({
+    vin: "",
+    plate: "",
+    type: "",
+    color: "",
+    model: "",
+    customerId: "",
   });
 
-  // --- Get-vehicles ---
+  // ... (giữ nguyên useEffect và các hàm xử lý)
+
   useEffect(() => {
     async function fetchCustomers() {
       try {
         const response = await axiosPrivate.get(CUSTOMERS_URL);
         const cus = response.data.find((c) => c.customerId === parseInt(id));
         if (cus) {
-          setCustomer(cus); // <-- Đặt dữ liệu gốc
-          setFormData(cus); // <-- Đặt dữ liệu form
+          setCustomer(cus);
+          setFormData(cus);
         } else {
           console.error("Customer not found");
           navigate(-1);
@@ -80,7 +90,6 @@ export default function CustomerDetail() {
     fetchCustomers();
   }, [id, navigate]);
 
-  // --- Get-vehicles ---
   useEffect(() => {
     async function fetchVehicles() {
       try {
@@ -95,19 +104,17 @@ export default function CustomerDetail() {
 
   const handleEditClick = () => {
     setIsEditing(true);
-    setEditStatus({ loading: false, errors: {}, success: false }); // Reset trạng thái
+    setEditStatus({ loading: false, errors: {}, success: false });
   };
 
   const handleCancelClick = () => {
     setIsEditing(false);
-    setFormData(customer); // Quan trọng: Trả data về lại `customer` gốc
-    setEditStatus({ loading: false, errors: {}, success: false }); // Reset trạng thái
+    setFormData(customer);
+    setEditStatus({ loading: false, errors: {}, success: false });
   };
 
   const handleSaveClick = async () => {
     setEditStatus({ loading: true, errors: {}, success: false });
-
-    // (Tùy chọn) Validation cơ bản
     if (!formData.customerEmail || !formData.customerPhone) {
       setEditStatus({
         loading: false,
@@ -126,18 +133,15 @@ export default function CustomerDetail() {
         headers: { "Content-Type": "application/json" },
       });
 
-      // Thành công!
       setIsEditing(false);
-      setCustomer(formData); // Cập nhật `customer` gốc thành data mới
+      setCustomer(formData);
       setEditStatus({ loading: false, errors: {}, success: true });
 
-      // Ẩn thông báo "Saved!" sau 2 giây
       setTimeout(
         () => setEditStatus((prev) => ({ ...prev, success: false })),
         2000
       );
     } catch (error) {
-      // Xử lý lỗi (ví dụ: 409 Conflict)
       console.error("Update Error:", error);
       const fieldErrors = {};
 
@@ -154,18 +158,6 @@ export default function CustomerDetail() {
     }
   };
 
-  // Form state
-  const [formVinData, setFormVinData] = useState({
-    vin: "",
-    plate: "",
-    type: "",
-    color: "",
-    model: "",
-    customerId: "",
-  });
-
-  if (!customer) return <p>Customer not found</p>;
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -173,11 +165,7 @@ export default function CustomerDetail() {
 
   const handleAddVIN = async (e) => {
     e.preventDefault();
-
-    // --- 1. BẮT LỖI INPUT (FRONT-END) ---
     const errors = {};
-
-    // Kiểm tra Vehicle
     if (!formVinData.vin) {
       errors.vin = "VIN is required.";
     } else if (formVinData.vin.length !== 17) {
@@ -188,7 +176,6 @@ export default function CustomerDetail() {
     if (!formVinData.color) errors.color = "Color is required.";
     if (!formVinData.model) errors.model = "Model is required.";
 
-    // Nếu có bất kỳ lỗi nào, cập nhật state và dừng lại
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -215,14 +202,13 @@ export default function CustomerDetail() {
       resetForm();
     } catch (vehicleError) {
       console.error("Vehicle Creation Error:", vehicleError);
-      const fieldErrors = {}; // Lỗi cụ thể cho VIN/Plate
-      let apiErrorMessage = "Failed to create vehicle."; // Lỗi chung
+      const fieldErrors = {};
+      let apiErrorMessage = "Failed to create vehicle.";
       if (vehicleError.response) {
         const { status, data } = vehicleError.response;
-        const message = data || ""; // Lấy message từ backend
+        const message = data || "";
 
         if (status === 409) {
-          // Conflict
           if (message.toLowerCase().includes("vin")) {
             fieldErrors.vin = "This VIN is already registered.";
           } else if (message.toLowerCase().includes(":")) {
@@ -236,7 +222,6 @@ export default function CustomerDetail() {
       } else if (vehicleError.request) {
         apiErrorMessage = "Network error while creating vehicle.";
       }
-      // Gộp lỗi (lỗi field + lỗi api) và hiển thị
       setFormErrors({
         ...fieldErrors,
         api: `${apiErrorMessage}`.trim(),
@@ -261,6 +246,8 @@ export default function CustomerDetail() {
     });
   };
 
+  if (!customer) return <p>Customer not found</p>;
+
   return (
     <div className="min-h-screen bg-muted/30">
       <SCStaffSibebar name={"Nam"} role={"SC Staff"} />
@@ -269,26 +256,30 @@ export default function CustomerDetail() {
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                 Profile Management
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                 Configure system preferences and integrations
               </p>
             </div>
 
-            <div className="p-6">
-              <Button variant="outline" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-4 w-4" /> Back
+            <div className="p-0 sm:p-6">
+              <Button
+                variant="outline"
+                onClick={() => navigate(-1)}
+                className="mb-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
 
-              <Card className="mt-4">
+              <Card>
                 <CardHeader>
                   <CardTitle>Customer Detail</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
+                <CardContent className="grid gap-4 grid-cols-1 md:grid-cols-2">
                   <div>
-                    <label className="font-medium">Name</label>
+                    <label className="font-medium text-sm">Name</label>
                     <Input
                       name="customerName"
                       value={formData.customerName || ""}
@@ -297,37 +288,35 @@ export default function CustomerDetail() {
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Email</label>
+                    <label className="font-medium text-sm">Email</label>
                     <Input
                       name="customerEmail"
                       value={formData.customerEmail || ""}
                       onChange={handleChange}
                       disabled={!isEditing || editStatus.loading}
                     />
-                    {/* THÊM: Hiển thị lỗi cụ thể */}
                     {editStatus.errors.customerEmail && (
-                      <p className="text-sm text-red-500 mt-1">
+                      <p className="text-xs text-red-500 mt-1">
                         {editStatus.errors.customerEmail}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="font-medium">Phone</label>
+                    <label className="font-medium text-sm">Phone</label>
                     <Input
                       name="customerPhone"
                       value={formData.customerPhone || ""}
                       onChange={handleChange}
                       disabled={!isEditing || editStatus.loading}
                     />
-                    {/* THÊM: Hiển thị lỗi cụ thể */}
                     {editStatus.errors.customerPhone && (
-                      <p className="text-sm text-red-500 mt-1">
+                      <p className="text-xs text-red-500 mt-1">
                         {editStatus.errors.customerPhone}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="font-medium">Address</label>
+                    <label className="font-medium text-sm">Address</label>
                     <Input
                       name="customerAddress"
                       value={formData.customerAddress || ""}
@@ -337,16 +326,13 @@ export default function CustomerDetail() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  {/* --- CỤM NÚT MỚI --- */}
                   <div className="flex items-right gap-2">
-                    {/* Thông báo "Saved!" */}
                     {editStatus.success && !isEditing && (
                       <span className="text-sm text-green-500 flex items-center gap-1">
                         <CheckCircle2 className="h-4 w-4" /> Saved!
                       </span>
                     )}
 
-                    {/* Nút "Update" (khi KHÔNG edit) */}
                     {!isEditing ? (
                       <Button
                         variant="outline"
@@ -358,7 +344,6 @@ export default function CustomerDetail() {
                         Update
                       </Button>
                     ) : (
-                      /* Nút "Cancel" và "Save" (kHI ĐANG edit) */
                       <>
                         <Button
                           variant="outline"
@@ -386,29 +371,28 @@ export default function CustomerDetail() {
                       </>
                     )}
                   </div>
-                  {/* --- KẾT THÚC CỤM NÚT --- */}
                 </CardFooter>
               </Card>
 
-              <div className="flex items-center justify-between mt-6 mb-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-6 mb-4 gap-4">
                 <h2 className="text-lg font-semibold">Customer VINs</h2>
                 <Dialog
                   open={isAddDialogOpen}
                   onOpenChange={(isOpen) => {
                     setIsAddDialogOpen(isOpen);
                     if (!isOpen) {
-                      setFormErrors({}); // Xóa lỗi khi đóng
-                      resetForm(); // Reset form khi đóng
+                      setFormErrors({});
+                      resetForm();
                     }
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button className="gap-2">
+                    <Button className="gap-2 w-full sm:w-auto">
                       <Plus className="h-4 w-4" />
                       Add Vehicle
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
+                  <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                       <DialogTitle>Add New Vehicle</DialogTitle>
                       <DialogDescription>
@@ -416,7 +400,6 @@ export default function CustomerDetail() {
                       </DialogDescription>
                     </DialogHeader>
 
-                    {/* Dialog Add Vehicle */}
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <Label htmlFor="vin">VIN</Label>
@@ -432,16 +415,17 @@ export default function CustomerDetail() {
                           }
                           placeholder="6HPJVKVA8N*******"
                         />
-                        {/* HIỂN THỊ LỖI */}
                         {formErrors.vin && (
                           <p className="text-sm text-red-500">
                             {formErrors.vin}
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-4">
-                        <div className="flex-1 grid gap-2">
-                          <Label htmlFor="type">Vehicle Type</Label>
+
+                      {/* Responsive Grid for select fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="type">Type</Label>
                           <Select
                             value={formVinData.type}
                             onValueChange={(value) =>
@@ -452,7 +436,7 @@ export default function CustomerDetail() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
+                              <SelectValue placeholder="Type" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem key="car" value="Car">
@@ -463,7 +447,6 @@ export default function CustomerDetail() {
                               </SelectItem>
                             </SelectContent>
                           </Select>
-                          {/* HIỂN THỊ LỖI */}
                           {formErrors.type && (
                             <p className="text-sm text-red-500">
                               {formErrors.type}
@@ -471,7 +454,7 @@ export default function CustomerDetail() {
                           )}
                         </div>
 
-                        <div className="flex-1 grid gap-2">
+                        <div className="grid gap-2">
                           <Label htmlFor="color">Color</Label>
                           <Input
                             id="color"
@@ -485,7 +468,6 @@ export default function CustomerDetail() {
                             }
                             placeholder="Red"
                           />
-                          {/* HIỂN THỊ LỖI */}
                           {formErrors.color && (
                             <p className="text-sm text-red-500">
                               {formErrors.color}
@@ -493,7 +475,7 @@ export default function CustomerDetail() {
                           )}
                         </div>
 
-                        <div className="flex-1 grid gap-2">
+                        <div className="grid gap-2">
                           <Label htmlFor="model">Model</Label>
                           <Select
                             value={formVinData.model}
@@ -502,7 +484,7 @@ export default function CustomerDetail() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select model" />
+                              <SelectValue placeholder="Model" />
                             </SelectTrigger>
                             <SelectContent>
                               {vehicleModels.map((model) => (
@@ -512,7 +494,6 @@ export default function CustomerDetail() {
                               ))}
                             </SelectContent>
                           </Select>
-                          {/* HIỂN THỊ LỖI */}
                           {formErrors.model && (
                             <p className="text-sm text-red-500">
                               {formErrors.model}
@@ -534,7 +515,6 @@ export default function CustomerDetail() {
                           }
                           placeholder="59X1-11111"
                         />
-                        {/* HIỂN THỊ LỖI */}
                         {formErrors.plate && (
                           <p className="text-sm text-red-500">
                             {formErrors.plate}
@@ -542,7 +522,7 @@ export default function CustomerDetail() {
                         )}
                       </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
                       <Button
                         variant="outline"
                         onClick={() => setIsAddDialogOpen(false)}
@@ -555,8 +535,8 @@ export default function CustomerDetail() {
                 </Dialog>
               </div>
 
-              {/* VIN Cards */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Responsive Grid for VIN Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {vinList.map((v) => (
                   <CustomerVinCard
                     key={v.vin}

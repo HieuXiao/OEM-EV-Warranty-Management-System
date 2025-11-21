@@ -1,11 +1,4 @@
-// FE/src/components/scstaff/ScsRepoSection.jsx
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useReducer,
-  useCallback,
-} from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   CardHeader,
@@ -25,13 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, FileText, Send, Loader2 } from "lucide-react";
-// Xóa import axiosPrivate
 import { SubmitReportDialog } from "./ScsRepoSubmitDialog";
 
-// --- XÓA TOÀN BỘ API URLs ---
-// --- XÓA TOÀN BỘ dataFetchReducer VÀ initialState ---
-
-// --- Helpers (Giữ lại) ---
 const getCampaignDateStatus = (startDateStr, endDateStr) => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -58,26 +46,19 @@ function getStatusColor(status) {
   }
 }
 
-// --- COMPONENT CHÍNH ---
 export default function ScsReportSection({
   currentAccount = {},
   allCampaigns = [],
   myAppointments = [],
   mySubmittedReports = [],
   allVehicles = [],
-  onRefreshData, // Thêm prop refresh
-  status, // Thêm status
-  error, // Thêm error
+  onRefreshData,
+  status,
+  error,
 }) {
-  // --- XÓA state, dispatch (từ reducer) ---
-
-  // State của Dialog giữ nguyên
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
-  // --- XÓA HÀM fetchData VÀ useEffect GỌI NÓ ---
-
-  // --- CẬP NHẬT useMemo ĐỂ DÙNG PROPS ---
   const campaignReportData = useMemo(() => {
     const myCenterId = currentAccount.serviceCenter?.centerId;
     if (!myCenterId) return [];
@@ -155,21 +136,18 @@ export default function ScsReportSection({
     myAppointments,
     mySubmittedReports,
   ]);
-  // --- KẾT THÚC CẬP NHẬT LOGIC ---
 
-  // Handlers (giữ nguyên)
   const handleSubmitClick = (campaign) => {
     setSelectedCampaign(campaign);
     setSubmitDialogOpen(true);
   };
 
   const onReportSubmitted = () => {
-    onRefreshData(); // <-- DÙNG HÀM REFRESH TỪ PROPS
+    onRefreshData();
     setSubmitDialogOpen(false);
     setSelectedCampaign(null);
   };
 
-  // --- GIỮ NGUYÊN JSX GỐC (loading/error/success) ---
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center h-64">
@@ -190,17 +168,19 @@ export default function ScsReportSection({
   return (
     status === "success" && (
       <>
-        <Card>
-          <CardHeader>
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 sm:px-6">
             <CardTitle>Campaign Reports</CardTitle>
             <CardDescription>
               Submit your PDF summary report for each campaign to EVMStaff.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <div className="border rounded-lg overflow-hidden">
+              {/* CHỈNH SỬA: overflow-x-auto để cuộn ngang trên mobile */}
               <div className="overflow-x-auto">
-                <Table>
+                {/* CHỈNH SỬA: min-w-[800px] để giữ layout bảng đẹp */}
+                <Table className="min-w-[800px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
@@ -267,7 +247,7 @@ export default function ScsReportSection({
                                   rel="noopener noreferrer"
                                 >
                                   <FileText className="w-4 h-4 mr-2" />
-                                  View Submitted
+                                  View
                                 </a>
                               </Button>
                             ) : (
@@ -275,16 +255,13 @@ export default function ScsReportSection({
                                 variant="default"
                                 size="sm"
                                 onClick={() => handleSubmitClick(campaign)}
-                                // === THAY ĐỔI LOGIC Ở ĐÂY ===
-                                // Chỉ cho phép (không disabled) khi status LÀ "completed"
                                 disabled={
                                   campaign.campaignStatus !== "completed"
                                 }
                               >
                                 <Send className="w-4 h-4 mr-2" />
-                                Submit Report
+                                Submit
                               </Button>
-                              // === KẾT THÚC THAY ĐỔI ===
                             )}
                           </TableCell>
                         </TableRow>
@@ -297,7 +274,6 @@ export default function ScsReportSection({
           </CardContent>
         </Card>
 
-        {/* Dialog Gửi Báo Cáo (Không đổi) */}
         <SubmitReportDialog
           open={submitDialogOpen}
           onOpenChange={setSubmitDialogOpen}

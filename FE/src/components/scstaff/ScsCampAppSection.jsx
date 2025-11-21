@@ -1,5 +1,5 @@
-//FE/src/components/scstaff/ScsCampAppSection.jsx
-import { useState, useEffect, useMemo } from "react"; // Xóa useReducer, useCallback
+// FE/src/components/scstaff/ScsCampAppSection.jsx
+import { useState, useEffect, useMemo } from "react";
 import {
   CalendarIcon,
   ChevronLeft,
@@ -9,8 +9,8 @@ import {
   Edit,
   Trash2,
   Clock,
-  AlertCircle, // Giữ lại
-  Loader2, // Giữ lại
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,18 +25,14 @@ import {
 import { Card } from "@/components/ui/card";
 import { CreateAppointmentDialog } from "@/components/scstaff/ScsCampAppCreate";
 import { EditAppointmentDialog } from "@/components/scstaff/ScsCampAppEdit";
-// Xóa import axiosPrivate
-// Xóa các hằng số API_URL
-
-// --- XÓA TOÀN BỘ dataFetchReducer và initialState ---
 
 export default function AppointmentsSection({
-  campaigns = [], // Nhận props
+  campaigns = [],
   appointments = [],
   currentAccount = {},
-  onRefreshData, // Nhận hàm refresh
-  status, // Nhận status
-  error, // Nhận error
+  onRefreshData,
+  status,
+  error,
 }) {
   const [viewMode, setViewMode] = useState("7days");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,10 +44,7 @@ export default function AppointmentsSection({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  // --- XÓA state, dispatch, fetchAllData, useEffect(fetchAllData) ---
-
   const getDateRange = () => {
-    // ... (logic getDateRange của bạn giữ nguyên)
     const start = new Date(currentDate);
     const end = new Date(currentDate);
     start.setHours(0, 0, 0, 0);
@@ -123,7 +116,6 @@ export default function AppointmentsSection({
     setEditDialogOpen(true);
   };
 
-  // ... (các hàm handleToday, handlePrevious, handleNext, getDateRangeText, getStatusColor giữ nguyên)
   const handleToday = () => {
     setCurrentDate(new Date());
   };
@@ -173,7 +165,7 @@ export default function AppointmentsSection({
       case "Completed":
         return "secondary";
       case "Cancelled":
-      case "No-Show": // Sửa lại từ "no-show"
+      case "No-Show":
         return "destructive";
       case "Rescheduled":
         return "secondary";
@@ -191,28 +183,29 @@ export default function AppointmentsSection({
 
   const sortedDates = Object.keys(appointmentsByDate).sort();
 
-  // --- TÁI SỬ DỤNG JSX HIỂN THỊ LOADING/ERROR (y hệt file gốc) ---
   return (
     <div className="space-y-6">
-      {/* Search + Filter */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      {/* Search + Filter - Responsive */}
+      <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
+          {/* Search Box */}
+          <div className="flex-1 relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by customer, phone, VIN, or license plate..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
 
-          <div className="flex gap-2">
+          {/* Filters - Stack on mobile, row on tablet/desktop */}
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <Select
               value={selectedCampaign}
               onValueChange={setSelectedCampaign}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Campaign" />
               </SelectTrigger>
               <SelectContent>
@@ -228,7 +221,7 @@ export default function AppointmentsSection({
               </SelectContent>
             </Select>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -244,20 +237,22 @@ export default function AppointmentsSection({
         </div>
       </div>
 
-      {/* Calendar Controls (Giữ nguyên) */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      {/* Calendar Controls - Responsive */}
+      <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleToday}>
-              Today
-            </Button>
-            <Button variant="outline" size="icon-sm" onClick={handlePrevious}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="icon-sm" onClick={handleNext}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <span className="font-semibold text-card-foreground ml-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleToday}>
+                Today
+              </Button>
+              <Button variant="outline" size="icon-sm" onClick={handlePrevious}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon-sm" onClick={handleNext}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <span className="font-semibold text-card-foreground ml-2 text-sm sm:text-base">
               {getDateRangeText()}
             </span>
           </div>
@@ -273,7 +268,7 @@ export default function AppointmentsSection({
         </div>
       </div>
 
-      {/* --- THÊM LẠI LOGIC HIỂN THỊ LOADING/ERROR --- */}
+      {/* Loading / Error States */}
       {status === "loading" && (
         <Card className="p-8 text-center">
           <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
@@ -289,7 +284,7 @@ export default function AppointmentsSection({
         </Card>
       )}
 
-      {/* Appointment List (Chỉ render khi success) */}
+      {/* Appointment List - Responsive Cards */}
       {status === "success" && (
         <div className="space-y-4">
           {sortedDates.length === 0 ? (
@@ -304,7 +299,7 @@ export default function AppointmentsSection({
                 key={date}
                 className="bg-card border border-border rounded-lg overflow-hidden"
               >
-                <div className="bg-muted px-6 py-3 border-b border-border">
+                <div className="bg-muted px-4 sm:px-6 py-3 border-b border-border">
                   <h4 className="font-semibold text-card-foreground">
                     {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
                       weekday: "long",
@@ -329,68 +324,73 @@ export default function AppointmentsSection({
                       return (
                         <div
                           key={appointment.appointmentId}
-                          className="p-6 hover:bg-muted/50 transition-colors"
+                          className="p-4 sm:p-6 hover:bg-muted/50 transition-colors"
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex gap-4 flex-1">
-                              <div className="flex items-center gap-2 min-w-[80px]">
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-semibold text-card-foreground">
-                                  {time}
-                                </span>
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <h5 className="font-semibold text-card-foreground">
-                                    {
-                                      appointment.vehicle?.customer
-                                        ?.customerName
-                                    }
-                                  </h5>
-                                  <Badge
-                                    variant={getStatusColor(appointment.status)}
-                                  >
-                                    {appointment.status}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {appointment.campaign?.campaignName}
-                                  </Badge>
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                                  <p>
-                                    <span className="font-medium">Phone:</span>{" "}
-                                    {
-                                      appointment.vehicle?.customer
-                                        ?.customerPhone
-                                    }
-                                  </p>
-                                  <p>
-                                    <span className="font-medium">VIN:</span>{" "}
-                                    {appointment.vehicle?.vin}
-                                  </p>
-                                  <p>
-                                    <span className="font-medium">
-                                      License:
-                                    </span>{" "}
-                                    {appointment.vehicle?.plate}
-                                  </p>
-                                </div>
-                                {appointment.description && (
-                                  <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
-                                    <p className="text-muted-foreground">
-                                      {appointment.description}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
+                          {/* Layout: Stack on mobile, Row on desktop */}
+                          <div className="flex flex-col sm:flex-row items-start gap-4">
+                            {/* Time Column */}
+                            <div className="flex items-center gap-2 min-w-[80px]">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-semibold text-card-foreground">
+                                {time}
+                              </span>
                             </div>
-                            <div className="flex gap-2">
+
+                            {/* Info Column */}
+                            <div className="flex-1 space-y-2 w-full">
+                              {/* Header: Name + Status + Campaign */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h5 className="font-semibold text-card-foreground mr-1">
+                                  {appointment.vehicle?.customer?.customerName}
+                                </h5>
+                                <Badge
+                                  variant={getStatusColor(appointment.status)}
+                                >
+                                  {appointment.status}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="truncate max-w-[200px]"
+                                >
+                                  {appointment.campaign?.campaignName}
+                                </Badge>
+                              </div>
+
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                                <p>
+                                  <span className="font-medium">Phone:</span>{" "}
+                                  {appointment.vehicle?.customer?.customerPhone}
+                                </p>
+                                <p>
+                                  <span className="font-medium">VIN:</span>{" "}
+                                  {appointment.vehicle?.vin}
+                                </p>
+                                <p>
+                                  <span className="font-medium">License:</span>{" "}
+                                  {appointment.vehicle?.plate}
+                                </p>
+                              </div>
+
+                              {/* Description / Notes */}
+                              {appointment.description && (
+                                <div className="flex items-start gap-2 mt-2 p-2 bg-muted rounded text-sm">
+                                  <p className="text-muted-foreground">
+                                    {appointment.description}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Button */}
+                            <div className="flex gap-2 self-end sm:self-start mt-2 sm:mt-0">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleEdit(appointment)}
                               >
                                 <Edit className="w-4 h-4" />
+                                <span className="sm:hidden ml-2">Edit</span>
                               </Button>
                             </div>
                           </div>
@@ -408,7 +408,7 @@ export default function AppointmentsSection({
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         appointment={selectedAppointment}
-        onSaveSuccess={onRefreshData} // Dùng hàm refresh từ props
+        onSaveSuccess={onRefreshData}
       />
       <CreateAppointmentDialog
         open={createDialogOpen}

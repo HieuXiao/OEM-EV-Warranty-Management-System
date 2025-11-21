@@ -133,8 +133,8 @@ export default function PartAttachTable() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="pt-4 px-2 sm:px-4 pb-4">
+        <CardHeader className="px-2 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Title */}
             <div>
@@ -143,30 +143,32 @@ export default function PartAttachTable() {
             </div>
 
             {/* Search bar + Add Button */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {/* Search bar */}
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search Customers..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 w-full"
                 />
               </div>
 
               {/* Add button */}
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2 w-full sm:w-auto">
                     <Plus className="h-4 w-4" />
-                    Add Customer
+                    Add Part
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Attach Part to Vehicle</DialogTitle>
-                    <DialogDescription>Create a new customer</DialogDescription>
+                    <DialogDescription>
+                      Add new part information
+                    </DialogDescription>
                   </DialogHeader>
 
                   {/* Dialog Attach Part */}
@@ -219,8 +221,10 @@ export default function PartAttachTable() {
                         placeholder="5.000.000"
                       />
                     </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1 grid gap-2">
+
+                    {/* Chuyển flex thành grid cho mobile */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
                         <Label htmlFor="model">Model</Label>
                         <Select
                           value={formData.model}
@@ -240,7 +244,7 @@ export default function PartAttachTable() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex-1 grid gap-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="year">Year</Label>
                         <Input
                           type="number"
@@ -274,9 +278,10 @@ export default function PartAttachTable() {
         </CardHeader>
 
         {/* Part Attach Table */}
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
+        <CardContent className="pt-0 px-0 sm:px-4">
+          {/* Thêm cuộn ngang cho bảng */}
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Part Serial</TableHead>
@@ -348,7 +353,7 @@ export default function PartAttachTable() {
         open={!!editingVehicle}
         onOpenChange={(open) => !open && setEditingVehicle(null)}
       >
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Edit Vehicle</DialogTitle>
             <DialogDescription>Update vehicle information</DialogDescription>
@@ -378,8 +383,10 @@ export default function PartAttachTable() {
                 }
               />
             </div>
-            <div className="flex gap-4">
-              <div className="flex-1 grid gap-2">
+
+            {/* Responsive Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
                 <Label htmlFor="edit-model">Model</Label>
                 <Select
                   value={formData.model}
@@ -399,7 +406,7 @@ export default function PartAttachTable() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1 grid gap-2">
+              <div className="grid gap-2">
                 <Label htmlFor="edit-year">Year</Label>
                 <Input
                   type="number"
