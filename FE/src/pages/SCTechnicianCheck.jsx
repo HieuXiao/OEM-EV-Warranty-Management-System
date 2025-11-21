@@ -34,7 +34,9 @@ function reducer(state, action) {
       return {
         ...state,
         jobs: state.jobs.map((j) =>
-          j.id === action.payload.id ? { ...j, status: action.payload.status } : j
+          j.id === action.payload.id
+            ? { ...j, status: action.payload.status }
+            : j
         ),
       };
     default:
@@ -53,6 +55,10 @@ export default function SCTechnicianCheck() {
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   const vehicleCache = useRef({});
 
@@ -60,7 +66,11 @@ export default function SCTechnicianCheck() {
     if (!isoString) return "";
     try {
       const d = new Date(isoString);
-      return d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+      return d.toLocaleString("en-GB", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
     } catch {
       return isoString;
     }
@@ -94,7 +104,9 @@ export default function SCTechnicianCheck() {
       const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
 
       const vehicleMap = Object.fromEntries(vehicles.map((v) => [v.vin, v]));
-      const accountMap = Object.fromEntries(accounts.map((a) => [a.accountId, a]));
+      const accountMap = Object.fromEntries(
+        accounts.map((a) => [a.accountId, a])
+      );
 
       const filteredClaims = claims.filter(
         (c) =>
@@ -115,7 +127,8 @@ export default function SCTechnicianCheck() {
           plate: vehicle?.plate || "N/A",
           claimDate: claim.claimDate,
           createdAt: claim.claimDate,
-          comment: claim.description || vehicle?.campaign?.serviceDescription || "",
+          comment:
+            claim.description || vehicle?.campaign?.serviceDescription || "",
           status: claim.status,
           scStaff,
           scTechnician,
@@ -127,7 +140,10 @@ export default function SCTechnicianCheck() {
       dispatch({ type: "FETCH_SUCCESS", payload: enriched });
     } catch (err) {
       console.error("[SCTechnicianCheck] fetchClaimsAndEnrich failed:", err);
-      dispatch({ type: "FETCH_ERROR", payload: "Failed to load jobs. Please try again." });
+      dispatch({
+        type: "FETCH_ERROR",
+        payload: "Failed to load jobs. Please try again.",
+      });
     }
   };
 
@@ -161,10 +177,16 @@ export default function SCTechnicianCheck() {
     const dateB = new Date(b.claimDate || b.createdAt);
     if (sortOrder === "newest") {
       if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-      return parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) - parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0);
+      return (
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
     } else {
       if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
-      return parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) - parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0);
+      return (
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
     }
   });
 
@@ -175,9 +197,12 @@ export default function SCTechnicianCheck() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar />
+      <SCTechnicianSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -245,14 +270,17 @@ export default function SCTechnicianCheck() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                      Showing {startIndex + 1}-{Math.min(endIndex, filteredJobs.length)} of{" "}
+                      Showing {startIndex + 1}-
+                      {Math.min(endIndex, filteredJobs.length)} of{" "}
                       {filteredJobs.length} job(s)
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" /> Previous
@@ -263,8 +291,12 @@ export default function SCTechnicianCheck() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages || totalPages === 0}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={
+                          currentPage === totalPages || totalPages === 0
+                        }
                       >
                         Next <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -280,11 +312,16 @@ export default function SCTechnicianCheck() {
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-lg">{job.jobNumber}</p>
+                            <p className="font-semibold text-lg">
+                              {job.jobNumber}
+                            </p>
                           </div>
                           <div className="space-y-1.5 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle Plate:</span> {job.plate}
+                              <span className="font-medium">
+                                Vehicle Plate:
+                              </span>{" "}
+                              {job.plate}
                             </p>
                             <p className="text-muted-foreground">
                               <span className="font-medium">Date:</span>{" "}
@@ -292,9 +329,11 @@ export default function SCTechnicianCheck() {
                             </p>
                             <p className="text-muted-foreground">
                               <span className="font-medium">SC Staff:</span>{" "}
-                              {job.scStaff?.fullName || job.scStaff?.username || "N/A"}
+                              {job.scStaff?.fullName ||
+                                job.scStaff?.username ||
+                                "N/A"}
                             </p>
-                          </div>  
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -55,7 +55,10 @@ export default function AdminUserManagement() {
     role: "sc_technician",
     serviceCenter: "",
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
   // ================== DATA FETCHING ==================
   // Get list of users from API
   const fetchUsers = async () => {
@@ -189,13 +192,12 @@ export default function AdminUserManagement() {
   // ================== UI RENDERING ==================
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         {/* Điều chỉnh padding chính: sử dụng p-6 và space-y-6 cho khoảng cách 24px */}
-        <div className="p-4 md:p-6 lg:p-8"> 
-          <div className="space-y-6"> 
-            
+        <div className="p-4 md:p-6 lg:p-8">
+          <div className="space-y-6">
             {/* Title and Create Button */}
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold text-foreground">

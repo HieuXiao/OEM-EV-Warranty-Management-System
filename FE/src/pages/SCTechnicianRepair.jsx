@@ -39,6 +39,10 @@ export default function SCTechnicianRepair() {
   const techId = auth?.accountId;
   const [state, dispatch] = useReducer(reducer, initialState);
   const { jobs, loading, error } = state;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,7 +56,11 @@ export default function SCTechnicianRepair() {
     if (!isoString) return "";
     try {
       const d = new Date(isoString);
-      return d.toLocaleString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+      return d.toLocaleString("en-GB", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
     } catch {
       return isoString;
     }
@@ -95,7 +103,9 @@ export default function SCTechnicianRepair() {
 
       const enriched = filteredClaims.map((claim) => {
         const vehicle = vehicleMap[claim.vin];
-        const scStaff = accounts.find((a) => a.accountId === claim.serviceCenterStaffId);
+        const scStaff = accounts.find(
+          (a) => a.accountId === claim.serviceCenterStaffId
+        );
         return {
           id: claim.claimId,
           claimId: claim.claimId,
@@ -103,7 +113,8 @@ export default function SCTechnicianRepair() {
           plate: claim.plate || vehicle?.plate || "N/A",
           claimDate: claim.claimDate,
           createdAt: claim.claimDate,
-          comment: claim.description || vehicle?.campaign?.serviceDescription || "",
+          comment:
+            claim.description || vehicle?.campaign?.serviceDescription || "",
           status: claim.status,
           scStaff,
           rawClaim: claim,
@@ -135,20 +146,26 @@ export default function SCTechnicianRepair() {
 
   // --- filtering / sorting / pagination ---
   const filteredJobs = jobs.filter((job) =>
-        [job.jobNumber, job.plate].some((field) =>
-          field?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
+    [job.jobNumber, job.plate].some((field) =>
+      field?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
 
   const sortedJobs = [...filteredJobs].sort((a, b) => {
     const dateA = new Date(a.claimDate || a.createdAt);
     const dateB = new Date(b.claimDate || b.createdAt);
     if (sortOrder === "newest") {
       if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-      return parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) - parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0);
+      return (
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
     } else {
       if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
-      return parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) - parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0);
+      return (
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
     }
   });
 
@@ -158,9 +175,12 @@ export default function SCTechnicianRepair() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar />
+      <SCTechnicianSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -229,13 +249,19 @@ export default function SCTechnicianRepair() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
                       Showing {startIndex + 1}-
-                      {Math.min(startIndex + currentJobs.length, filteredJobs.length)} of {filteredJobs.length} job(s)
+                      {Math.min(
+                        startIndex + currentJobs.length,
+                        filteredJobs.length
+                      )}{" "}
+                      of {filteredJobs.length} job(s)
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" /> Previous
@@ -246,8 +272,12 @@ export default function SCTechnicianRepair() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages || totalPages === 0}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={
+                          currentPage === totalPages || totalPages === 0
+                        }
                       >
                         Next <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -263,17 +293,24 @@ export default function SCTechnicianRepair() {
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-lg">{job.jobNumber}</p>
+                            <p className="font-semibold text-lg">
+                              {job.jobNumber}
+                            </p>
                           </div>
                           <div className="space-y-1.5 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle Plate:</span> {job.plate}
+                              <span className="font-medium">
+                                Vehicle Plate:
+                              </span>{" "}
+                              {job.plate}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Date:</span> {formatDateTime(job.claimDate || job.createdAt)}
+                              <span className="font-medium">Date:</span>{" "}
+                              {formatDateTime(job.claimDate || job.createdAt)}
                             </p>
                             <p className="text-muted-foreground">
-                              <span className="font-medium">SC Staff:</span> {job.scStaff?.fullName || "N/A"}
+                              <span className="font-medium">SC Staff:</span>{" "}
+                              {job.scStaff?.fullName || "N/A"}
                             </p>
                           </div>
                         </div>

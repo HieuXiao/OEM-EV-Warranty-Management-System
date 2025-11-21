@@ -17,6 +17,10 @@ export default function AdminServiceCenter() {
   const [warehouses, setWarehouses] = useState([]);
   const [assignments, setAssignments] = useState({});
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // 🔹 Fetch danh sách users và warehouse
   useEffect(() => {
@@ -46,7 +50,10 @@ export default function AdminServiceCenter() {
   const handleAssign = async (accountId) => {
     const warehouseId = assignments[accountId];
     if (!warehouseId) {
-      setMessage({ type: "error", text: "Vui lòng chọn kho trước khi điều động." });
+      setMessage({
+        type: "error",
+        text: "Vui lòng chọn kho trước khi điều động.",
+      });
       return;
     }
 
@@ -59,7 +66,9 @@ export default function AdminServiceCenter() {
         type: "success",
         text: `✅ Điều động thành công: ${accountId} → Kho ${warehouseId}`,
       });
-      console.log(`[AdminServiceCenter] Assigned ${accountId} to ${warehouseId}`);
+      console.log(
+        `[AdminServiceCenter] Assigned ${accountId} to ${warehouseId}`
+      );
     } catch (err) {
       console.error("[AdminServiceCenter] Assign failed:", err);
       setMessage({
@@ -71,9 +80,9 @@ export default function AdminServiceCenter() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-6 space-y-6">
           <h1 className="text-3xl font-bold text-foreground">
             Service Center Management

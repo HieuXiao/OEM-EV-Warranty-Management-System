@@ -30,6 +30,10 @@ const POLICIES_API_URL = "/api/policies";
  */
 export default function AdminPartsPolicy() {
   const { auth } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // === DATA STATES ===
   const [parts, setParts] = useState([]);
@@ -246,9 +250,9 @@ export default function AdminPartsPolicy() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <AdminSidebar />
+      <AdminSidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             {selectedPart ? (

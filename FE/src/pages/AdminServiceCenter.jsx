@@ -19,6 +19,10 @@ export default function AdminServiceCenter() {
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCenterDetail, setSelectedCenterDetail] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // dialogs state
   const [selectedCenter, setSelectedCenter] = useState(null);
@@ -62,9 +66,9 @@ export default function AdminServiceCenter() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
