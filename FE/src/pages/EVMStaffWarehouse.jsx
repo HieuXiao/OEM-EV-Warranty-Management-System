@@ -30,6 +30,10 @@ export default function EVMStaffWarehouse() {
   const [partCatalog, setPartCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // === REFRESH STATE === // Key used to force a refetch of data
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const refreshData = () => setRefreshKey((prev) => prev + 1); // === UI STATES ===
@@ -192,9 +196,14 @@ export default function EVMStaffWarehouse() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-            <EVMStaffSideBar />      {/* === MAIN CONTENT LAYOUT === */}     
+           {" "}
+      <EVMStaffSideBar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+            {/* === MAIN CONTENT LAYOUT === */}     
       <div className="lg:pl-64">
-                <Header />       
+                <Header onMenuClick={handleOpenMenu} />       
         <main className="p-4 md:p-6 lg:p-8">
                     {/* Global Error Display */}         
           {error && (

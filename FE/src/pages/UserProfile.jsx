@@ -22,18 +22,20 @@ import ScTechnicianSideBar from "@/components/sctechnician/ScTechnicianSideBar";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 
 // Component con để chọn Sidebar dựa trên vai trò
-const UserSidebar = () => {
+const UserSidebar = ({ isMobileOpen, onClose }) => {
   const { auth } = useAuth();
 
   switch (auth?.role) {
     case "ADMIN":
-      return <AdminSidebar />;
+      return <AdminSidebar isMobileOpen={isMobileOpen} onClose={onClose} />;
     case "SC_STAFF":
-      return <ScsSidebar />;
+      return <ScsSidebar isMobileOpen={isMobileOpen} onClose={onClose} />;
     case "SC_TECHNICIAN":
-      return <ScTechnicianSideBar />;
+      return (
+        <ScTechnicianSideBar isMobileOpen={isMobileOpen} onClose={onClose} />
+      );
     case "EVM_STAFF":
-      return <EVMStaffSideBar />;
+      return <EVMStaffSideBar isMobileOpen={isMobileOpen} onClose={onClose} />;
     default:
       return null; // Hoặc một sidebar mặc định nếu có
   }
@@ -44,6 +46,10 @@ export default function UserProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   // Form for profile information
   const {
@@ -144,9 +150,10 @@ export default function UserProfile() {
 
   return (
     <div className="flex">
-      <UserSidebar /> {/* Hiển thị Sidebar động dựa trên vai trò */}
+      <UserSidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />{" "}
+      {/* Hiển thị Sidebar động dựa trên vai trò */}
       <div className="flex-1">
-        <Header /> {/* Hiển thị Header chung */}
+        <Header onMenuClick={handleOpenMenu} /> {/* Hiển thị Header chung */}
         <main className="container mx-auto max-w-3xl p-4 md:p-8 space-y-6">
           {/* Nội dung trang gốc bắt đầu từ đây */}
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>

@@ -1,3 +1,22 @@
+import { useState, useEffect } from "react";
+import { Search, Filter, Eye, Plus } from "lucide-react";
+import SCStaffSidebar from "@/components/scstaff/ScsSidebar";
+import Header from "@/components/Header";
+import ScsWarrCreate from "@/components/scstaff/ScsWarrCreate";
+import ScsWarrDetail from "@/components/scstaff/ScsWarrDetail";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import useAuth from "@/hook/useAuth";
+import axiosPrivate from "@/api/axios";
 
 import { useState, useEffect } from "react"
 import { Search, Filter, Eye, Plus } from "lucide-react"
@@ -16,7 +35,7 @@ import axiosPrivate from "@/api/axios"
 const API_ENDPOINTS = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
-}
+};
 
 const getStatusColor = (status) => {
   const colors = {
@@ -25,19 +44,19 @@ const getStatusColor = (status) => {
     REPAIR: "bg-orange-100 text-orange-700 border-orange-300",
     HANDOVER: "bg-purple-100 text-purple-800 border-purple-300",
     DONE: "bg-green-100 text-green-800 border-green-300",
-  }
-  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300"
-}
+  };
+  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
+};
 
 const getDefaultDateFrom = () => {
-  const date = new Date()
-  date.setDate(date.getDate() - 10)
-  return date.toISOString().split("T")[0]
-}
+  const date = new Date();
+  date.setDate(date.getDate() - 10);
+  return date.toISOString().split("T")[0];
+};
 
 const getDefaultDateTo = () => {
-  return new Date().toISOString().split("T")[0]
-}
+  return new Date().toISOString().split("T")[0];
+};
 
 const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
   const STATUS_ORDER = ["CHECK", "DECIDE", "REPAIR", "HANDOVER", "DONE"];
@@ -89,6 +108,17 @@ const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
         else type = "future";
 
         return (
+          <div
+            key={status}
+            className="flex-1 flex flex-col items-center relative"
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 ${
+                hasTime
+                  ? STATUS_COLORS[status]
+                  : "border-gray-300 bg-gray-200 opacity-50"
+              }`}
+            />
           <div key={status} className="flex-1 flex flex-col items-center relative">
             <div className="relative flex items-center justify-center w-full">
               <div
@@ -116,12 +146,19 @@ const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
             {index < STATUS_ORDER.length && (
               <div
                 className={`h-1 w-full mt-1 ${
+                  hasTime ? STATUS_COLORS[status] : "bg-gray-200 opacity-50"
                   type === "reached"
                     ? STATUS_COLORS[status]
                     : "bg-gray-200 opacity-50"
                 }`}
               />
             )}
+            <div className="mt-1 text-xs text-center font-semibold">
+              {status}
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              {hasTime ? formatTime(statusTimes[status]) : "—"}
+            </div>
 
             <div className="text-[10px] text-muted-foreground text-center">
               <div className="mt-1 text-xs text-center font-semibold">{status}</div>
@@ -142,143 +179,178 @@ const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
 };
 
 export default function SCStaffWarrantyClaim() {
-  const { auth } = useAuth()
+  const { auth } = useAuth();
   const currentUser = {
     id: auth?.accountId,
     name: auth?.fullName,
     role: auth?.role,
-  }
+  };
 
-  const [claims, setClaims] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [selectedClaim, setSelectedClaim] = useState(null)
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [dateFrom, setDateFrom] = useState(getDefaultDateFrom())
-  const [dateTo, setDateTo] = useState(getDefaultDateTo())
-  const [sortBy, setSortBy] = useState("date-desc")
-  const [userCenterId, setUserCenterId] = useState(null)
-  const [vehicles, setVehicles] = useState([])
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState(getDefaultDateFrom());
+  const [dateTo, setDateTo] = useState(getDefaultDateTo());
+  const [sortBy, setSortBy] = useState("date-desc");
+  const [userCenterId, setUserCenterId] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   useEffect(() => {
     const fetchClaims = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
         const [claimsRes, vehiclesRes] = await Promise.all([
-          axiosPrivate.get(API_ENDPOINTS.CLAIMS, { params: { dateFrom, dateTo } }),
-          axiosPrivate.get("/api/vehicles")
-        ])
-        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
-        const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
+          axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
+            params: { dateFrom, dateTo },
+          }),
+          axiosPrivate.get("/api/vehicles"),
+        ]);
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+        const vehiclesData = Array.isArray(vehiclesRes.data)
+          ? vehiclesRes.data
+          : [];
 
-        const vehicleMap = Object.fromEntries(vehiclesData.map(v => [v.vin, v.plate || "—"]))
-        const merged = claimsData.map(c => ({ ...c, plate: vehicleMap[c.vin] || "—" }))
+        const vehicleMap = Object.fromEntries(
+          vehiclesData.map((v) => [v.vin, v.plate || "—"])
+        );
+        const merged = claimsData.map((c) => ({
+          ...c,
+          plate: vehicleMap[c.vin] || "—",
+        }));
 
-        setClaims(merged)
+        setClaims(merged);
       } catch (error) {
-        console.error("Failed to fetch claims:", error)
-        setClaims([])
+        console.error("Failed to fetch claims:", error);
+        setClaims([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchClaims()
-  }, [dateFrom, dateTo])
+    };
+    fetchClaims();
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     const fetchCenterId = async () => {
       try {
-        const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS)
+        const res = await axiosPrivate.get(API_ENDPOINTS.ACCOUNTS);
         const account = Array.isArray(res.data)
-          ? res.data.find(a => a.accountId.toUpperCase() === auth?.accountId?.toUpperCase())
-          : null
+          ? res.data.find(
+              (a) =>
+                a.accountId.toUpperCase() === auth?.accountId?.toUpperCase()
+            )
+          : null;
         if (account?.serviceCenter?.centerId) {
-          setUserCenterId(account.serviceCenter.centerId)
-          console.log("[WarrantyClaim] Found centerId:", account.serviceCenter.centerId)
+          setUserCenterId(account.serviceCenter.centerId);
+          console.log(
+            "[WarrantyClaim] Found centerId:",
+            account.serviceCenter.centerId
+          );
         } else {
-          console.warn("[WarrantyClaim] No centerId found for account:", auth?.accountId)
+          console.warn(
+            "[WarrantyClaim] No centerId found for account:",
+            auth?.accountId
+          );
         }
       } catch (err) {
-        console.error("Failed to fetch account info:", err)
+        console.error("Failed to fetch account info:", err);
       }
-    }
-    if (auth?.accountId) fetchCenterId()
-  }, [auth?.accountId])
+    };
+    if (auth?.accountId) fetchCenterId();
+  }, [auth?.accountId]);
 
   const filteredClaims = claims
-    .filter(claim => {
+    .filter((claim) => {
       if (userCenterId && claim.claimId?.includes("-")) {
-        const parts = claim.claimId.split("-")
-        const claimCenterId = parseInt(parts[1]) || 0
-        return claimCenterId === userCenterId
+        const parts = claim.claimId.split("-");
+        const claimCenterId = parseInt(parts[1]) || 0;
+        return claimCenterId === userCenterId;
       }
-      return claim.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase()
+      return (
+        claim.serviceCenterStaffId?.toUpperCase() ===
+        auth?.accountId?.toUpperCase()
+      );
     })
-    .filter(claim => {
+    .filter((claim) => {
       const matchesSearch =
         claim.claimId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.vin?.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = statusFilter === "all" || claim.status === statusFilter
-      const claimDate = new Date(claim.claimDate)
-      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom)
-      const matchesDateTo = !dateTo || claimDate <= new Date(dateTo + "T23:59:59")
-      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo
+        claim.vin?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || claim.status === statusFilter;
+      const claimDate = new Date(claim.claimDate);
+      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom);
+      const matchesDateTo =
+        !dateTo || claimDate <= new Date(dateTo + "T23:59:59");
+      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.claimDate)
-      const dateB = new Date(b.claimDate)
-      const serialA = parseInt(a.claimId?.split("-").pop()) || 0
-      const serialB = parseInt(b.claimId?.split("-").pop()) || 0
+      const dateA = new Date(a.claimDate);
+      const dateB = new Date(b.claimDate);
+      const serialA = parseInt(a.claimId?.split("-").pop()) || 0;
+      const serialB = parseInt(b.claimId?.split("-").pop()) || 0;
       switch (sortBy) {
         case "date-desc":
-          if (dateB.getTime() === dateA.getTime()) return serialB - serialA
-          return dateB - dateA
+          if (dateB.getTime() === dateA.getTime()) return serialB - serialA;
+          return dateB - dateA;
         case "date-asc":
-          if (dateA.getTime() === dateB.getTime()) return serialA - serialB
-          return dateA - dateB
+          if (dateA.getTime() === dateB.getTime()) return serialA - serialB;
+          return dateA - dateB;
         case "status":
-          return a.status.localeCompare(b.status)
+          return a.status.localeCompare(b.status);
         default:
-          return 0
+          return 0;
       }
-    })
+    });
 
-  const userClaims = claims.filter(claim => {
+  const userClaims = claims.filter((claim) => {
     if (userCenterId && claim.claimId?.includes("-")) {
-      const parts = claim.claimId.split("-")
-      const claimCenterId = parseInt(parts[1]) || 0
-      return claimCenterId === userCenterId
+      const parts = claim.claimId.split("-");
+      const claimCenterId = parseInt(parts[1]) || 0;
+      return claimCenterId === userCenterId;
     }
-    return claim.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase()
-  })
+    return (
+      claim.serviceCenterStaffId?.toUpperCase() ===
+      auth?.accountId?.toUpperCase()
+    );
+  });
 
-  const totalClaims = userClaims.length
-  const checkClaims = userClaims.filter(c => c.status === "CHECK").length
-  const decideClaims = userClaims.filter(c => c.status === "DECIDE").length
-  const repairClaims = userClaims.filter(c => c.status === "REPAIR").length
-  const doneClaims = userClaims.filter(c => c.status === "DONE").length
+  const totalClaims = userClaims.length;
+  const checkClaims = userClaims.filter((c) => c.status === "CHECK").length;
+  const decideClaims = userClaims.filter((c) => c.status === "DECIDE").length;
+  const repairClaims = userClaims.filter((c) => c.status === "REPAIR").length;
+  const doneClaims = userClaims.filter((c) => c.status === "DONE").length;
 
   const handleViewClaim = (claim) => {
-    setSelectedClaim(claim)
-    setIsDetailDialogOpen(true)
-  }
+    setSelectedClaim(claim);
+    setIsDetailDialogOpen(true);
+  };
 
   const handleClaimCreated = async () => {
     try {
-      const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, { params: { dateFrom, dateTo } })
-      setClaims(Array.isArray(response.data) ? response.data : [])
+      const response = await axiosPrivate.get(API_ENDPOINTS.CLAIMS, {
+        params: { dateFrom, dateTo },
+      });
+      setClaims(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
-      console.error("Failed to refresh claims:", error)
+      console.error("Failed to refresh claims:", error);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSidebar />
+      <SCStaffSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -288,10 +360,12 @@ export default function SCStaffWarrantyClaim() {
                 { label: "Decide", value: decideClaims },
                 { label: "Repair", value: repairClaims },
                 { label: "Done", value: doneClaims },
-              ].map(item => (
+              ].map((item) => (
                 <Card key={item.label}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{item.label}</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      {item.label}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{item.value}</div>
@@ -334,35 +408,54 @@ export default function SCStaffWarrantyClaim() {
             </div>
 
             {loading ? (
-              <p className="text-center text-muted-foreground mt-6">Loading claims...</p>
+              <p className="text-center text-muted-foreground mt-6">
+                Loading claims...
+              </p>
             ) : filteredClaims.length === 0 ? (
               <p className="text-center text-muted-foreground mt-6">
                 No claims found for your service center.
               </p>
             ) : (
               filteredClaims.map((claim) => (
-                <Card key={claim.claimId} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={claim.claimId}
+                  className="hover:shadow-md transition-shadow"
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold">Claim #{claim.claimId}</h3>
-                          <Badge variant="outline" className={getStatusColor(claim.status)}>
+                          <h3 className="text-lg font-semibold">
+                            Claim #{claim.claimId}
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className={getStatusColor(claim.status)}
+                          >
                             {claim.status}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm" >
+                        <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Vehicle Plate: </span>
+                            <span className="text-muted-foreground">
+                              Vehicle Plate:{" "}
+                            </span>
                             <span className="font-medium">{claim.plate}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Date: </span>
-                            <span className="font-medium">{claim.claimDate}</span>
+                            <span className="text-muted-foreground">
+                              Date:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {claim.claimDate}
+                            </span>
                           </div>
                         </div>
                         {claim.timeline && claim.timeline.length > 0 && (
-                          <WarrantyTimeline timeline={claim.timeline} currentStatus={claim.status} />
+                          <WarrantyTimeline
+                            timeline={claim.timeline}
+                            currentStatus={claim.status}
+                          />
                         )}
                       </div>
                       <Button
@@ -395,5 +488,5 @@ export default function SCStaffWarrantyClaim() {
         selectedClaim={selectedClaim}
       />
     </div>
-  )
+  );
 }

@@ -1,29 +1,27 @@
 import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
 import CustomersTable from "@/components/scstaff/ScsProfTable";
-import { useEffect } from "react";
+import { useState } from "react";
 
 export default function SCStaffProfile() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar */}
-      <SCStaffSibebar />
+      <SCStaffSibebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
 
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
-            {/* <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Profile Management
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Configure system preferences and integrations
-              </p>
-            </div> */}
-
             {/* Customer Tab */}
             <CustomersTable />
           </div>
