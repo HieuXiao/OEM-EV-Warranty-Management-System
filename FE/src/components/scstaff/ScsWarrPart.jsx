@@ -8,20 +8,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// API endpoints
 const API_ENDPOINTS = {
   CLAIM_PART_CHECK: "/api/claim-part-check/search/warranty/",
   PARTS_UNDER_WARRANTY: "/api/part-under-warranty-controller",
+  WARRANTY_FILES: "/api/warranty-files/search/claim",
 };
 
-// initial state
 const initialState = {
   parts: [],
   loading: false,
   open: false,
 };
 
-// reducer function
 function reducer(state, action) {
   switch (action.type) {
     case "SET_OPEN":
@@ -48,29 +46,37 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
       try {
         dispatch({ type: "SET_LOADING", payload: true });
 
-        const [checkRes, allPartsRes] = await Promise.all([
+        const [checkRes, allPartsRes, fileRes] = await Promise.all([
           axiosPrivate.get(`${API_ENDPOINTS.CLAIM_PART_CHECK}${warrantyId}`),
           axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
+          axiosPrivate.get(`${API_ENDPOINTS.WARRANTY_FILES}?value=${warrantyId}`),
         ]);
 
         const checkedParts = checkRes.data || [];
         const allParts = allPartsRes.data || [];
+        const files = fileRes.data || [];
 
-        // Chỉ lấy các part có isRepair = true, map tên từ partId của under-warranty
         const repairParts = checkedParts
           .filter((p) => p.isRepair)
           .map((p) => {
-            const matched = allParts.find((a) => a.partId === p.partNumber);
+            const matchedPart = allParts.find((a) => a.partId === p.partNumber);
+
+            const fileImages = files
+              .filter(f =>
+                p.partSerials.some(serial => f.fileId.endsWith(serial))
+              )
+              .flatMap(f => f.mediaUrls);
+
             return {
               partNumber: p.partNumber,
-              namePart: matched?.partName || "—",
+              namePart: matchedPart?.partName || "—",
               quantity: p.quantity,
+              images: fileImages,
             };
           });
 
         dispatch({ type: "SET_PARTS", payload: repairParts });
       } catch (err) {
-        console.error("Error loading parts:", err);
         dispatch({ type: "SET_PARTS", payload: [] });
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
@@ -101,22 +107,30 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
           </DialogHeader>
 
           {loading ? (
-            <p className="text-sm italic text-muted-foreground py-4">
-              Loading parts...
-            </p>
+            <p className="text-sm italic text-muted-foreground py-4">Loading parts...</p>
           ) : parts.length === 0 ? (
-            <p className="text-sm italic text-muted-foreground py-4">
-              No repair parts found.
-            </p>
+            <p className="text-sm italic text-muted-foreground py-4">No repair parts found.</p>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {parts.map((p, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center text-sm border rounded-md px-3 py-1.5 bg-muted/40"
-                >
-                  <span>{p.namePart}</span>
-                  <span className="font-medium">x{p.quantity}</span>
+                <div key={i} className="border rounded-md p-3 bg-muted/40 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium">{p.namePart}</span>
+                    <span>x{p.quantity}</span>
+                  </div>
+
+                  {p.images?.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {p.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt="part"
+                          className="w-full h-24 object-cover rounded-md border"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
