@@ -305,8 +305,8 @@ export default function AdUserCreate({
                       value={center.centerId.toString()}
                       className="whitespace-normal break-words text-sm leading-snug py-2"
                     >
-                      <div className="max-w-full">
-                        <span className="font-medium block">
+                      <div className="w-full whitespace-normal break-words text-sm !text-left">
+                        <span className="font-medium break-words">
                           {center.centerName} - {center.location}
                         </span>
                       </div>
