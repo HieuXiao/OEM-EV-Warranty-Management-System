@@ -532,19 +532,16 @@ export default function EVMStaffDetailWarranty({ open, onOpenChange, warranty })
               </div>
             </div>
 
-            <Separator className="my-4" />
-            <div className="space-y-2">
+            <div className="space-y-2 w-full">
               <Label htmlFor="comment">Comment</Label>
               <Textarea
                 id="comment"
                 placeholder="Enter your comment here..."
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                rows={4}
-                className="resize-none"
+                className="w-full h-24 max-h-48 resize-y overflow-y-auto break-words break-all whitespace-pre-wrap"
               />
             </div>
-
             <div className="flex justify-end gap-4 pt-4">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

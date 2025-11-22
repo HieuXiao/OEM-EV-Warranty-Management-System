@@ -177,6 +177,7 @@ export default function SCStaffWarrantyClaim() {
   const [sortBy, setSortBy] = useState("date-desc");
   const [userCenterId, setUserCenterId] = useState(null);
   const [vehicles, setVehicles] = useState([]);
+  
 
   useEffect(() => {
     const fetchClaims = async () => {
