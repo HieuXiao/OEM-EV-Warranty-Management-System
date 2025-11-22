@@ -68,7 +68,7 @@ export default function AdminSidebar({ isMobileOpen, onClose }) {
           />
         </nav>
         {/* Footer */}
-        <div className="p-4 border-t border-border space-y-2">
+        {/* <div className="p-4 border-t border-border space-y-2">
           <Button
             variant="outline"
             size="sm"
@@ -77,7 +77,7 @@ export default function AdminSidebar({ isMobileOpen, onClose }) {
             <BookOpen className="h-4 w-4" />
             Guide
           </Button>
-        </div>
+        </div> */}
       </div>
     </aside>
   );
