@@ -598,16 +598,18 @@ export default function CustomersTable() {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Address</TableHead>
-                  <TableHead className="text-center w-[100px]">
-                    Actions
-                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               {/* Customer data */}
               <TableBody>
                 {currentItems.map((c, i) => (
-                  <TableRow key={c.customerId}>
+                  <TableRow
+                    key={c.customerId}
+                    onClick={() =>
+                      navigate(`/scstaff/profiles/${c.customerId}`)
+                    }
+                  >
                     <TableCell>
                       <p className="font-medium text-sm">{i + 1}</p>
                     </TableCell>
@@ -622,21 +624,6 @@ export default function CustomersTable() {
                     </TableCell>
                     <TableCell>
                       <p className="font-medium text-sm">{c.customerAddress}</p>
-                    </TableCell>
-
-                    <TableCell className="text-center">
-                      <div className="flex justify-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/scstaff/profiles/${c.customerId}`)
-                          }
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Detail
-                        </Button>
-                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
