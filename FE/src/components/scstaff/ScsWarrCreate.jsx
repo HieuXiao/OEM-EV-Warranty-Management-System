@@ -280,9 +280,11 @@ export default function ScsWarrCreate({ isOpen, onOpenChange, onClaimCreated }) 
         scStaffId: currentUser.accountId?.toUpperCase(),
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
-        description,
+        description: description,
         campaignIds: isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
       }
+
+      console.log("Creating claim with payload:", payload)
 
       await axiosPrivate.post(API.CLAIMS, payload)
       dispatch({ type: "RESET_FORM" })

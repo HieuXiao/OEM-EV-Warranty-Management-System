@@ -175,31 +175,54 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
 
   const validateBeforeSubmit = () => {
     for (const part of state) {
+      if (!part.serials || !part.images) return false;
+
+      const fullSerials = [];
+
       for (let i = 0; i < part.quantity; i++) {
-        if (!part.serials[i]?.trim()) {
+        const s = part.serials[i]?.trim();
+
+        if (!s) {
           dispatch({
             type: "SET_ERROR",
             partNumber: part.partNumber,
-            error: `Part "${part.partName}" thiếu serial #${i + 1}`,
+            error: `Serial #${i + 1} of "${part.partName}" missing!`,
           });
           return false;
         }
+
+        const full = `${part.partId}-${s}`;
+
+        if (fullSerials.includes(full)) {
+          dispatch({
+            type: "SET_ERROR",
+            partNumber: part.partNumber,
+            error: `Serial "${full}" duplicated in part "${part.partName}"!`,
+          });
+          return false;
+        }
+
+        fullSerials.push(full);
+
         if (!part.images[i]) {
           dispatch({
             type: "SET_ERROR",
             partNumber: part.partNumber,
-            error: `Serial #${i + 1} của "${part.partName}" chưa có ảnh!`,
+            error: `Serial #${i + 1} of "${part.partName}" missing image!`,
           });
           return false;
         }
       }
     }
+
     return true;
   };
 
   const handleCompleteRepair = async () => {
     if (!job?.claimId || loading) return;
-    if (!validateBeforeSubmit()) return;
+    if (!validateBeforeSubmit()) {
+      return;
+    } 
 
     setLoading(true);
     try {
@@ -275,7 +298,7 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
         <div className="p-6 space-y-6">
           {state.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              Không có bộ phận nào cần repair trong claim này.
+              No parts need repair in this claim.
             </p>
           ) : (
             state.map((part) => (
@@ -354,7 +377,6 @@ export default function ScTechnicianRepairForm({ job, onClose, onComplete }) {
                           </div>
                         </div>
 
-                        {/* Hiển thị ảnh preview */}
                         {hasImage && (
                           <div className="relative mt-2 w-28 h-28 border rounded-lg overflow-hidden">
                             <img
