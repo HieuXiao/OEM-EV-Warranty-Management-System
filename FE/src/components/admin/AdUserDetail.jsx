@@ -5,29 +5,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Trash2, Pencil } from "lucide-react" 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
-/**
- * AdminUserDetail Component
- * Displays a non-editable dialog with the detailed information of a selected user.
- *
- * @param {boolean} open - Controls the visibility of the dialog.
- * @param {function} onClose - Handler to close the dialog.
- * @param {Object} user - The currently selected user object.
- * @param {function} onToggleStatus - Handler to toggle user status (passed to actions).
- * @param {function} onEdit - Handler to open the edit dialog (passed to actions).
- */
+export default function AdminUserDetail({ open, onClose, user }) {
+  if (!user) return null;
 
-export default function AdminUserDetail({ open, onClose, user, onToggleStatus, onEdit }) {
-  // If no user is selected, return null to prevent rendering errors.
-  if (!user) return null
-
-  // Destructure user properties for cleaner access
   const {
     accountId,
     username,
@@ -38,113 +23,142 @@ export default function AdminUserDetail({ open, onClose, user, onToggleStatus, o
     roleName,
     enabled,
     serviceCenter,
-  } = user
+  } = user;
 
-  /**
-   * Utility function to display a default placeholder if the value is null, undefined, or empty.
-   * @param {*} val - The value to check.
-   * @returns {string} The original value or a placeholder.
-   */
-  const safe = (val) => (val === null || val === undefined || val === "" ? "--" : val)
+  const safe = (val) => val || "—";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+      {/* CHỈNH SỬA: Responsive Modal */}
+      <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">User Details</DialogTitle>
-          <DialogDescription>View user's comprehensive profile and account status</DialogDescription>
+          <DialogTitle>User Details</DialogTitle>
         </DialogHeader>
 
-        {/* ===== Account Information Section ===== */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg mt-2">Account Information</h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Account ID (Required field for identification) */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Account ID</label>
-              <Input value={safe(accountId)} readOnly />
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4">
+            {/* CHỈNH SỬA: Stack on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Account ID
+                </Label>
+                <Input
+                  value={safe(accountId)}
+                  readOnly
+                  className="bg-muted/50"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Username
+                </Label>
+                <Input
+                  value={safe(username)}
+                  readOnly
+                  className="bg-muted/50"
+                />
+              </div>
             </div>
 
-            {/* Username */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Username</label>
-              <Input value={safe(username)} readOnly />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Full Name
+                </Label>
+                <Input value={safe(fullName)} readOnly />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Gender
+                </Label>
+                <Input value={gender ? "Male" : "Female"} readOnly />
+              </div>
             </div>
 
-            {/* Full Name */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Full Name</label>
-              <Input value={safe(fullName)} readOnly />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Email
+                </Label>
+                <Input value={safe(email)} readOnly />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Phone
+                </Label>
+                <Input value={safe(phone)} readOnly />
+              </div>
             </div>
 
-            {/* Gender */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Gender</label>
-              <Input 
-                value={gender === true ? "Male" : gender === false ? "Female" : "--"} 
-                readOnly 
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Role
+                </Label>
+                <Input value={safe(roleName)} readOnly />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Status
+                </Label>
+                <div
+                  className={`flex items-center h-10 px-3 rounded-md border ${
+                    enabled
+                      ? "bg-green-50 border-green-200 text-green-700"
+                      : "bg-red-50 border-red-200 text-red-700"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full mr-2 ${
+                      enabled ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  ></span>
+                  {enabled ? "Active" : "Inactive"}
+                </div>
+              </div>
             </div>
-
-            {/* Email */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Email</label>
-              <Input value={safe(email)} readOnly />
-            </div>
-
-            {/* Phone */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Phone</label>
-              <Input value={safe(phone)} readOnly />
-            </div>
-
-            {/* Role */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Role</label>
-              <Input value={safe(roleName)} readOnly />
-            </div>
-
-            {/* Status */}
-            <div className="grid gap-1">
-              <label className="text-sm font-medium">Status</label>
-              <Input value={enabled ? "Enabled" : "Disabled"} readOnly />
-            </div>
-            
           </div>
         </div>
 
-        <Separator className="my-4" />
-
-        {/* ===== Service Center Information Section ===== */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Service Center Information</h3>
-          {serviceCenter ? (
-            <div className="grid grid-cols-2 gap-4">
-              {/* Center ID */}
-              <div className="grid gap-1">
-                <label className="text-sm font-medium">Center ID</label>
-                <Input value={safe(serviceCenter.centerId)} readOnly />
-              </div>
-
-              {/* Center Name */}
-              <div className="grid gap-1">
-                <label className="text-sm font-medium">Center Name</label>
-                <Input value={safe(serviceCenter.centerName)} readOnly />
-              </div>
-
-              {/* Location (Spans two columns) */}
-              <div className="col-span-2 grid gap-1">
-                <label className="text-sm font-medium">Location</label>
-                <Input value={safe(serviceCenter.location)} readOnly />
-              </div>
+        {(roleName?.toLowerCase() === "sc_staff" ||
+          roleName?.toLowerCase() === "sc_technician") && (
+          <>
+            <Separator className="my-2" />
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg">
+                Service Center Information
+              </h3>
+              {serviceCenter ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-1">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Center ID
+                    </Label>
+                    <Input value={safe(serviceCenter.centerId)} readOnly />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Center Name
+                    </Label>
+                    <Input value={safe(serviceCenter.centerName)} readOnly />
+                  </div>
+                  <div className="sm:col-span-2 grid gap-1">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Location
+                    </Label>
+                    <Input value={safe(serviceCenter.location)} readOnly />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  No service center assigned.
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No service center assigned.</p>
-          )}
-        </div>
-
+          </>
+        )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

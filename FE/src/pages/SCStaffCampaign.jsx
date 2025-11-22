@@ -1,4 +1,3 @@
-// FE/src/pages/SCStaffCampaign.jsx
 import React, { useEffect, useState, useReducer, useCallback } from "react";
 import Header from "@/components/Header";
 import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
@@ -105,30 +104,41 @@ export default function SCStaffCampaign() {
     fetchAllData();
   };
 
-  // --- Giao diện giữ nguyên, chỉ bọc logic loading/error ---
+  // --- Giao diện Responsive ---
   return (
     <div className="min-h-screen bg-muted/30">
       <SCStaffSibebar
         isMobileOpen={isMobileMenuOpen}
         onClose={handleCloseMenu}
       />
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 transition-all duration-200">
         <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="practipant">Participants</TabsTrigger>
-                <TabsTrigger value="appointment">Appointments</TabsTrigger>
-                <TabsTrigger value="report">Reports</TabsTrigger>
-              </TabsList>
+              {/* CHỈNH SỬA: Wrapper cuộn ngang cho Tabs trên mobile */}
+              <div className="w-full overflow-x-auto pb-2 no-scrollbar">
+                <TabsList className="w-full sm:w-auto inline-flex justify-start sm:justify-center min-w-max">
+                  <TabsTrigger value="overview" className="px-4">
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="practipant" className="px-4">
+                    Participants
+                  </TabsTrigger>
+                  <TabsTrigger value="appointment" className="px-4">
+                    Appointments
+                  </TabsTrigger>
+                  <TabsTrigger value="report" className="px-4">
+                    Reports
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              {/* Truyền 'status' và 'error' xuống cho TẤT CẢ các tab */}
-
+              {/* Nội dung Tabs: Truyền props status và error xuống */}
               <TabsContent value="overview" className="space-y-4">
                 <SCStaffOverview {...dataProps} status={status} error={error} />
               </TabsContent>
+
               <TabsContent value="practipant" className="space-y-4">
                 <ScsCampaignPraticipants
                   {...dataProps}
@@ -137,6 +147,7 @@ export default function SCStaffCampaign() {
                   onRefreshData={handleRefreshData}
                 />
               </TabsContent>
+
               <TabsContent value="appointment" className="space-y-4">
                 <SCStaffAppointments
                   campaigns={dataProps.allCampaigns}
@@ -147,6 +158,7 @@ export default function SCStaffCampaign() {
                   onRefreshData={handleRefreshData}
                 />
               </TabsContent>
+
               <TabsContent value="report" className="space-y-4">
                 <ScsReportSection
                   {...dataProps}

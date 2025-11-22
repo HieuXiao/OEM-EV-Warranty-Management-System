@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
+import {
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,43 +52,45 @@ export default function EVMStaffHistoryWarranty({ auth, onBack }) {
 
   useEffect(() => {
     const fetchData = async () => {
-        try {
+      try {
         setLoading(true);
         const resClaims = await axiosPrivate.get(API.CLAIMS);
         const claimsData = Array.isArray(resClaims.data) ? resClaims.data : [];
 
         const userClaims = claimsData.filter(
-            (c) => c.evmId?.toUpperCase() === evmId.toUpperCase()
+          (c) => c.evmId?.toUpperCase() === evmId.toUpperCase()
         );
 
         const enrichedClaims = await Promise.all(
-            userClaims.map(async (claim) => {
+          userClaims.map(async (claim) => {
             try {
-                const resVehicle = await axiosPrivate.get(`${API.VEHICLES}/${claim.vin}`);
-                const vehicle = resVehicle.data;
-                return {
+              const resVehicle = await axiosPrivate.get(
+                `${API.VEHICLES}/${claim.vin}`
+              );
+              const vehicle = resVehicle.data;
+              return {
                 ...claim,
                 plate: vehicle?.plate || "—",
                 vehicleModel: vehicle?.model || "Unknown",
-                };
+              };
             } catch (err) {
-                console.error("Failed to fetch vehicle for VIN:", claim.vin, err);
-                return { ...claim, plate: "—", vehicleModel: "Unknown" };
+              console.error("Failed to fetch vehicle for VIN:", claim.vin, err);
+              return { ...claim, plate: "—", vehicleModel: "Unknown" };
             }
-            })
+          })
         );
 
         setClaims(enrichedClaims);
-        } catch (err) {
+      } catch (err) {
         console.error("Failed to fetch claims:", err);
         setClaims([]);
-        } finally {
+      } finally {
         setLoading(false);
-        }
+      }
     };
 
     if (evmId) fetchData();
-    }, [evmId]);
+  }, [evmId]);
 
   const filteredClaims = claims
     .filter((claim) => {
@@ -109,7 +117,10 @@ export default function EVMStaffHistoryWarranty({ auth, onBack }) {
       return serialB - serialA;
     });
 
-  const totalPages = Math.max(1, Math.ceil(filteredClaims.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredClaims.length / itemsPerPage)
+  );
   const paginatedClaims = filteredClaims.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -134,122 +145,177 @@ export default function EVMStaffHistoryWarranty({ auth, onBack }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="mb-4 flex items-center gap-4">
+    <div className="space-y-6">
+      {/* Header & Back Button */}
+      <div className="flex items-center justify-between">
         <Button
           onClick={onBack}
-          className="bg-gray-200 hover:bg-gray-300 flex items-center gap-2"
+          variant="outline"
+          className="gap-2 hover:bg-muted"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> Back to List
         </Button>
+      </div>
 
-        <div className="flex flex-col">
-          <label className="text-xs text-muted-foreground mb-1">Date From</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-[160px]"
-            max={dateTo}
-          />
+      {/* Filters Section - Responsive Card */}
+      <div className="flex flex-col lg:flex-row gap-4 bg-card p-4 rounded-lg border border-border shadow-sm">
+        {/* Date Range */}
+        <div className="flex gap-4 w-full lg:w-auto">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Date From
+            </label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full lg:w-[150px]"
+              max={dateTo}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Date To
+            </label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full lg:w-[150px]"
+              min={dateFrom}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-xs text-muted-foreground mb-1">Date To</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-[160px]"
-            min={dateFrom}
-          />
-        </div>
+        {/* Search & Status Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 flex-1 items-end">
+          <div className="relative flex-1 w-full">
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by claim ID or plate..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+          </div>
 
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by claim ID or plate..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <div className="w-[150px]">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="CHECK">Check</SelectItem>
-              <SelectItem value="DECIDE">Decide</SelectItem>
-              <SelectItem value="REPAIR">Repair</SelectItem>
-              <SelectItem value="HANDOVER">Handover</SelectItem>
-              <SelectItem value="DONE">Done</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-full sm:w-[180px]">
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Status
+            </label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="CHECK">Check</SelectItem>
+                <SelectItem value="DECIDE">Decide</SelectItem>
+                <SelectItem value="REPAIR">Repair</SelectItem>
+                <SelectItem value="HANDOVER">Handover</SelectItem>
+                <SelectItem value="DONE">Done</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
+      {/* Table Content */}
       {loading ? (
-        <p className="text-center text-muted-foreground mt-6">Loading claims...</p>
-      ) : filteredClaims.length === 0 ? (
-        <p className="text-center text-muted-foreground mt-6">
-          No claims found for your account.
+        <p className="text-center text-muted-foreground py-10">
+          Loading claims...
         </p>
+      ) : filteredClaims.length === 0 ? (
+        <div className="text-center py-10 border border-dashed rounded-lg bg-muted/10">
+          <p className="text-muted-foreground">
+            No claims found for your account.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="w-full overflow-x-auto">
-            <Table className="table-fixed w-full border-collapse">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">Claim ID</TableHead>
-                  <TableHead className="w-[140px]">Vehicle Plate</TableHead>
-                  <TableHead className="w-[160px]">Model</TableHead>
-                  <TableHead className="w-[240px]">Description</TableHead>
-                  <TableHead className="w-[120px] text-center">Status</TableHead>
-                  <TableHead className="w-[140px] text-center">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedClaims.map((claim) => (
-                  <TableRow key={claim.claimId} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="font-medium align-middle">{claim.claimId}</TableCell>
-                    <TableCell className="align-middle">{claim.plate}</TableCell>
-                    <TableCell className="align-middle">{claim.vehicleModel}</TableCell>
-                    <TableCell className="align-middle truncate max-w-[240px]">{claim.description || "—"}</TableCell>
-                    <TableCell className="align-middle text-center">{getStatusBadge(claim.status)}</TableCell>
-                    <TableCell className="align-middle text-center">{claim.claimDate}</TableCell>
+          <div className="border rounded-lg bg-card overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[900px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[140px]">Claim ID</TableHead>
+                    <TableHead className="w-[120px]">Vehicle Plate</TableHead>
+                    <TableHead className="w-[100px]">Model</TableHead>
+                    <TableHead className="w-[200px]">Description</TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Status
+                    </TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Date
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedClaims.map((claim) => (
+                    <TableRow
+                      key={claim.claimId}
+                      className="hover:bg-muted/50 transition-colors"
+                    >
+                      <TableCell className="font-medium align-middle">
+                        {claim.claimId}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {claim.plate}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {claim.vehicleModel}
+                      </TableCell>
+                      <TableCell
+                        className="align-middle truncate max-w-[200px]"
+                        title={claim.description}
+                      >
+                        {claim.description || "—"}
+                      </TableCell>
+                      <TableCell className="align-middle text-center">
+                        {getStatusBadge(claim.status)}
+                      </TableCell>
+                      <TableCell className="align-middle text-center whitespace-nowrap">
+                        {new Date(claim.claimDate).toLocaleDateString("en-GB")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {filteredClaims.length > itemsPerPage && (
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>

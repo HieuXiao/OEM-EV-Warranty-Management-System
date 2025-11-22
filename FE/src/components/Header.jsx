@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Settings, Menu } from "lucide-react";
+import { Settings, Menu, LogOut } from "lucide-react";
 import { clearAuth } from "@/lib/auth";
 import useAuth from "@/hook/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +58,7 @@ export default function Header({ onMenuClick }) {
               Settings
             </DropdownMenuItem>
             <DropdownMenuItem onClick={logout} className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

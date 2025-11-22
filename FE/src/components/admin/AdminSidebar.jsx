@@ -66,11 +66,6 @@ export default function AdminSidebar({ isMobileOpen, onClose }) {
             icon={Package}
             funcName={"Parts & Policy"}
           />
-          <NavigationItem
-            path={"/admin/setting"}
-            icon={Settings}
-            funcName={"Setting"}
-          />
         </nav>
         {/* Footer */}
         <div className="p-4 border-t border-border space-y-2">

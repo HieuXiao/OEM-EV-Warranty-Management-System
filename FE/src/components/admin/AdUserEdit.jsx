@@ -1,3 +1,5 @@
+// FE/src/components/admin/AdUserEdit.jsx
+
 import {
   Dialog,
   DialogContent,
@@ -128,7 +130,7 @@ export default function AdUserEdit({
               value={formData.gender}
               onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>

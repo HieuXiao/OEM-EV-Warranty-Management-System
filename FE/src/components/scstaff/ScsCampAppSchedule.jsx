@@ -86,7 +86,8 @@ export function ScheduleAppointmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, max-h-[90vh] để cuộn */}
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
           <DialogDescription>
@@ -97,7 +98,7 @@ export function ScheduleAppointmentDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Customer Information</Label>
-            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
+            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm break-words">
               <p>
                 <span className="text-muted-foreground">Owner:</span>{" "}
                 {vehicle.customer.customerName}
@@ -108,7 +109,7 @@ export function ScheduleAppointmentDialog({
               </p>
               <p>
                 <span className="text-muted-foreground">VIN:</span>{" "}
-                {vehicle.vin}
+                <span className="font-mono text-xs">{vehicle.vin}</span>
               </p>
               <p>
                 <span className="text-muted-foreground">License:</span>{" "}
@@ -149,7 +150,7 @@ export function ScheduleAppointmentDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

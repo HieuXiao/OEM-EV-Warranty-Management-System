@@ -1,5 +1,3 @@
-// FE/src/components/admin/AdServDetail.jsx
-
 import { useEffect, useState } from "react";
 import axiosPrivate from "@/api/axios";
 import {
@@ -19,75 +17,74 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Loader2, MapPin } from "lucide-react";
 
-/**
- * Component hiển thị chi tiết trung tâm dịch vụ và danh sách nhân viên
- * @param {Object} props
- * @param {Object} props.center - Thông tin trung tâm được chọn
- * @param {Function} props.onBack - Hàm callback khi nhấn "Back"
- */
 export default function AdServDetail({ center, onBack }) {
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchStaff = async () => {
-    if (!center?.centerId) return;
-    try {
-      setLoading(true);
-      const res = await axiosPrivate.get("/api/accounts/");
-      const data = res.data || [];
-
-      const filtered = data.filter(
-        (acc) => acc.serviceCenter?.centerId === center.centerId
-      );
-      setStaffList(filtered);
-    } catch (err) {
-      console.error("Failed to load staff:", err);
-      alert("Không thể tải danh sách nhân viên. Vui lòng thử lại sau.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchStaff = async () => {
+      if (!center?.centerId) return;
+      try {
+        setLoading(true);
+        const res = await axiosPrivate.get("/api/accounts/");
+        const data = res.data || [];
+
+        const filtered = data.filter(
+          (acc) => acc.serviceCenter?.centerId === center.centerId
+        );
+        setStaffList(filtered);
+      } catch (error) {
+        console.error("Failed to fetch staff", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchStaff();
   }, [center]);
 
-  if (!center) return <p>No center selected.</p>;
+  if (!center) return null;
 
   return (
-    <Card className="p-4">
-      {/* Header */}
-      <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <Card className="shadow-sm border">
+      <CardHeader className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4">
         <div>
-          <CardTitle className="text-2xl">{center.centerName}</CardTitle>
-          <CardDescription>
-            ID: {center.centerId} — {center.location}
+          <CardTitle className="text-xl sm:text-2xl font-bold">
+            {center.centerName}
+          </CardTitle>
+          <CardDescription className="flex items-center mt-1 text-sm sm:text-base">
+            <MapPin className="mr-1 h-4 w-4 text-muted-foreground" />
+            {center.location}
           </CardDescription>
         </div>
-        <Button variant="outline" onClick={onBack}>
-          ← Back
+        <Button variant="outline" onClick={onBack} className="shrink-0">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
       </CardHeader>
 
-      <Separator className="my-4" />
-
-      {/* Staff list */}
       <CardContent>
-        <h3 className="text-lg font-semibold mb-3">Staff Members</h3>
+        <Separator className="my-4" />
+
+        <h3 className="text-lg font-semibold mb-4">
+          Staff Members ({staffList.length})
+        </h3>
 
         {loading ? (
-          <p>Loading staff...</p>
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
+            <span className="text-gray-600">Loading staff...</span>
+          </div>
         ) : staffList.length === 0 ? (
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground italic">
             No staff assigned to this center.
           </p>
         ) : (
+          // Responsive Table Wrapper
           <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
+            <Table className="min-w-[700px]">
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Account ID</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -97,18 +94,19 @@ export default function AdServDetail({ center, onBack }) {
               </TableHeader>
               <TableBody>
                 {staffList.map((s) => (
-                  <TableRow key={s.accountId}>
-                    <TableCell>{s.accountId}</TableCell>
-                    <TableCell>{s.fullName}</TableCell>
+                  <TableRow key={s.accountId} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{s.fullName}</TableCell>
                     <TableCell>{s.email}</TableCell>
                     <TableCell>{s.phone}</TableCell>
-                    <TableCell>{s.roleName}</TableCell>
+                    <TableCell className="capitalize text-muted-foreground">
+                      {s.roleName?.replace("_", " ")}
+                    </TableCell>
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded text-xs ${
+                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${
                           s.enabled
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-200 text-gray-700"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-red-50 text-red-700 border-red-200"
                         }`}
                       >
                         {s.enabled ? "Active" : "Disabled"}
