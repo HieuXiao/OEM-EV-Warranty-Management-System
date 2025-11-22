@@ -185,7 +185,7 @@ export default function ScsReportSection({
                     <TableRow>
                       <TableHead>Campaign</TableHead>
                       <TableHead>Campaign Status</TableHead>
-                      <TableHead className="text-center">Comp/Aff</TableHead>
+                      <TableHead className="text-center">Completed</TableHead>
                       <TableHead className="text-center">
                         Report Status
                       </TableHead>
