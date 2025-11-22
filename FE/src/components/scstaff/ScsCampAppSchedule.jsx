@@ -1,5 +1,4 @@
-// FE/src/components/scstaff/ScsCampAppSchedule.jsx
-import { useState } from "react";
+import { useState, useMemo } from "react"; // Thêm useMemo
 import { Calendar } from "lucide-react";
 import {
   Dialog,
@@ -17,23 +16,51 @@ import axiosPrivate from "@/api/axios";
 
 const APPOINTMENT_URL = "/api/service-appointments";
 
-const getLocalISOString = () => {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
+// Hàm helper để chuyển đổi Date object sang chuỗi YYYY-MM-DDTHH:MM (Local Time)
+const toLocalISOString = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return ""; // Check invalid date
+  // Trừ đi phần chênh lệch múi giờ để hiển thị đúng giờ địa phương
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
 };
 
 export function ScheduleAppointmentDialog({
   open,
   onOpenChange,
   vehicle,
-  campaign,
+  campaign, // Nhận prop campaign để lấy startDate/endDate
   onScheduleSuccess,
 }) {
   const [dateTime, setDateTime] = useState("");
   const [notes, setNotes] = useState("");
 
+  // --- TÍNH TOÁN GIỚI HẠN THỜI GIAN ---
+  const { minDateStr, maxDateStr, dateRangeText } = useMemo(() => {
+    if (!campaign) return { minDateStr: "", maxDateStr: "", dateRangeText: "" };
+
+    const now = new Date();
+    const campStart = new Date(campaign.startDate);
+    const campEnd = new Date(campaign.endDate);
+
+    const effectiveMin = now > campStart ? now : campStart;
+
+    return {
+      minDateStr: toLocalISOString(effectiveMin),
+      maxDateStr: toLocalISOString(campEnd),
+      dateRangeText: `${campStart.toLocaleDateString()} - ${campEnd.toLocaleDateString()}`,
+    };
+  }, [campaign, open]); // Tính lại khi campaign thay đổi hoặc mở dialog
+  // ------------------------------------
+
   const handleSchedule = async (e) => {
+    // Validate thủ công thêm một lần nữa để chắc chắn
+    if (dateTime < minDateStr || dateTime > maxDateStr) {
+      alert("Please select a date within the valid campaign period.");
+      return;
+    }
+
     try {
       const newAppointment = {
         vin: vehicle.vin,
@@ -51,10 +78,11 @@ export function ScheduleAppointmentDialog({
       }
     } catch (error) {
       console.error("API Error: " + error.message);
+      alert("Failed to schedule appointment.");
     }
   };
 
-  if (!vehicle) return null;
+  if (!vehicle || !campaign) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,17 +115,26 @@ export function ScheduleAppointmentDialog({
                 <span className="text-muted-foreground">License:</span>{" "}
                 {vehicle.plate}
               </p>
+              <p>
+                <span className="text-muted-foreground">Campaign:</span>{" "}
+                {campaign.campaignName}
+              </p>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="datetime">Date and Time</Label>
+            {/* Hiển thị thông tin khoảng thời gian cho user dễ biết */}
+            <p className="text-xs text-muted-foreground">
+              Valid campaign period: {dateRangeText}
+            </p>
             <Input
               id="datetime"
               type="datetime-local"
               value={dateTime}
               onChange={(e) => setDateTime(e.target.value)}
-              min={getLocalISOString()}
+              min={minDateStr} // Giới hạn dưới
+              max={maxDateStr} // Giới hạn trên
             />
           </div>
 

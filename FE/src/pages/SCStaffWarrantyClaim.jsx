@@ -22,7 +22,7 @@ const API = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
   VEHICLES: "/api/vehicles",
-}
+};
 
 const getStatusColor = (status) => {
   const colors = {
@@ -184,13 +184,20 @@ export default function SCStaffWarrantyClaim() {
         setLoading(true);
         const [claimsRes, vehiclesRes] = await Promise.all([
           axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
-          axiosPrivate.get(API.VEHICLES)
-        ])
-        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
-        const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
+          axiosPrivate.get(API.VEHICLES),
+        ]);
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+        const vehiclesData = Array.isArray(vehiclesRes.data)
+          ? vehiclesRes.data
+          : [];
 
-        const vehicleMap = Object.fromEntries(vehiclesData.map(v => [v.vin, v.plate || "—"]))
-        const merged = claimsData.map(c => ({ ...c, plate: vehicleMap[c.vin] || "—" }))
+        const vehicleMap = Object.fromEntries(
+          vehiclesData.map((v) => [v.vin, v.plate || "—"])
+        );
+        const merged = claimsData.map((c) => ({
+          ...c,
+          plate: vehicleMap[c.vin] || "—",
+        }));
 
         setClaims(merged);
       } catch (error) {
@@ -206,7 +213,7 @@ export default function SCStaffWarrantyClaim() {
   useEffect(() => {
     const fetchCenterId = async () => {
       try {
-        const res = await axiosPrivate.get(API.ACCOUNTS)
+        const res = await axiosPrivate.get(API.ACCOUNTS);
         const account = Array.isArray(res.data)
           ? res.data.find(
               (a) =>
@@ -300,8 +307,10 @@ export default function SCStaffWarrantyClaim() {
 
   const handleClaimCreated = async () => {
     try {
-      const response = await axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } })
-      setClaims(Array.isArray(response.data) ? response.data : [])
+      const response = await axiosPrivate.get(API.CLAIMS, {
+        params: { dateFrom, dateTo },
+      });
+      setClaims(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to refresh claims:", error);
     }
@@ -339,9 +348,10 @@ export default function SCStaffWarrantyClaim() {
             </div>
 
             <div className="flex items-end gap-4 w-full">
-              
               <div className="flex flex-col">
-                <label className="text-xs text-muted-foreground mb-1">Date From</label>
+                <label className="text-xs text-muted-foreground mb-1">
+                  Date From
+                </label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -352,7 +362,9 @@ export default function SCStaffWarrantyClaim() {
               </div>
 
               <div className="flex flex-col">
-                <label className="text-xs text-muted-foreground mb-1">Date To</label>
+                <label className="text-xs text-muted-foreground mb-1">
+                  Date To
+                </label>
                 <Input
                   type="date"
                   value={dateTo}
