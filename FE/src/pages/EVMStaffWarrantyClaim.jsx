@@ -95,9 +95,6 @@ export default function EVMStaffWarrantyClaim() {
         });
 
         setWarranties(sortedClaims);
-        console.log(
-          `[EVMClaim] Loaded ${sortedClaims.length} DECIDE claims for evmId: ${evmId}`
-        );
       } catch (err) {
         console.error("[EVMClaim] Fetch failed:", err?.response || err);
       }
@@ -108,9 +105,7 @@ export default function EVMStaffWarrantyClaim() {
 
   const filteredWarranties = warranties.filter((claim) => {
     const matchesSearch =
-      (claim.claimId || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      (claim.claimId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (claim.plate || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (claim.vehicleModel || "")
         .toLowerCase()
@@ -166,137 +161,166 @@ export default function EVMStaffWarrantyClaim() {
         isMobileOpen={isMobileMenuOpen}
         onClose={handleCloseMenu}
       />
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 transition-all duration-200">
         <Header onMenuClick={handleOpenMenu} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 p-4 md:p-6 overflow-hidden">
           {!showHistory ? (
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="mb-4 flex justify-end">
+              {/* Header + Action Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                  Warranty Claim Management
+                </h1>
                 <Button
                   onClick={() => setShowHistory(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white w-full sm:w-auto"
                 >
                   View History
                 </Button>
               </div>
 
-              <h1 className="text-3xl font-bold">Warranty Claim Management</h1>
-
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
+              {/* Filters - Responsive: Stack on mobile, row on desktop */}
+              <div className="flex flex-col lg:flex-row gap-4 bg-card p-4 rounded-lg border border-border shadow-sm">
+                <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by plate, claim ID or model..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 w-full"
                   />
                 </div>
 
-                <Select
-                  value={filterVehicleModel}
-                  onValueChange={setFilterVehicleModel}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Vehicle Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Vehicle Models</SelectItem>
-                    {Array.from(
-                      new Set(
-                        warranties
-                          .map((c) => c.vehicleModel || "")
-                          .filter(Boolean)
-                      )
-                    ).map((v) => (
-                      <SelectItem key={v} value={v}>
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                  <Select
+                    value={filterVehicleModel}
+                    onValueChange={setFilterVehicleModel}
+                  >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Vehicle Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Vehicle Models</SelectItem>
+                      {Array.from(
+                        new Set(
+                          warranties
+                            .map((c) => c.vehicleModel || "")
+                            .filter(Boolean)
+                        )
+                      ).map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[180px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="CHECK">CHECK</SelectItem>
-                    <SelectItem value="REPAIR">REPAIR</SelectItem>
-                    <SelectItem value="DECIDE">DECIDE</SelectItem>
-                    <SelectItem value="HANDOVER">HANDOVER</SelectItem>
-                    <SelectItem value="DONE">DONE</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="CHECK">CHECK</SelectItem>
+                      <SelectItem value="REPAIR">REPAIR</SelectItem>
+                      <SelectItem value="DECIDE">DECIDE</SelectItem>
+                      <SelectItem value="HANDOVER">HANDOVER</SelectItem>
+                      <SelectItem value="DONE">DONE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="w-full overflow-x-auto">
-                <Table className="table-fixed w-full border-collapse">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[120px]">Claim ID</TableHead>
-                      <TableHead className="w-[140px]">Vehicle Plate</TableHead>
-                      <TableHead className="w-[160px]">Model</TableHead>
-                      <TableHead className="w-[240px]">Description</TableHead>
-                      <TableHead className="w-[120px] text-center">
-                        Status
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedWarranties.map((claim) => (
-                      <TableRow
-                        key={claim.claimId}
-                        onClick={() => handleViewWarranty(claim)}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      >
-                        <TableCell className="font-medium align-middle">
-                          {claim.claimId}
-                        </TableCell>
-                        <TableCell className="align-middle">{claim.plate}</TableCell>
-                        <TableCell className="align-middle">
-                          {claim.vehicleModel}
-                        </TableCell>
-                        <TableCell className="align-middle truncate max-w-[240px]">
-                          {claim.description || "—"}
-                        </TableCell>
-                        <TableCell className="align-middle text-center">
-                          {getStatusBadge(claim.status)}
-                        </TableCell>
+              {/* Responsive Table */}
+              <div className="border rounded-lg bg-card overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[900px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">Claim ID</TableHead>
+                        <TableHead className="w-[140px]">
+                          Vehicle Plate
+                        </TableHead>
+                        <TableHead className="w-[160px]">Model</TableHead>
+                        <TableHead className="w-[240px]">Description</TableHead>
+                        <TableHead className="w-[120px] text-center">
+                          Status
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedWarranties.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No claims found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedWarranties.map((claim) => (
+                          <TableRow
+                            key={claim.claimId}
+                            onClick={() => handleViewWarranty(claim)}
+                            className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          >
+                            <TableCell className="font-medium align-middle">
+                              {claim.claimId}
+                            </TableCell>
+                            <TableCell className="align-middle">
+                              {claim.plate}
+                            </TableCell>
+                            <TableCell className="align-middle">
+                              {claim.vehicleModel}
+                            </TableCell>
+                            <TableCell className="align-middle truncate max-w-[240px]">
+                              {claim.description || "—"}
+                            </TableCell>
+                            <TableCell className="align-middle text-center">
+                              {getStatusBadge(claim.status)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Pagination */}
+              {paginatedWarranties.length > 0 && (
+                <div className="flex items-center justify-center gap-4 mt-4 pb-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
-            <EVMStaffHistoryWarranty auth={auth} onBack={() => setShowHistory(false)} />
+            <EVMStaffHistoryWarranty
+              auth={auth}
+              onBack={() => setShowHistory(false)}
+            />
           )}
         </main>
       </div>

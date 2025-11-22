@@ -22,8 +22,9 @@ const API = {
   CLAIMS: "/api/warranty-claims",
   ACCOUNTS: "/api/accounts/",
   VEHICLES: "/api/vehicles",
-}
+};
 
+// Màu sắc cho Badge trạng thái
 const getStatusColor = (status) => {
   const colors = {
     CHECK: "bg-blue-100 text-blue-800 border-blue-300",
@@ -45,16 +46,19 @@ const getDefaultDateTo = () => {
   return new Date().toISOString().split("T")[0];
 };
 
+// Component Timeline (Mô phỏng hình 3)
 const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
   const STATUS_ORDER = ["CHECK", "DECIDE", "REPAIR", "HANDOVER", "DONE"];
-  const STATUS_COLORS = {
-    CHECK: "bg-blue-500",
-    DECIDE: "bg-yellow-500",
-    REPAIR: "bg-orange-500",
-    HANDOVER: "bg-purple-500",
-    DONE: "bg-green-500",
+  // Màu sắc cho các chấm tròn timeline
+  const STATUS_DOT_COLORS = {
+    CHECK: "bg-blue-500 border-blue-500",
+    DECIDE: "bg-yellow-500 border-yellow-500",
+    REPAIR: "bg-orange-500 border-orange-500",
+    HANDOVER: "bg-purple-500 border-purple-500",
+    DONE: "bg-green-500 border-green-500",
   };
 
+  // Parse timeline string từ backend (nếu có)
   const statusTimes = timeline.reduce((acc, item) => {
     const match = item.match(
       /^(CHECK|DECIDE|REPAIR|HANDOVER|DONE)\s*:\s*([\d\-T:\.]+)/
@@ -71,84 +75,65 @@ const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
 
   const formatTime = (date) => {
     if (!date) return null;
-
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
-
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
-
     return {
-      day: `${day}/${month}/${year}`,
+      date: `${day}/${month}/${year}`,
       time: `${hours}:${minutes}`,
     };
   };
 
   return (
-    <div className="flex items-center mt-4 gap-2">
-      {STATUS_ORDER.map((status, index) => {
-        const hasTime = !!statusTimes[status];
+    <div className="w-full overflow-x-auto pb-2 pt-2">
+      <div className="flex items-start min-w-[300px] justify-between relative">
+        {/* Line background connecting dots */}
+        <div className="absolute top-3 left-0 w-full h-0.5 bg-gray-200 -z-10" />
 
-        let type = "future";
-        if (hasTime) type = "reached";
-        else if (index < currentIndex) type = "skipped";
-        else type = "future";
+        {STATUS_ORDER.map((status, index) => {
+          const hasTime = !!statusTimes[status];
+          const isReached = index <= currentIndex; // Status đã qua hoặc đang ở đó
 
-        return (
-          <div
-            key={status}
-            className="flex-1 flex flex-col items-center relative"
-          >
-            <div className="relative flex items-center justify-center w-full">
+          const dateInfo = formatTime(statusTimes[status]);
+
+          return (
+            <div
+              key={status}
+              className="flex flex-col items-center gap-1 z-0 bg-transparent px-1"
+            >
+              {/* Dot */}
               <div
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  type === "reached"
-                    ? STATUS_COLORS[status]
-                    : "border-gray-300 bg-gray-200 opacity-50"
+                  isReached || hasTime
+                    ? STATUS_DOT_COLORS[status] || "bg-gray-500 border-gray-500"
+                    : "bg-white border-gray-300"
                 }`}
               />
 
-              {type === "skipped" && (
-                <div
-                  aria-hidden
-                  className="absolute"
-                  style={{
-                    width: 20,
-                    height: 2,
-                    backgroundColor: "#9CA3AF",
-                    transform: "rotate(45deg)",
-                  }}
-                />
-              )}
-            </div>
-
-            {index < STATUS_ORDER.length && (
-              <div
-                className={`h-1 w-full mt-1 ${
-                  type === "reached"
-                    ? STATUS_COLORS[status]
-                    : "bg-gray-200 opacity-50"
+              {/* Label */}
+              <span
+                className={`text-[10px] font-bold uppercase ${
+                  isReached ? "text-foreground" : "text-muted-foreground"
                 }`}
-              />
-            )}
-
-            <div className="text-[10px] text-muted-foreground text-center">
-              <div className="mt-1 text-xs text-center font-semibold">
+              >
                 {status}
-              </div>
+              </span>
+
+              {/* Date/Time (if available) */}
               {hasTime ? (
-                <>
-                  <div>{formatTime(statusTimes[status]).day}</div>
-                  <div>{formatTime(statusTimes[status]).time}</div>
-                </>
+                <div className="text-[9px] text-muted-foreground text-center leading-tight">
+                  <div>{dateInfo.date}</div>
+                  <div>{dateInfo.time}</div>
+                </div>
               ) : (
-                "—"
+                <div className="h-[22px]"></div> // Spacer để giữ chiều cao
               )}
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -160,39 +145,51 @@ export default function SCStaffWarrantyClaim() {
     name: auth?.fullName,
     role: auth?.role,
   };
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Sidebar mobile state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const handleOpenMenu = () => setIsMobileMenuOpen(true);
   const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
+  // Data state
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedClaim, setSelectedClaim] = useState(null);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Filter state
   const [dateFrom, setDateFrom] = useState(getDefaultDateFrom());
   const [dateTo, setDateTo] = useState(getDefaultDateTo());
   const [sortBy, setSortBy] = useState("date-desc");
   const [userCenterId, setUserCenterId] = useState(null);
-  const [vehicles, setVehicles] = useState([]);
-  
 
+  // Dialog state
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Fetch claims
   useEffect(() => {
     const fetchClaims = async () => {
       try {
         setLoading(true);
         const [claimsRes, vehiclesRes] = await Promise.all([
           axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
-          axiosPrivate.get(API.VEHICLES)
-        ])
-        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : []
-        const vehiclesData = Array.isArray(vehiclesRes.data) ? vehiclesRes.data : []
+          axiosPrivate.get("/api/vehicles"),
+        ]);
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+        const vehiclesData = Array.isArray(vehiclesRes.data)
+          ? vehiclesRes.data
+          : [];
 
-        const vehicleMap = Object.fromEntries(vehiclesData.map(v => [v.vin, v.plate || "—"]))
-        const merged = claimsData.map(c => ({ ...c, plate: vehicleMap[c.vin] || "—" }))
+        const vehicleMap = Object.fromEntries(
+          vehiclesData.map((v) => [v.vin, v.plate || "—"])
+        );
 
+        const merged = claimsData.map((c) => ({
+          ...c,
+          plate: vehicleMap[c.vin] || "—",
+        }));
         setClaims(merged);
       } catch (error) {
         console.error("Failed to fetch claims:", error);
@@ -204,10 +201,11 @@ export default function SCStaffWarrantyClaim() {
     fetchClaims();
   }, [dateFrom, dateTo]);
 
+  // Fetch user center
   useEffect(() => {
     const fetchCenterId = async () => {
       try {
-        const res = await axiosPrivate.get(API.ACCOUNTS)
+        const res = await axiosPrivate.get(API.ACCOUNTS);
         const account = Array.isArray(res.data)
           ? res.data.find(
               (a) =>
@@ -216,15 +214,6 @@ export default function SCStaffWarrantyClaim() {
           : null;
         if (account?.serviceCenter?.centerId) {
           setUserCenterId(account.serviceCenter.centerId);
-          console.log(
-            "[WarrantyClaim] Found centerId:",
-            account.serviceCenter.centerId
-          );
-        } else {
-          console.warn(
-            "[WarrantyClaim] No centerId found for account:",
-            auth?.accountId
-          );
         }
       } catch (err) {
         console.error("Failed to fetch account info:", err);
@@ -233,6 +222,7 @@ export default function SCStaffWarrantyClaim() {
     if (auth?.accountId) fetchCenterId();
   }, [auth?.accountId]);
 
+  // Filter & Sort logic
   const filteredClaims = claims
     .filter((claim) => {
       if (userCenterId && claim.claimId?.includes("-")) {
@@ -251,31 +241,16 @@ export default function SCStaffWarrantyClaim() {
         claim.vin?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || claim.status === statusFilter;
-      const claimDate = new Date(claim.claimDate);
-      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom);
-      const matchesDateTo =
-        !dateTo || claimDate <= new Date(dateTo + "T23:59:59");
-      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       const dateA = new Date(a.claimDate);
       const dateB = new Date(b.claimDate);
-      const serialA = parseInt(a.claimId?.split("-").pop()) || 0;
-      const serialB = parseInt(b.claimId?.split("-").pop()) || 0;
-      switch (sortBy) {
-        case "date-desc":
-          if (dateB.getTime() === dateA.getTime()) return serialB - serialA;
-          return dateB - dateA;
-        case "date-asc":
-          if (dateA.getTime() === dateB.getTime()) return serialA - serialB;
-          return dateA - dateB;
-        case "status":
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
-      }
+      if (sortBy === "date-desc") return dateB - dateA;
+      return 0;
     });
 
+  // Stats calculation
   const userClaims = claims.filter((claim) => {
     if (userCenterId && claim.claimId?.includes("-")) {
       const parts = claim.claimId.split("-");
@@ -294,6 +269,7 @@ export default function SCStaffWarrantyClaim() {
   const repairClaims = userClaims.filter((c) => c.status === "REPAIR").length;
   const doneClaims = userClaims.filter((c) => c.status === "DONE").length;
 
+  // Handlers
   const handleViewClaim = (claim) => {
     setSelectedClaim(claim);
     setIsDetailDialogOpen(true);
@@ -301,8 +277,10 @@ export default function SCStaffWarrantyClaim() {
 
   const handleClaimCreated = async () => {
     try {
-      const response = await axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } })
-      setClaims(Array.isArray(response.data) ? response.data : [])
+      const response = await axiosPrivate.get(API.CLAIMS, {
+        params: { dateFrom, dateTo },
+      });
+      setClaims(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to refresh claims:", error);
     }
@@ -314,68 +292,76 @@ export default function SCStaffWarrantyClaim() {
         isMobileOpen={isMobileMenuOpen}
         onClose={handleCloseMenu}
       />
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 transition-all duration-200">
         <Header onMenuClick={handleOpenMenu} />
-        <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {[
-                { label: "Total Claims", value: totalClaims },
-                { label: "Check", value: checkClaims },
-                { label: "Decide", value: decideClaims },
-                { label: "Repair", value: repairClaims },
-                { label: "Done", value: doneClaims },
-              ].map((item) => (
-                <Card key={item.label}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {item.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{item.value}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+          {/* 1. Thống kê Cards (Giống Hình 2) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { label: "Total Claims", value: totalClaims },
+              { label: "Check", value: checkClaims },
+              { label: "Decide", value: decideClaims },
+              { label: "Repair", value: repairClaims },
+              { label: "Done", value: doneClaims },
+            ].map((item) => (
+              <Card key={item.label} className="shadow-sm">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    {item.label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-bold">{item.value}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <div className="flex items-end gap-4 w-full">
-              
-              <div className="flex flex-col">
-                <label className="text-xs text-muted-foreground mb-1">Date From</label>
+          {/* 2. Bộ lọc & Tìm kiếm (Hình 1 - Responsive) */}
+          <div className="flex flex-col lg:flex-row gap-4 bg-card p-4 rounded-lg border border-border shadow-sm">
+            {/* Date Range */}
+            <div className="flex gap-2 w-full lg:w-auto">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  From
+                </label>
                 <Input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[160px]"
+                  className="w-full"
                   max={dateTo}
                 />
               </div>
-
-              <div className="flex flex-col">
-                <label className="text-xs text-muted-foreground mb-1">Date To</label>
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  To
+                </label>
                 <Input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[160px]"
+                  className="w-full"
                   min={dateFrom}
                 />
               </div>
+            </div>
 
-              <div className="flex-1 relative">
+            {/* Search & Filter & Button */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-1 items-end">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by claim number or VIN..."
+                  placeholder="Search Claim ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
 
-              <div className="w-[150px]">
+              <div className="w-full sm:w-[160px]">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
@@ -392,77 +378,90 @@ export default function SCStaffWarrantyClaim() {
 
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
-                className="bg-black hover:bg-gray-800 text-white"
+                className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto whitespace-nowrap"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
             </div>
+          </div>
 
+          {/* 3. Danh sách Claims (Kiểu Card như Hình 3) */}
+          <div className="space-y-4">
             {loading ? (
-              <p className="text-center text-muted-foreground mt-6">
+              <p className="text-center text-muted-foreground py-10">
                 Loading claims...
               </p>
             ) : filteredClaims.length === 0 ? (
-              <p className="text-center text-muted-foreground mt-6">
-                No claims found for your service center.
-              </p>
+              <div className="text-center py-10 border border-dashed rounded-lg bg-muted/10">
+                <p className="text-muted-foreground">No claims found.</p>
+              </div>
             ) : (
-              filteredClaims.map((claim) => (
-                <Card
-                  key={claim.claimId}
-                  className="hover:shadow-md transition-shadow"
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold">
-                            Claim #{claim.claimId}
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(claim.status)}
-                          >
-                            {claim.status}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">
-                              Vehicle Plate:{" "}
-                            </span>
-                            <span className="font-medium">{claim.plate}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">
-                              Date:{" "}
-                            </span>
-                            <span className="font-medium">
-                              {claim.claimDate}
-                            </span>
-                          </div>
-                        </div>
-                        {claim.timeline && claim.timeline.length > 0 && (
-                          <WarrantyTimeline
-                            timeline={claim.timeline}
-                            currentStatus={claim.status}
-                          />
-                        )}
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                {filteredClaims.map((claim) => (
+                  <Card
+                    key={claim.claimId}
+                    className="hover:shadow-md transition-all border flex flex-col overflow-hidden"
+                  >
+                    <CardContent className="p-5 flex-1 flex flex-col gap-4">
+                      {/* Header: ID & Status */}
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg text-foreground break-all">
+                          Claim #{claim.claimId}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className={`${getStatusColor(
+                            claim.status
+                          )} shrink-0 text-xs uppercase font-semibold px-2 py-1`}
+                        >
+                          {claim.status}
+                        </Badge>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewClaim(claim)}
-                        className="ml-4"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+
+                      {/* Info: Plate & Date */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground block text-xs">
+                            Vehicle Plate
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {claim.plate}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">
+                            Date
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {claim.claimDate}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Timeline (Mô phỏng Hình 3) */}
+                      <div className="pt-2 border-t">
+                        <WarrantyTimeline
+                          timeline={claim.timeline}
+                          currentStatus={claim.status}
+                        />
+                      </div>
+
+                      {/* Button View (Ở dưới cùng) */}
+                      <div className="mt-auto pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-gray-300 hover:bg-muted/50 text-foreground"
+                          onClick={() => handleViewClaim(claim)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
         </div>

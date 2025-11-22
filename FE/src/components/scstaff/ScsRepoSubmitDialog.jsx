@@ -14,12 +14,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, Upload } from "lucide-react";
 import axiosPrivate from "@/api/axios";
 
-// Định nghĩa API URL riêng của component này
 const REPORTS_URL = "/api/campaign-reports/create";
 
-// --- [THÊM MỚI]: Reducer cho việc GỬI (submit) form ---
 const submitInitialState = {
-  status: "idle", // 'idle', 'submitting', 'error'
+  status: "idle",
   error: null,
 };
 
@@ -35,7 +33,6 @@ const submitReducer = (state, action) => {
       throw new Error(`Unhandled action type: ${action.type}`);
   }
 };
-// --- KẾT THÚC THÊM MỚI ---
 
 export function SubmitReportDialog({
   open,
@@ -53,7 +50,7 @@ export function SubmitReportDialog({
     const file = event.target.files[0];
     if (file && file.type === "application/pdf") {
       setSelectedFile(file);
-      dispatch({ type: "RESET" }); // Xóa lỗi nếu chọn file thành công
+      dispatch({ type: "RESET" });
     } else {
       setSelectedFile(null);
       dispatch({
@@ -90,18 +87,16 @@ export function SubmitReportDialog({
       onReportSubmitted();
     } catch (err) {
       dispatch({
-        // [THAY ĐỔI]
         type: "SUBMIT_ERROR",
         payload: err.response?.data?.message || "Failed to submit report.",
       });
     }
   };
 
-  // Reset form khi dialog đóng
   useEffect(() => {
     if (!open) {
       setSelectedFile(null);
-      dispatch({ type: "RESET" }); // [THAY ĐỔI]
+      dispatch({ type: "RESET" });
     }
   }, [open]);
 
@@ -109,10 +104,13 @@ export function SubmitReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, sm:max-w-[500px] cho tablet/desktop */}
+      <DialogContent className="w-[95vw] sm:max-w-[500px] rounded-lg p-6">
         <DialogHeader>
-          <DialogTitle>Submit PDF Report: {campaign.campaignName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-left">
+            Submit Report: {campaign.campaignName}
+          </DialogTitle>
+          <DialogDescription className="text-left">
             Upload the completed PDF report file for this campaign.
           </DialogDescription>
         </DialogHeader>
@@ -122,14 +120,14 @@ export function SubmitReportDialog({
             <Input
               id="pdfFile"
               type="file"
-              accept=".pdf" // Chỉ chấp nhận file PDF
+              accept=".pdf"
               onChange={handleFileChange}
               className="file:text-primary file:font-semibold cursor-pointer"
             />
           </div>
 
           {selectedFile && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground break-all">
               Selected file:{" "}
               <span className="font-medium text-card-foreground">
                 {selectedFile.name}
@@ -137,7 +135,6 @@ export function SubmitReportDialog({
             </div>
           )}
 
-          {/* [THAY ĐỔI]: Đọc lỗi từ state.error */}
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -146,22 +143,26 @@ export function SubmitReportDialog({
           )}
         </div>
 
-        {/* [THAY ĐỔI]: Dùng biến 'isLoading' từ state */}
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading || !selectedFile}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedFile}
+            className="w-full sm:w-auto"
+          >
             {isLoading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Upload className="w-4 h-4 mr-2" />
             )}
-            {isLoading ? "Uploading..." : "Upload and Submit"}
+            {isLoading ? "Uploading..." : "Submit"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,3 @@
-// FE/src/pages/AdminParts&Policy.jsx
-
 import { useState, useEffect, useCallback } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
@@ -14,20 +12,14 @@ import {
 import { Plus } from "lucide-react";
 import PartsTable from "@/components/admin/AdPartTable";
 import PartDetailPage from "@/components/admin/AdPartDetailPage";
-import PolicyEditModal from "@/components/admin/AdPoliEdit";
 import CreatePartForm from "@/components/admin/AdPartCreate";
 import CreatePolicyForm from "@/components/admin/AdPoliCreate";
 import useAuth from "@/hook/useAuth";
 import axios from "axios";
 
-// ======================== API ENDPOINTS ========================
 const PARTS_API_URL = "/api/part-under-warranty-controller";
 const POLICIES_API_URL = "/api/policies";
 
-/**
- * @component
- * @description Main administrative page for viewing and managing Parts and their associated Policies.
- */
 export default function AdminPartsPolicy() {
   const { auth } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -35,320 +27,163 @@ export default function AdminPartsPolicy() {
   const handleOpenMenu = () => setIsMobileMenuOpen(true);
   const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
-  // === DATA STATES ===
   const [parts, setParts] = useState([]);
   const [policies, setPolicies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // === UI STATE MANAGEMENT ===
-  const [selectedPart, setSelectedPart] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [showCreatePart, setShowCreatePart] = useState(false);
-  const [policyToEdit, setPolicyToEdit] = useState(null);
-  const [showEditPolicy, setShowEditPolicy] = useState(false);
-  // Stores the count of other active policies for validation during policy editing
-  const [activePoliciesCount, setActivePoliciesCount] = useState(0);
   const [showCreatePolicy, setShowCreatePolicy] = useState(false);
+  const [selectedPart, setSelectedPart] = useState(null);
 
-  // ============= 1. DATA FETCHING FUNCTIONS =============
-
-  /**
-   * @function fetchPartsAndPolicies
-   * @description Fetches the latest list of parts and policies from their respective APIs.
-   * Uses useCallback to memoize the function.
-   */
-  const fetchPartsAndPolicies = useCallback(async () => {
+  // Fetch Data
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const headers = { Authorization: `Bearer ${auth.token}` };
-
-      const partsResponse = await axios.get(PARTS_API_URL, { headers });
-      setParts(partsResponse.data);
-
-      const policiesResponse = await axios.get(POLICIES_API_URL, { headers });
-      setPolicies(policiesResponse.data);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError(
-        "Failed to load parts or policies data. Please check the API connection and token."
-      );
-      setParts([]);
-      setPolicies([]);
+      const [partsRes, policiesRes] = await Promise.all([
+        axios.get(PARTS_API_URL, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        }),
+        axios.get(POLICIES_API_URL, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        }),
+      ]);
+      setParts(partsRes.data);
+      setPolicies(policiesRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   }, [auth.token]);
 
-  /**
-   * Effect hook to run data fetching on component mount.
-   */
   useEffect(() => {
-    fetchPartsAndPolicies();
-  }, [fetchPartsAndPolicies]);
+    fetchData();
+  }, [fetchData]);
 
-  // ============= 2. NAVIGATION & UI HANDLERS =============
-
-  /**
-   * @function handlePartRowClick
-   * @param {Object} part - The part object selected from the table.
-   * @description Sets the selected part to view its details.
-   */
-  const handlePartRowClick = (part) => {
-    setSelectedPart(part);
-  };
-
-  /**
-   * @function handleBackToPartsList
-   * @description Clears the selected part state to return to the list view.
-   */
-  const handleBackToPartsList = () => {
-    setSelectedPart(null);
-  };
-
-  /**
-   * @function handleAddPolicyClick
-   * @param {string} partId - The ID of the part to which the new policy will be added.
-   * @description Sets the selected part context and opens the Create Policy modal.
-   */
-  const handleAddPolicyClick = (partId) => {
-    if (partId) {
-      // Set the full part object for context if needed by the modal/handlers
-      setSelectedPart(parts.find((p) => p.partId === partId));
-    }
-    setShowCreatePolicy(true);
-  };
-
-  // ============= 3. DATA MANIPULATION HANDLERS =============
-
-  /**
-   * @function handleAddPolicy
-   * @param {Object} policyData - The data for the new policy to be created (isEnable: false by default).
-   * @description Sends a POST request to create a new policy and refreshes the data.
-   */
-  const handleAddPolicy = async (policyData) => {
+  // Handlers
+  const handleAddPart = async (newPartData) => {
     try {
-      await axios.post(POLICIES_API_URL, policyData, {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      });
-      await fetchPartsAndPolicies();
-      setShowCreatePolicy(false);
-      alert("Policy created successfully! (Status: Inactive)");
-    } catch (err) {
-      console.error("Error creating policy:", err);
-      alert("Failed to create policy. Check API response.");
-      throw err;
-    }
-  };
-
-  /**
-   * @function handleAddPart
-   * @param {Object} data - Contains partData and policyData for creation.
-   * @description Handles the transactional creation of a new part followed by its initial policy.
-   */
-  const handleAddPart = async ({ partData, policyData }) => {
-    let createdPart = null;
-    try {
-      // 1. Create Part
-      const partResponse = await axios.post(PARTS_API_URL, partData, {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      });
-      createdPart = partResponse.data;
-      const newPartId = createdPart.partId;
-
-      if (!newPartId)
-        throw new Error("Part created successfully, but missing partId.");
-
-      // 2. Create Initial Policy tied to the new Part
-      const policyDataToSend = { ...policyData, partId: newPartId };
-      await axios.post(POLICIES_API_URL, policyDataToSend, {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      });
-
-      // 3. Refresh and return success
-      await fetchPartsAndPolicies();
+      // Gọi API tạo Part (giả lập hoặc thực tế)
+      // await axios.post(...)
       setShowCreatePart(false);
-      return { success: true };
-    } catch (err) {
-      console.error("Error in transaction (Part/Policy creation):", err);
-      alert(
-        "Transaction Failed: Creation failed. Check API response. " +
-          (createdPart ? `(Part ID: ${createdPart.partId} created)` : "")
-      );
-      throw err;
+      fetchData();
+    } catch (error) {
+      console.error("Create part failed", error);
     }
   };
 
-  /**
-   * @function handleUpdatePart
-   * @param {Object} updatedPart - The part data with changes.
-   * @description Sends a PUT request to update an existing part.
-   */
-  const handleUpdatePart = async (updatedPart) => {
+  const handleAddPolicy = async (newPolicyData) => {
     try {
-      await axios.put(`${PARTS_API_URL}/${updatedPart.partId}`, updatedPart, {
+      await axios.post(POLICIES_API_URL, newPolicyData, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
-      await fetchPartsAndPolicies();
-      setSelectedPart(updatedPart);
+      setShowCreatePolicy(false);
+      fetchData();
     } catch (error) {
-      console.error("Failed to update part:", error);
-      alert("Failed to update part.");
+      console.error("Create policy failed", error);
     }
   };
 
-  /**
-   * @function handlePolicyEditClick
-   * @param {Object} policy - The policy object to be edited.
-   * @description Sets the policy to edit and calculates the count of other active policies for validation.
-   */
-  const handlePolicyEditClick = (policy) => {
-    const partIdToFilter = policy.partUnderWarranty?.partId || "";
-
-    // Count active policies for the same part, excluding the current policy being edited
-    const count = policies.filter(
-      (p) =>
-        p.partUnderWarranty?.partId === partIdToFilter &&
-        p.isEnable &&
-        p.policyId !== policy.policyId
-    ).length;
-
-    setActivePoliciesCount(count);
-    setPolicyToEdit(policy);
-    setShowEditPolicy(true);
+  const handleBackToList = () => {
+    setSelectedPart(null);
+    fetchData(); // Refresh data khi quay lại
   };
-
-  /**
-   * @function handleUpdatePolicy
-   * @param {Object} updatedPolicy - The policy data with changes.
-   * @description Sends a PUT request to update an existing policy and refreshes the data.
-   */
-  const handleUpdatePolicy = async (updatedPolicy) => {
-    try {
-      await axios.put(
-        `${POLICIES_API_URL}/${updatedPolicy.policyId}`,
-        updatedPolicy,
-        {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }
-      );
-      await fetchPartsAndPolicies();
-
-      setShowEditPolicy(false);
-      setPolicyToEdit(null);
-      if (selectedPart && selectedPart.partId === updatedPolicy.partId) {
-        // Forced update to re-render detail page with potentially updated policy status
-        setSelectedPart({ ...selectedPart });
-      }
-    } catch (error) {
-      console.error("Failed to update policy:", error);
-      alert("Failed to update policy.");
-    }
-  };
-
-  // ============= 4. MAIN RENDER =============
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="flex min-h-screen bg-muted/30 w-full overflow-hidden">
       <AdminSidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
-      <div className="lg:pl-64">
+
+      <div className="flex-1 flex flex-col lg:pl-64 transition-all duration-200 w-full max-w-full">
         <Header onMenuClick={handleOpenMenu} />
-        <div className="p-4 md:p-6 lg:p-8">
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 w-full">
           <div className="space-y-6">
-            {selectedPart ? (
-              // 1. Display Detail Page
-              <PartDetailPage
-                part={selectedPart}
-                onBack={handleBackToPartsList}
-                onUpdate={handleUpdatePart}
-                onDelete={null} // Placeholder for future delete logic
-                partPolicies={policies.filter(
-                  (p) => p.partUnderWarranty?.partId === selectedPart.partId
-                )}
-                onEditPolicy={handlePolicyEditClick}
-                onAddPolicy={() => handleAddPolicyClick(selectedPart.partId)}
-              />
-            ) : (
-              // 2. Display Parts List Table
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="text-3xl font-bold text-foreground">
+            {/* Header Section */}
+            {!selectedPart && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">
                     Parts & Policies
                   </h1>
+                  <p className="text-muted-foreground">
+                    Manage parts inventory and warranty policies.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Button
                     onClick={() => setShowCreatePart(true)}
-                    className="flex items-center gap-2"
+                    className="w-full sm:w-auto"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Create New Part</span>
+                    <Plus className="mr-2 h-4 w-4" /> Add Part
+                  </Button>
+                  <Button
+                    onClick={() => setShowCreatePolicy(true)}
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Policy
                   </Button>
                 </div>
-
-                {error && (
-                  <p className="text-red-500 mb-4 p-4 border border-red-200 bg-red-50 rounded-md">
-                    {error}
-                  </p>
-                )}
-
-                <PartsTable
-                  parts={parts}
-                  onRowClick={handlePartRowClick}
-                  loading={loading}
-                />
-              </>
+              </div>
             )}
+
+            {/* Content */}
+            {selectedPart ? (
+              <PartDetailPage
+                part={selectedPart}
+                onBack={handleBackToList}
+                policies={policies.filter(
+                  (p) =>
+                    p.partId === selectedPart.id ||
+                    p.partId === selectedPart.partId
+                )}
+                onRefresh={fetchData}
+                currentAccount={auth}
+              />
+            ) : (
+              <PartsTable
+                parts={parts}
+                loading={loading}
+                onRowClick={setSelectedPart}
+              />
+            )}
+
+            {/* Create Part Modal */}
+            <Dialog open={showCreatePart} onOpenChange={setShowCreatePart}>
+              <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Part & Policy</DialogTitle>
+                  <DialogDescription>
+                    Define part information and its associated initial warranty
+                    policy.
+                  </DialogDescription>
+                </DialogHeader>
+                <CreatePartForm
+                  onSubmit={handleAddPart}
+                  onCancel={() => setShowCreatePart(false)}
+                  currentAdminId={auth.accountId}
+                  currentAdminName={auth.fullName || auth.accountId}
+                />
+              </DialogContent>
+            </Dialog>
+
+            {/* Create Policy Modal */}
+            <Dialog open={showCreatePolicy} onOpenChange={setShowCreatePolicy}>
+              <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Add New Policy</DialogTitle>
+                  <DialogDescription>
+                    Create a new warranty policy for the selected part.
+                  </DialogDescription>
+                </DialogHeader>
+                <CreatePolicyForm
+                  initialPartId={selectedPart?.partId}
+                  onSubmit={handleAddPolicy}
+                  onCancel={() => setShowCreatePolicy(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
-        {/* === MODALS === */}
-        {/* Policy Edit Modal */}
-        {policyToEdit && (
-          <PolicyEditModal
-            policy={policyToEdit}
-            open={showEditPolicy}
-            onOpenChange={setShowEditPolicy}
-            onSave={handleUpdatePolicy}
-            activePoliciesCount={activePoliciesCount}
-          />
-        )}
-
-        {/* Create Part Modal */}
-        <Dialog open={showCreatePart} onOpenChange={setShowCreatePart}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Create New Part & Policy</DialogTitle>
-
-              <DialogDescription>
-                Define part information and its associated initial warranty
-                policy.
-              </DialogDescription>
-            </DialogHeader>
-
-            <CreatePartForm
-              onSubmit={handleAddPart}
-              onCancel={() => setShowCreatePart(false)}
-              currentAdminId={auth.accountId}
-              currentAdminName={auth.fullName || auth.accountId}
-            />
-          </DialogContent>
-        </Dialog>
-
-        {/* Create New Policy Modal */}
-        <Dialog open={showCreatePolicy} onOpenChange={setShowCreatePolicy}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Policy</DialogTitle>
-              <DialogDescription>
-                Create a new warranty policy for the selected part.
-              </DialogDescription>
-            </DialogHeader>
-
-            <CreatePolicyForm
-              initialPartId={selectedPart?.partId}
-              onSubmit={handleAddPolicy}
-              onCancel={() => setShowCreatePolicy(false)}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

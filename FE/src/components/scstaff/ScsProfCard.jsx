@@ -19,7 +19,7 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
   const [form, setForm] = useState(vinData);
   const [status, setStatus] = useState({
     loading: false,
-    errors: {}, // { plate: "Biển số đã tồn tại" }
+    errors: {},
   });
 
   const handleChange = (e) => {
@@ -29,20 +29,15 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
 
   const handleCancel = () => {
     setEditMode(false);
-    setForm(vinData); // <-- THÊM MỚI: Reset form về dữ liệu gốc
-    setStatus({ loading: false, errors: {} }); // <-- THÊM MỚI: Xóa lỗi
+    setForm(vinData);
+    setStatus({ loading: false, errors: {} });
   };
 
   const handleSave = async () => {
-    // 1. Bật loading và xóa lỗi cũ
     setStatus({ loading: true, errors: {} });
 
     try {
-      // 2. Gọi API để update.
-      // URL thường có dạng: /api/vehicles/{vin}
       const UPDATE_URL = `${VEHICLE_UPDATE_URL}/${form.vin}`;
-
-      // Chúng ta chỉ gửi những gì thay đổi, ví dụ:
       const updatedData = {
         model: form.model,
         plate: form.plate,
@@ -54,12 +49,10 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
         headers: { "Content-Type": "application/json" },
       });
 
-      // 3. Nếu thành công:
-      onUpdate(form); // Cập nhật state ở component cha (ScsProfDetail)
+      onUpdate(form);
       setEditMode(false);
       setStatus({ loading: false, errors: {} });
     } catch (error) {
-      // 4. Nếu thất bại (ví dụ: Lỗi 409 - Biển số trùng)
       console.error("Vehicle Update Error:", error);
       const fieldErrors = {};
 
@@ -79,35 +72,42 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{form.vin}</CardTitle>
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="p-4 pb-2">
+        <CardTitle className="text-lg">{form.vin}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1">
-        <div>
-          <label className="text-sm font-medium">Model</label>
+      <CardContent className="p-4 pt-2 space-y-3">
+        <div className="grid gap-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Model
+          </label>
           <Input
+            className="h-8 text-sm"
             name="model"
             value={form.model}
             onChange={handleChange}
             disabled={!editMode || status.loading}
           />
         </div>
-        <div>
-          <label className="text-sm font-medium">Plate</label>
+        <div className="grid gap-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Plate
+          </label>
           <Input
+            className="h-8 text-sm"
             name="plate"
             value={form.plate}
             onChange={handleChange}
             disabled={!editMode || status.loading}
           />
-          {/* THÊM HIỂN THỊ LỖI */}
           {status.errors.plate && (
-            <p className="text-xs text-red-500 mt-1">{status.errors.plate}</p>
+            <p className="text-xs text-red-500">{status.errors.plate}</p>
           )}
         </div>
-        <div>
-          <label className="text-sm font-medium">Type</label>
+        <div className="grid gap-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Type
+          </label>
           <Select
             value={form.type}
             onValueChange={(value) =>
@@ -118,7 +118,7 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
             }
             disabled={!editMode || status.loading}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-sm">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -131,9 +131,12 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="text-sm font-medium">Color</label>
+        <div className="grid gap-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Color
+          </label>
           <Input
+            className="h-8 text-sm"
             name="color"
             value={form.color}
             onChange={handleChange}
@@ -141,45 +144,39 @@ export default function CustomerVinCard({ vinData, onUpdate }) {
           />
         </div>
         {status.errors.api && (
-          <p className="text-xs text-red-500 mt-2 text-center">
+          <p className="text-xs text-red-500 text-center">
             {status.errors.api}
           </p>
         )}
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex justify-end gap-2 pt-2">
           {editMode ? (
             <>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleCancel} // <-- SỬA (dùng hàm mới)
-                disabled={status.loading} // <-- THÊM
+                onClick={handleCancel}
+                disabled={status.loading}
               >
-                <X className="h-4 w-4" />
-                Cancel
+                <X className="h-3.5 w-3.5" />
               </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={status.loading} // <-- SỬA
-                className="gap-1"
-              >
-                {/* THÊM ICON LOADING */}
+              <Button size="sm" onClick={handleSave} disabled={status.loading}>
                 {status.loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <Save className="h-3.5 w-3.5" />
                 )}
-                Save
               </Button>
             </>
           ) : (
-            <>
-              <Button size="sm" onClick={() => setEditMode(true)}>
-                <Edit className="h-4 w-4" />
-                Edit
-              </Button>
-            </>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditMode(true)}
+              className="w-full border"
+            >
+              <Edit className="h-3.5 w-3.5 mr-2" /> Edit
+            </Button>
           )}
         </div>
       </CardContent>

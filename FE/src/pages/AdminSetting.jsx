@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
-import profile from "../assets/profile.jpg";
 import {
   Card,
   CardContent,

@@ -272,12 +272,12 @@ export default function ScsCampaignPraticipants({
   return status === "success" ? (
     <div className="space-y-6">
       {/* Campaign Selection */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
           <h3 className="text-lg font-semibold text-card-foreground">
             Select Campaign
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <Button
               onClick={() => setCampaignPage(Math.max(0, campaignPage - 1))}
               variant="outline"
@@ -306,7 +306,7 @@ export default function ScsCampaignPraticipants({
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginatedCampaigns.map((campaign) => (
             <button
               key={campaign.campaignId}
@@ -351,8 +351,8 @@ export default function ScsCampaignPraticipants({
 
       {selectedCampaign && (
         <div className="bg-card border border-border rounded-lg">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
               <h3 className="text-lg font-semibold text-card-foreground">
                 Vehicles - {selectedCampaign?.campaignName}
               </h3>
@@ -385,8 +385,8 @@ export default function ScsCampaignPraticipants({
                 </Button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-4">
-              <div className="relative flex-1 min-w-[300px] max-w-[550px]">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by owner, phone, or license plate..."
@@ -395,7 +395,7 @@ export default function ScsCampaignPraticipants({
                     setSearchQuery(e.target.value);
                     setVehiclePage(0);
                   }}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
               <Select
@@ -417,17 +417,16 @@ export default function ScsCampaignPraticipants({
             </div>
           </div>
 
-          <div className="px-6 pb-6 overflow-hidden">
-            <div className="overflow-x-auto">
+          {/* TABLE */}
+          <div className="px-0 sm:px-6 pb-6 overflow-hidden">
+            <div className="overflow-x-auto border rounded-md sm:border-none">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[25%] px-4 py-3">Owner</TableHead>
-                    <TableHead className="w-[25%] px-4 py-3">
-                      License Plate
-                    </TableHead>
-                    <TableHead className="w-[25%] px-4 py-3">Phone</TableHead>
-                    <TableHead className="w-[25%] px-4 py-3">Actions</TableHead>
+                    <TableHead className="w-[25%]">Owner</TableHead>
+                    <TableHead className="w-[25%]">License Plate</TableHead>
+                    <TableHead className="w-[25%]">Phone</TableHead>
+                    <TableHead className="w-[25%]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

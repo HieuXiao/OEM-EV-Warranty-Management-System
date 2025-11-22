@@ -300,7 +300,8 @@ export default function EVMStaffFormCampaign({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      {/* CHỈNH SỬA: Responsive width & scroll */}
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {campaign ? "Edit Campaign" : "Create New Campaign"}
@@ -309,14 +310,12 @@ export default function EVMStaffFormCampaign({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Campaign ID & Name */}
-
+          {/* Campaign Name */}
           <div className="space-y-2">
             <Label htmlFor="campaignName">Campaign Name</Label>
             <Input
               id="campaignName"
               value={formData.campaignName}
-              // SỬA LỖI: Dùng handleFormChange
               onChange={(e) => handleFormChange("campaignName", e.target.value)}
             />
             {errors.campaignName && (
@@ -327,9 +326,11 @@ export default function EVMStaffFormCampaign({
           </div>
 
           {/* Vehicle Models & Parts (multi-select style) */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Vehicle Model */}
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
+              {" "}
+              {/* Full width on tablet/desktop as well for better UX with badges */}
               <Label htmlFor="vehicleModels">Vehicle Models</Label>
               <Select
                 value={
@@ -365,7 +366,6 @@ export default function EVMStaffFormCampaign({
                   ))}
                 </SelectContent>
               </Select>
-
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.model.map((model) => (
                   <Badge
@@ -397,7 +397,7 @@ export default function EVMStaffFormCampaign({
               onChange={(e) =>
                 handleFormChange("serviceDescription", e.target.value)
               }
-              className="min-h-[80px] min-w-0 max-w-full box-border whitespace-pre-wrap break-words break-all overflow-auto resize-y"
+              className="min-h-[100px] min-w-0 max-w-full box-border whitespace-pre-wrap break-words break-all overflow-auto resize-y bg-background"
             />
             {errors.serviceDescription && (
               <p className="text-sm text-destructive mt-1">
@@ -406,8 +406,8 @@ export default function EVMStaffFormCampaign({
             )}
           </div>
 
-          {/* Start / End */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Start / End - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start">Start Date</Label>
               <Input
@@ -461,7 +461,9 @@ export default function EVMStaffFormCampaign({
             </div>
             {/* Lỗi trùng lặp model/thời gian sẽ hiển thị ở đây */}
             {errors.model && (
-              <p className="text-sm text-destructive mt-1">{errors.model}</p>
+              <p className="text-sm text-destructive mt-1 sm:col-span-2">
+                {errors.model}
+              </p>
             )}
           </div>
 
@@ -474,7 +476,7 @@ export default function EVMStaffFormCampaign({
           )}
 
           {/* Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t mt-4">
             <Button
               type="button"
               variant="outline"

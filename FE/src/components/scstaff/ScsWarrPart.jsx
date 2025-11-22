@@ -49,7 +49,10 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
         const [checkRes, allPartsRes, fileRes] = await Promise.all([
           axiosPrivate.get(`${API_ENDPOINTS.CLAIM_PART_CHECK}${warrantyId}`),
           axiosPrivate.get(API_ENDPOINTS.PARTS_UNDER_WARRANTY),
-          axiosPrivate.get(`${API_ENDPOINTS.WARRANTY_FILES}?value=${warrantyId}`),
+          // Fetch files related to this claim
+          axiosPrivate.get(
+            `${API_ENDPOINTS.WARRANTY_FILES}?value=${warrantyId}`
+          ),
         ]);
 
         const checkedParts = checkRes.data || [];
@@ -59,24 +62,31 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
         const repairParts = checkedParts
           .filter((p) => p.isRepair)
           .map((p) => {
-            const matchedPart = allParts.find((a) => a.partId === p.partNumber);
+            const matched = allParts.find((a) => a.partId === p.partNumber);
 
-            const fileImages = files
-              .filter(f =>
-                p.partSerials.some(serial => f.fileId.endsWith(serial))
+            // Find images related to this part
+            // Assuming fileId contains partSerial or partId.
+            // Adjust this logic based on how files are named/linked in your backend.
+            const partImages = files
+              .filter(
+                (f) =>
+                  f.fileId.includes(p.partNumber) ||
+                  (p.partSerials &&
+                    p.partSerials.some((s) => f.fileId.includes(s)))
               )
-              .flatMap(f => f.mediaUrls);
+              .flatMap((f) => f.mediaUrls);
 
             return {
               partNumber: p.partNumber,
-              namePart: matchedPart?.partName || "—",
+              namePart: matched?.partName || "—",
               quantity: p.quantity,
-              images: fileImages,
+              images: partImages,
             };
           });
 
         dispatch({ type: "SET_PARTS", payload: repairParts });
       } catch (err) {
+        console.error("Error loading parts:", err);
         dispatch({ type: "SET_PARTS", payload: [] });
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
@@ -98,8 +108,12 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
         </h4>
       </div>
 
-      <Dialog open={open} onOpenChange={(val) => dispatch({ type: "SET_OPEN", payload: val })}>
-        <DialogContent className="max-w-md rounded-2xl">
+      <Dialog
+        open={open}
+        onOpenChange={(val) => dispatch({ type: "SET_OPEN", payload: val })}
+      >
+        {/* CHỈNH SỬA: w-[95vw] cho mobile */}
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[80vh] overflow-y-auto p-4 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">
               Repair Parts List
@@ -107,27 +121,39 @@ export default function ScsWarrPart({ warrantyId, autoLoad = false }) {
           </DialogHeader>
 
           {loading ? (
-            <p className="text-sm italic text-muted-foreground py-4">Loading parts...</p>
+            <p className="text-sm italic text-muted-foreground py-4">
+              Loading parts...
+            </p>
           ) : parts.length === 0 ? (
-            <p className="text-sm italic text-muted-foreground py-4">No repair parts found.</p>
+            <p className="text-sm italic text-muted-foreground py-4">
+              No repair parts found.
+            </p>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="space-y-3">
               {parts.map((p, i) => (
-                <div key={i} className="border rounded-md p-3 bg-muted/40 space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium">{p.namePart}</span>
+                <div
+                  key={i}
+                  className="flex flex-col text-sm border rounded-md p-3 bg-muted/40 gap-2"
+                >
+                  <div className="flex justify-between items-center font-medium">
+                    <span>{p.namePart}</span>
                     <span>x{p.quantity}</span>
                   </div>
 
-                  {p.images?.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {p.images.map((img, idx) => (
-                        <img
+                  {/* Display Images */}
+                  {p.images && p.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {p.images.map((imgUrl, idx) => (
+                        <div
                           key={idx}
-                          src={img}
-                          alt="part"
-                          className="w-full h-24 object-cover rounded-md border"
-                        />
+                          className="relative aspect-square rounded-md overflow-hidden border bg-background"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`${p.namePart} ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       ))}
                     </div>
                   )}
