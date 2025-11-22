@@ -1,195 +1,233 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Header from "@/components/Header";
+import { Button } from "@/components/ui/button";
 import {
-  Search,
-  Filter,
-  Plus,
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import EVMStaffSideBar from "../components/evmstaff/EVMStaffSideBar";
-import Header from "../components/Header";
-import { mockWarehousesInventory } from "../lib/Mock-data";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
-import EVMStaffFormWarehouse from "../components/evmstaff/EVMStaffFormWarehouse";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../components/ui/table";
-import { Badge } from "../components/ui/badge";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import EvmWareTable from "@/components/evmstaff/EvmWareTable";
+import useAuth from "@/hook/useAuth";
+import axios from "axios";
+import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
+import EvmWareReceive from "@/components/evmstaff/EvmWareReceive";
+import EvmWareDetail from "@/components/evmstaff/EvmWareDetail";
 
-export default function EVMStaffSupplyChain() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const [showCreate, setShowCreate] = useState(false);
+const WAREHOUSES_API_URL = "/api/warehouses";
+const PARTS_CATALOG_API_URL = "/api/part-under-warranty-controller";
 
-  const filteredWarehouseInventory = mockWarehousesInventory.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+export default function EVMStaffWarehouse() {
+  const { auth } = useAuth();
 
-  // Tính toán dữ liệu hiển thị theo trang
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredWarehouseInventory.slice(
-    indexOfFirstItem,
-    indexOfLastItem
+  const [warehouses, setWarehouses] = useState([]);
+  const [partCatalog, setPartCatalog] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshData = () => setRefreshKey((prev) => prev + 1);
+
+  const [showReceiveStockModal, setShowReceiveStockModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedWarehouseDetail, setSelectedWarehouseDetail] = useState(null);
+  const [warehouseToRedirect, setWarehouseToRedirect] = useState(null);
+
+  const fetchWarehouseDetail = useCallback(
+    async (whId) => {
+      try {
+        const response = await axios.get(`${WAREHOUSES_API_URL}/${whId}`, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        });
+        return response.data;
+      } catch (err) {
+        console.error(`Error fetching warehouse detail for ID ${whId}:`, err);
+        throw new Error("Failed to load warehouse details.");
+      }
+    },
+    [auth.token]
   );
 
-  const totalPages = Math.ceil(
-    filteredWarehouseInventory.length / itemsPerPage
-  );
+  useEffect(() => {
+    const fetchBaseData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+        const [warehousesRes, partCatalogRes] = await Promise.all([
+          axios.get(WAREHOUSES_API_URL, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          }),
+          axios.get(PARTS_CATALOG_API_URL, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          }),
+        ]);
+
+        setWarehouses(warehousesRes.data);
+        setPartCatalog(partCatalogRes.data);
+      } catch (err) {
+        console.error("Error fetching base data:", err);
+        setError(
+          "Failed to load base warehouse data. Please check the API connection and token."
+        );
+        setWarehouses([]);
+        setPartCatalog([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBaseData();
+  }, [auth.token]);
+
+  useEffect(() => {
+    if (refreshKey === 0 && !warehouseToRedirect) return;
+
+    const handleRefreshLogic = async () => {
+      setLoading(true);
+      try {
+        if (refreshKey > 0) {
+          const warehousesRes = await axios.get(WAREHOUSES_API_URL, {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          });
+          setWarehouses(warehousesRes.data);
+        }
+
+        if (warehouseToRedirect) {
+          const targetWhId = warehouseToRedirect;
+          setWarehouseToRedirect(null);
+          const updatedDetail = await fetchWarehouseDetail(targetWhId);
+          setSelectedWarehouseDetail(updatedDetail);
+          setShowDetailModal(true);
+        } else if (selectedWarehouseDetail && showDetailModal) {
+          const updatedDetail = await fetchWarehouseDetail(
+            selectedWarehouseDetail.whId
+          );
+          setSelectedWarehouseDetail(updatedDetail);
+        }
+      } catch (err) {
+        console.error("Error during refresh/redirect:", err);
+        setError(err.message || "Failed to refresh data after operation.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (refreshKey > 0 || warehouseToRedirect) {
+      handleRefreshLogic();
+    }
+  }, [
+    auth.token,
+    refreshKey,
+    warehouseToRedirect,
+    selectedWarehouseDetail,
+    showDetailModal,
+    fetchWarehouseDetail,
+  ]);
+
+  const handleReceiveSuccess = (whIdFromModal = null) => {
+    setShowReceiveStockModal(false);
+    const targetWhId = whIdFromModal || selectedWarehouseDetail?.whId;
+    refreshData();
+    if (targetWhId) {
+      setWarehouseToRedirect(targetWhId);
+    }
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  const handleWarehouseRowClick = async (warehouse) => {
+    try {
+      setLoading(true);
+      const detail = await fetchWarehouseDetail(warehouse.whId);
+      setSelectedWarehouseDetail(detail);
+      setShowDetailModal(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Check Last Update
-  const getLatestUpdate = (warehouse) =>
-    warehouse.parts.reduce(
-      (latest, part) =>
-        new Date(part.lastUpdate) > latest ? new Date(part.lastUpdate) : latest,
-      new Date(0)
-    );
-
-  // Set format
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
-
-  // Sum value inventory
-  const calculateWarehouseValue = (parts) =>
-    parts.reduce((sum, part) => sum + part.total * part.unitPrice, 0);
-
-  // Get low stock
-  const getLowStockAlert = (warehouse) => {
-    const lowStock = warehouse.parts.filter((part) => part.total <= 10);
-    return lowStock.length
-      ? lowStock.map((p) => p.partName).join(", ")
-      : "None";
+  const handleBackToWarehouseList = () => {
+    setSelectedWarehouseDetail(null);
+    setShowDetailModal(false);
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <EVMStaffSideBar />
-      <div className="flex-1 flex flex-col ml-64">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Warehouse</h1>
-            </div>
+    <div className="min-h-screen bg-muted/30">
+      <EVMStaffSideBar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <div className="lg:pl-64 transition-all duration-200">
+        <Header onMenuClick={handleOpenMenu} />
+        <main className="p-4 md:p-6 lg:p-8">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            {/* Search and Filter */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          {showDetailModal && selectedWarehouseDetail ? (
+            <EvmWareDetail
+              warehouse={selectedWarehouseDetail}
+              partCatalog={partCatalog}
+              onBack={handleBackToWarehouseList}
+              onReceiveSuccess={handleReceiveSuccess}
+            />
+          ) : (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                  Warehouse Management
+                </h1>
+                <Button
+                  onClick={() => setShowReceiveStockModal(true)}
+                  className="flex items-center space-x-2 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Receive Stock</span>
+                </Button>
               </div>
-              <Button onClick={() => setShowCreate(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create
-              </Button>
-              <EVMStaffFormWarehouse
-                open={showCreate}
-                onOpenChange={setShowCreate}
-                onCreate={(payload) => {
-                  console.log("Warehouse create payload:", payload);
-                  setShowCreate(false);
-                }}
+
+              <EvmWareTable
+                warehouses={warehouses}
+                loading={loading}
+                onRowClick={handleWarehouseRowClick}
               />
             </div>
-
-            {/* Warehouse Table */}
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>No.</TableHead>
-                    <TableHead>Warehouse</TableHead>
-                    <TableHead className="text-center">Location</TableHead>
-                    <TableHead className="text-center">Date</TableHead>
-                    <TableHead className="text-center">Price</TableHead>
-                    <TableHead>Low Stock</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentItems.map((item, i) => (
-                    <TableRow key={i} onClick={() => navigate(`${item.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
-                      <TableCell className="bg-transparent group-hover:bg-transparent group-active:bg-transparent">{i + 1}</TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell className="text-center">
-                        {item.location}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getLatestUpdate(item).toLocaleString("vi-VN")}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {formatCurrency(calculateWarehouseValue(item.parts))}
-                      </TableCell>
-                      <TableCell
-                        className={
-                          getLowStockAlert(item) !== "None"
-                            ? "text-red-600 font-semibold"
-                            : "text-gray-800"
-                        }
-                      >
-                        {getLowStockAlert(item)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Pagination */}
-
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-5" />
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-5" />
-              </Button>
-            </div>
-          </div>
+          )}
         </main>
       </div>
+
+      {/* Main Receive Stock Modal - Responsive */}
+      <Dialog
+        open={showReceiveStockModal}
+        onOpenChange={setShowReceiveStockModal}
+      >
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Receive Stock</DialogTitle>
+            <DialogDescription>
+              Record new parts received into a warehouse.
+            </DialogDescription>
+          </DialogHeader>
+
+          <EvmWareReceive
+            warehouses={warehouses}
+            partCatalog={partCatalog}
+            partsInventory={partCatalog}
+            onSuccess={(whId) => handleReceiveSuccess(whId)}
+            onClose={() => setShowReceiveStockModal(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

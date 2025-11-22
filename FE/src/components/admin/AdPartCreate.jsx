@@ -1,173 +1,192 @@
-// FE/src/components/admin/AdPartCreate.jsx
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { vehicleModels } from "@/lib/Mock-data";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+const BRANDS = ["VinFast", "Bosch", "Continental", "Denso"];
 
-const BRANCHES = ["VinFast", "Bosch", "Continental", "Denso"]
+const INITIAL_FORM_DATA = {
+  adminId: null,
+  partId: "",
+  partName: "",
+  partBrand: "",
+  price: "",
+  vehicleModel: [],
+  description: "",
+  isPartEnable: true,
+  policyName: "",
+  availableYear: "",
+  kilometer: "",
+  isPolicyEnable: true,
+};
 
-export default function CreatePartForm({ onSubmit, onCancel }) {
-  const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({
-    partName: "",
-    partBranch: "",
-    price: "",
-    vehicleModel: "",
-    description: "",
-    policyId: "",
-    policyName: "",
-    availableYear: "",
-    kilometer: "",
-  })
-
-  const [newBranch, setNewBranch] = useState("")
-  const [showNewBranch, setShowNewBranch] = useState(false)
+export default function CreatePartForm({
+  onSubmit,
+  onCancel,
+  currentAdminId,
+  currentAdminName,
+}) {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+    if (field === "price" || field === "kilometer") {
+      const rawValue = value.replace(/,/g, "");
+      if (!isNaN(rawValue)) {
+        setFormData((prev) => ({ ...prev, [field]: rawValue }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const formatNumber = (num) => {
+    if (!num) return "";
+    return Number(num).toLocaleString("en-US");
+  };
 
   const handleNext = () => {
-    if (step === 1) {
-      if (formData.partName && formData.partBranch && formData.price && formData.vehicleModel) {
-        setStep(2)
-      }
+    // Basic validation for step 1
+    if (!formData.partId || !formData.partName || !formData.price) {
+      alert("Please fill in all required fields in Step 1.");
+      return;
     }
-  }
+    setStep(2);
+  };
 
-  const handleSubmit = () => {
-    if (formData.policyId && formData.policyName && formData.availableYear && formData.kilometer) {
-      onSubmit({
-        partName: formData.partName,
-        partBranch: formData.partBranch,
-        price: Number(formData.price),
-        vehicleModel: formData.vehicleModel,
-        description: formData.description,
-        policyId: formData.policyId,
-        policyName: formData.policyName,
-        availableTime: `${formData.availableYear} years / ${formData.kilometer}km`,
-      })
-    }
-  }
+  const handleBack = () => setStep(1);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const finalData = {
+      ...formData,
+      adminId: currentAdminId,
+      vehicleModel: Array.isArray(formData.vehicleModel)
+        ? formData.vehicleModel
+        : [formData.vehicleModel],
+    };
+    await onSubmit(finalData);
+    setIsSubmitting(false);
+  };
 
   return (
-    <div className="space-y-6">
-      {step === 1 ? (
-        <>
+    <div className="max-h-[80vh] overflow-y-auto px-1">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold">
+          {step === 1 ? "Step 1: Part Information" : "Step 2: Warranty Policy"}
+        </h2>
+        <span className="text-sm text-muted-foreground">Step {step} of 2</span>
+      </div>
+
+      <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
+        <p className="text-sm font-medium">Admin Info</p>
+        <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+          <div>
+            <span className="text-muted-foreground">ID:</span> {currentAdminId}
+          </div>
+          <div>
+            <span className="text-muted-foreground">Name:</span>{" "}
+            {currentAdminName}
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {step === 1 ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Part Name *</Label>
-              <Input
-                placeholder="e.g., Engine Oil Filter"
-                value={formData.partName}
-                onChange={(e) => handleChange("partName", e.target.value)}
-              />
+            {/* CHỈNH SỬA: Grid responsive */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Part ID *</Label>
+                <Input
+                  placeholder="e.g., P-001"
+                  value={formData.partId}
+                  onChange={(e) => handleChange("partId", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Part Name *</Label>
+                <Input
+                  placeholder="e.g., Brake Pad"
+                  value={formData.partName}
+                  onChange={(e) => handleChange("partName", e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Part Branch *</Label>
-              {!showNewBranch ? (
-                <div className="flex gap-2">
-                  <Select
-                    value={formData.partBranch}
-                    onValueChange={(value) => {
-                      if (value === "new") {
-                        setShowNewBranch(true)
-                      } else {
-                        handleChange("partBranch", value)
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BRANCHES.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="new">+ Add New Branch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter new branch name"
-                    value={newBranch}
-                    onChange={(e) => setNewBranch(e.target.value)}
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (newBranch) {
-                        handleChange("partBranch", newBranch)
-                        setShowNewBranch(false)
-                        setNewBranch("")
-                      }
-                    }}
-                  >
-                    Add
-                  </Button>
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Brand</Label>
+                <Select
+                  value={formData.partBrand}
+                  onValueChange={(val) => handleChange("partBrand", val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BRANDS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Vehicle Model</Label>
+                <Select
+                  value={formData.vehicleModel[0] || ""}
+                  onValueChange={(val) => handleChange("vehicleModel", [val])}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicleModels.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label>Price (VND) *</Label>
               <Input
-                type="number"
-                placeholder="e.g., 150000"
-                value={formData.price}
+                type="text"
+                placeholder="e.g., 1,000,000"
+                value={formatNumber(formData.price)}
                 onChange={(e) => handleChange("price", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Vehicle Model *</Label>
-              <Input
-                placeholder="e.g., VF8"
-                value={formData.vehicleModel}
-                onChange={(e) => handleChange("vehicleModel", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label>Description</Label>
               <Input
-                placeholder="Part description"
+                placeholder="Part details..."
                 value={formData.description}
                 onChange={(e) => handleChange("description", e.target.value)}
               />
             </div>
           </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleNext}>Next</Button>
-          </div>
-        </>
-      ) : (
-        <>
+        ) : (
           <div className="space-y-4">
-            <h3 className="font-semibold">Policy Information</h3>
-
             <div className="space-y-2">
-              <Label>Policy ID *</Label>
-              <Input
-                placeholder="e.g., P001"
-                value={formData.policyId}
-                onChange={(e) => handleChange("policyId", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Policy Name *</Label>
+              <Label>Policy Name</Label>
               <Input
                 placeholder="e.g., Standard Warranty"
                 value={formData.policyName}
@@ -175,40 +194,76 @@ export default function CreatePartForm({ onSubmit, onCancel }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Available Year *</Label>
-              <Input
-                type="number"
-                placeholder="e.g., 2"
-                value={formData.availableYear}
-                onChange={(e) => handleChange("availableYear", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Kilometer *</Label>
-              <Input
-                type="number"
-                placeholder="e.g., 50000"
-                value={formData.kilometer}
-                onChange={(e) => handleChange("kilometer", e.target.value)}
-              />
+            {/* CHỈNH SỬA: Grid responsive */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Available Year *</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g., 2 (years)"
+                  value={formData.availableYear}
+                  onChange={(e) =>
+                    handleChange("availableYear", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kilometer *</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g., 50,000 (km)"
+                  value={formatNumber(formData.kilometer)}
+                  onChange={(e) => handleChange("kilometer", e.target.value)}
+                />
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="flex justify-between gap-2">
-            <Button variant="outline" onClick={() => setStep(1)}>
-              Back
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onCancel}>
-                Cancel
+        {/* Buttons Responsive */}
+        <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4 border-t">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+            {step === 2 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={handleSubmit}>Create Part</Button>
-            </div>
+            )}
+
+            {step === 1 ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                className="w-full sm:w-auto"
+              >
+                Next Step <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                {isSubmitting ? "Creating..." : "Create Part & Policy"}
+              </Button>
+            )}
           </div>
-        </>
-      )}
+        </div>
+      </form>
     </div>
-  )
+  );
 }

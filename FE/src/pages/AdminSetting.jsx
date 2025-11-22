@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/admin/AdminSidebar";
 import Header from "@/components/Header";
-import profile from "../assets/profile.jpg";
 import {
   Card,
   CardContent,
@@ -29,13 +28,17 @@ export default function AdminSetting() {
     warrantyPeriod: "96",
     autoApproval: false,
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <Sidebar />
+      <Sidebar isMobileOpen={isMobileMenuOpen} onClose={handleCloseMenu} />
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
           <div className="space-y-6">
             {/* Header */}
@@ -43,9 +46,9 @@ export default function AdminSetting() {
               <h1 className="text-3xl font-bold text-foreground">
                 System Settings
               </h1>
-              <p className="text-muted-foreground mt-1">
+              {/* <p className="text-muted-foreground mt-1">
                 Configure system preferences and integrations
-              </p>
+              </p> */}
             </div>
             {/* Switch Tabs */}
             <Tabs defaultValue="general" className="space-y-6">

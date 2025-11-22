@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState, useReducer, useCallback } from "react";
+import {
+  Search,
+  Plus,
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import EVMStaffSideBar from "@/components/evmstaff/EVMStaffSideBar";
 import Header from "@/components/Header";
 import { Input } from "@/components/ui/input";
@@ -14,69 +22,212 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // import Badge removed; using inline border-only pill for status consistency
 import EVMStaffFormCampaign from "@/components/evmstaff/EVMStaffFormCampaign";
 import EVMStaffDetailCampaign from "@/components/evmstaff/EVMStaffDetailCampaign";
-import { mockEVMCampaigns } from "@/lib/Mock-data";
+import axiosPrivate from "@/api/axios";
+
+const CAMPAIGN_URL = "/api/campaigns/all";
+const VEHICLE_URL = "/api/vehicles";
+const APPOINTMENT_URL = "/api/service-appointments";
+
+const initialState = {
+  status: "idle",
+  campaigns: [],
+  error: null,
+};
+
+const dataFetchReducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, status: "loading", error: null };
+    case "FETCH_SUCCESS":
+      return {
+        ...state,
+        status: "success",
+        campaigns: action.payload.campaigns,
+      };
+    case "FETCH_ERROR":
+      return { ...state, status: "error", error: action.payload };
+    // Thêm action để cập nhật local (mock)
+    case "UPDATE_CAMPAIGNS_LOCALLY":
+      return {
+        ...state,
+        campaigns: action.payload,
+      };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+};
 
 export default function EVMStaffCampaign() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCampaignDialog, setShowCampaignDialog] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [viewCampaign, setViewCampaign] = useState(null);
-  const [campaigns, setCampaigns] = useState(mockEVMCampaigns);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    return (
-      campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.campaignId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const [state, dispatch] = useReducer(dataFetchReducer, initialState);
+  const { status, campaigns, error } = state;
+
+  const fetchAllData = useCallback(async () => {
+    dispatch({ type: "FETCH_START" });
+    try {
+      const [campaignResponse, vehicleResponse, appointmentResponse] =
+        await Promise.all([
+          axiosPrivate.get(CAMPAIGN_URL),
+          axiosPrivate.get(VEHICLE_URL),
+          axiosPrivate.get(APPOINTMENT_URL),
+        ]);
+
+      const rawCampaigns = campaignResponse.data;
+      const allVehicles = vehicleResponse.data;
+      const allAppointments = appointmentResponse.data;
+
+      const transformedData = rawCampaigns.map((campaign) => {
+        const status = getCampaignStatus(campaign.startDate, campaign.endDate);
+
+        // Tính Affected Vehicles
+        const campaignModelSet = new Set(campaign.model || []);
+        const affectedVehiclesCount = allVehicles.filter((vehicle) =>
+          campaignModelSet.has(vehicle.model)
+        ).length;
+
+        // Tính Completed Vehicles (Giả định appointment có campaignId và status)
+        const completedVehiclesCount = allAppointments.filter(
+          (app) =>
+            app.campaign.campaignId === campaign.campaignId &&
+            app.status === "Completed"
+        ).length;
+
+        return {
+          ...campaign,
+          status: status,
+          affectedVehicles: affectedVehiclesCount,
+          completedVehicles: completedVehiclesCount,
+        };
+      });
+
+      dispatch({
+        type: "FETCH_SUCCESS",
+        payload: { campaigns: transformedData },
+      });
+    } catch (err) {
+      console.error("API Error: " + err.message);
+      dispatch({ type: "FETCH_ERROR", payload: err.message });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  const getCampaignStatus = (startDate, endDate) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày hôm nay
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày bắt đầu
+
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0); // Chuẩn hóa về đầu ngày kết thúc
+
+    if (now > end) {
+      return "completed";
+    } else if (now >= start && now <= end) {
+      return "on going";
+    } else {
+      // now < start
+      return "not yet";
+    }
+  };
+
+  const filteredCampaigns = campaigns
+    .filter((campaign) => {
+      return campaign.campaignName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    })
+    .filter((campaign) => {
+      // 2. Filter theo status đã tính toán sẵn
+      if (statusFilter === "all") {
+        return true;
+      }
+      return campaign.status === statusFilter;
+    })
+    .sort((a, b) => {
+      // 1. Định nghĩa thứ tự ưu tiên
+      const statusPriority = {
+        "on going": 1,
+        "not yet": 2,
+        completed: 3,
+      };
+
+      // 2. Lấy độ ưu tiên của a và b (nếu không tìm thấy, cho xuống cuối)
+      const priorityA = statusPriority[a.status] || 99;
+      const priorityB = statusPriority[b.status] || 99;
+
+      // 3. So sánh
+      return priorityA - priorityB;
+    });
+
+  const totalPages =
+    Math.ceil(filteredCampaigns.length / itemsPerPage) === 0
+      ? 1
+      : Math.ceil(filteredCampaigns.length / itemsPerPage);
   const paginatedCampaigns = filteredCampaigns.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const handleEditCampaign = (campaign) => {
-    setEditingCampaign(campaign);
-    setShowCampaignDialog(true);
-  };
-
   const handleSaveCampaign = (campaignData) => {
+    let updatedCampaigns;
     if (editingCampaign) {
-      setCampaigns(
-        campaigns.map((c) =>
-          c.id === editingCampaign.id ? { ...c, ...campaignData } : c
-        )
+      updatedCampaigns = campaigns.map((c) =>
+        c.id === editingCampaign.id ? { ...c, ...campaignData } : c
       );
     } else {
-      setCampaigns([
+      updatedCampaigns = [
         ...campaigns,
         { id: String(campaigns.length + 1), ...campaignData },
-      ]);
+      ];
     }
+
+    // Giả sử đây là mock, chỉ cập nhật local
+    // Nếu đây là API thật, bạn sẽ POST/PUT rồi gọi fetchAllData()
+    dispatch({
+      type: "UPDATE_CAMPAIGNS_LOCALLY",
+      payload: updatedCampaigns,
+    });
+
     setEditingCampaign(null);
   };
 
   // border-only pill; keep original casing (do not uppercase)
-  const getStatusBadge = (decision) => {
-    const s = String(decision || "").toLowerCase();
+  const getStatusBadge = (status) => {
+    const s = String(status || "").toLowerCase();
     const map = {
-      done: "text-green-700 border-green-400",
-      cancel: "text-red-700 border-red-400",
-      process: "text-yellow-700 border-yellow-400",
-      to_do: "text-blue-700 border-blue-400",
-      "to do": "text-blue-700 border-blue-400",
-      "on going": "text-yellow-700 border-yellow-400",
+      completed: "text-white bg-green-400 border-green-400",
+      "not yet": "text-white bg-blue-400 border-blue-400",
+      "on going": "text-white bg-yellow-600 border-yellow-600",
     };
     const cls = map[s] || "text-gray-700 border-gray-300";
     return (
       <span
-        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border bg-transparent min-w-[100px] ${cls}`}
+        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium border min-w-[100px] ${cls}`}
       >
         {String(status || "").replace(/_/g, " ")}
       </span>
@@ -84,125 +235,148 @@ export default function EVMStaffCampaign() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <EVMStaffSideBar />
-      <div className="flex-1 flex flex-col ml-64">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
+    <div className="min-h-screen bg-muted/30">
+      <EVMStaffSideBar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <div className="lg:pl-64 transition-all duration-200">
+        <Header onMenuClick={handleOpenMenu} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold">Campaign Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              Campaign Management
+            </h1>
 
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
+            {/* Responsive Search & Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
-              <Button
-                onClick={() => {
-                  setEditingCampaign(null);
-                  setShowCampaignDialog(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create
-              </Button>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                {/* Thêm Filter Dropdown */}
+                <div className="w-full sm:w-[180px]">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(value) => {
+                      setStatusFilter(value);
+                      setCurrentPage(1); // Reset trang khi filter
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="not yet">Not Yet</SelectItem>
+                      <SelectItem value="on going">On Going</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    setEditingCampaign(null);
+                    setShowCampaignDialog(true);
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create
+                </Button>
+              </div>
             </div>
 
-            <div className="border rounded-lg">
+            <div className="border rounded-lg bg-card overflow-hidden shadow-sm">
               <div className="w-full overflow-x-auto">
-                <Table className="table-auto w-full">
+                {/* Add min-w to table to prevent squishing on mobile */}
+                <Table className="table-auto min-w-[900px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-28 text-left">
-                        Campaign ID
-                      </TableHead>
+                      <TableHead className="w-28 text-left">No.</TableHead>
                       <TableHead className="w-48 text-left">
                         Campaign Name
                       </TableHead>
                       <TableHead className="max-w-[360px] text-left">
-                        Short Description
+                        Description
                       </TableHead>
                       <TableHead className="w-40 text-left">
-                        Collected
+                        Start Date
                       </TableHead>
-                      <TableHead className="w-32 text-left">Due</TableHead>
-                      <TableHead className="w-20 text-center">View</TableHead>
+                      <TableHead className="w-32 text-left">Due Date</TableHead>
                       <TableHead className="w-32 text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedCampaigns.map((campaign) => (
-                      <TableRow
-                        key={campaign.id}
-                        onClick={() => setViewCampaign(campaign)}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      >
-                        <TableCell className="font-medium text-left">
-                          {campaign.campaignId}
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {campaign.campaignName}
-                        </TableCell>
-                        <TableCell className="max-w-[360px] whitespace-normal break-words text-left">
-                          {(campaign.description || "").slice(0, 60)}
-                        </TableCell>
-                        <TableCell className="w-40 text-left align-top">
-                          {/* show percentage bar if data available */}
-                          {campaign.completedVehicles &&
-                          campaign.affectedVehicles ? (
-                            (() => {
-                              const pct = Math.round(
-                                (campaign.completedVehicles /
-                                  campaign.affectedVehicles) *
-                                  100
-                              );
-                              return (
-                                <div>
-                                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                    <div
-                                      className="h-2 bg-primary"
-                                      style={{
-                                        width: `${Math.min(
-                                          Math.max(pct, 0),
-                                          100
-                                        )}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mt-1">
-                                    {pct}%
-                                  </div>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              -
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {campaign.end}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewCampaign(campaign)}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-center align-middle">
-                          {getStatusBadge(campaign.status)}
+                    {status === "loading" && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center h-40">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
+                    {status === "error" && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center h-40 text-destructive"
+                        >
+                          <AlertCircle className="w-6 h-6 mx-auto mb-2" />
+                          <p>{error}</p>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {status === "success" &&
+                      paginatedCampaigns.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center h-40 text-muted-foreground"
+                          >
+                            No campaigns found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    {status === "success" &&
+                      paginatedCampaigns.map((campaign, i) => (
+                        <TableRow
+                          key={campaign.id}
+                          onClick={() => setViewCampaign(campaign)}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        >
+                          <TableCell className="font-medium text-left align-middle">
+                            {i + 1}
+                          </TableCell>
+                          <TableCell className="text-left align-middle">
+                            {campaign.campaignName}
+                          </TableCell>
+                          <TableCell className="max-w-[360px] whitespace-normal break-words text-left align-middle">
+                            {(campaign.serviceDescription || "").slice(0, 60)}
+                          </TableCell>
+                          <TableCell className="text-left align-middle">
+                            {campaign.startDate}
+                          </TableCell>
+                          <TableCell className="text-left align-middle">
+                            {campaign.endDate}
+                          </TableCell>
+                          <TableCell className="text-center align-middle">
+                            {getStatusBadge(
+                              getCampaignStatus(
+                                campaign.startDate,
+                                campaign.endDate
+                              ).toUpperCase()
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </div>
@@ -240,6 +414,7 @@ export default function EVMStaffCampaign() {
         onOpenChange={setShowCampaignDialog}
         onSave={handleSaveCampaign}
         campaign={editingCampaign}
+        allCampaigns={campaigns}
       />
       <EVMStaffDetailCampaign
         open={!!viewCampaign}

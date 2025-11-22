@@ -1,6 +1,5 @@
-//FE/src/components/scstaff/ScsCampAppSchedule.jsx
-import { useState } from "react"
-import { AlertTriangle, Calendar } from "lucide-react"
+import { useState, useMemo } from "react"; // Thêm useMemo
+import { Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,56 +7,87 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import axiosPrivate from "@/api/axios";
 
-// Mock existing appointments for conflict detection
-const existingAppointments = [
-  { date: "2024-01-20", time: "09:00", customer: "Nguyen Van D" },
-  { date: "2024-01-20", time: "14:00", customer: "Tran Thi E" },
-]
+const APPOINTMENT_URL = "/api/service-appointments";
 
-export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
-  const [notes, setNotes] = useState("")
-  const [conflict, setConflict] = useState(null)
+// Hàm helper để chuyển đổi Date object sang chuỗi YYYY-MM-DDTHH:MM (Local Time)
+const toLocalISOString = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return ""; // Check invalid date
+  // Trừ đi phần chênh lệch múi giờ để hiển thị đúng giờ địa phương
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+};
 
-  const checkConflict = (selectedDate, selectedTime) => {
-    const conflictingAppointment = existingAppointments.find(
-      (apt) => apt.date === selectedDate && apt.time === selectedTime
-    )
-    setConflict(conflictingAppointment || null)
-  }
+export function ScheduleAppointmentDialog({
+  open,
+  onOpenChange,
+  vehicle,
+  campaign, // Nhận prop campaign để lấy startDate/endDate
+  onScheduleSuccess,
+}) {
+  const [dateTime, setDateTime] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const handleDateChange = (newDate) => {
-    setDate(newDate)
-    if (time) checkConflict(newDate, time)
-  }
+  // --- TÍNH TOÁN GIỚI HẠN THỜI GIAN ---
+  const { minDateStr, maxDateStr, dateRangeText } = useMemo(() => {
+    if (!campaign) return { minDateStr: "", maxDateStr: "", dateRangeText: "" };
 
-  const handleTimeChange = (newTime) => {
-    setTime(newTime)
-    if (date) checkConflict(date, newTime)
-  }
+    const now = new Date();
+    const campStart = new Date(campaign.startDate);
+    const campEnd = new Date(campaign.endDate);
 
-  const handleSchedule = () => {
-    alert(`Appointment scheduled for ${vehicle?.owner} on ${date} at ${time}`)
-    onOpenChange(false)
-    setDate("")
-    setTime("")
-    setNotes("")
-    setConflict(null)
-  }
+    const effectiveMin = now > campStart ? now : campStart;
 
-  if (!vehicle) return null
+    return {
+      minDateStr: toLocalISOString(effectiveMin),
+      maxDateStr: toLocalISOString(campEnd),
+      dateRangeText: `${campStart.toLocaleDateString()} - ${campEnd.toLocaleDateString()}`,
+    };
+  }, [campaign, open]); // Tính lại khi campaign thay đổi hoặc mở dialog
+  // ------------------------------------
+
+  const handleSchedule = async (e) => {
+    // Validate thủ công thêm một lần nữa để chắc chắn
+    if (dateTime < minDateStr || dateTime > maxDateStr) {
+      alert("Please select a date within the valid campaign period.");
+      return;
+    }
+
+    try {
+      const newAppointment = {
+        vin: vehicle.vin,
+        campaignId: campaign.campaignId,
+        date: dateTime,
+        description: notes,
+      };
+
+      await axiosPrivate.post(APPOINTMENT_URL, newAppointment);
+      onOpenChange(false);
+      setDateTime("");
+      setNotes("");
+      if (onScheduleSuccess) {
+        onScheduleSuccess();
+      }
+    } catch (error) {
+      console.error("API Error: " + error.message);
+      alert("Failed to schedule appointment.");
+    }
+  };
+
+  if (!vehicle || !campaign) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, max-h-[90vh] để cuộn */}
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
           <DialogDescription>
@@ -68,53 +98,45 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Customer Information</Label>
-            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
+            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm break-words">
               <p>
-                <span className="text-muted-foreground">Owner:</span> {vehicle.owner}
+                <span className="text-muted-foreground">Owner:</span>{" "}
+                {vehicle.customer.customerName}
               </p>
               <p>
-                <span className="text-muted-foreground">Phone:</span> {vehicle.phone}
+                <span className="text-muted-foreground">Phone:</span>{" "}
+                {vehicle.customer.customerPhone}
               </p>
               <p>
-                <span className="text-muted-foreground">VIN:</span> {vehicle.vin}
+                <span className="text-muted-foreground">VIN:</span>{" "}
+                <span className="font-mono text-xs">{vehicle.vin}</span>
               </p>
               <p>
-                <span className="text-muted-foreground">License:</span> {vehicle.licensePlate}
+                <span className="text-muted-foreground">License:</span>{" "}
+                {vehicle.plate}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Campaign:</span>{" "}
+                {campaign.campaignName}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => handleDateChange(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
-              <Input
-                id="time"
-                type="time"
-                value={time}
-                onChange={(e) => handleTimeChange(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="datetime">Date and Time</Label>
+            {/* Hiển thị thông tin khoảng thời gian cho user dễ biết */}
+            <p className="text-xs text-muted-foreground">
+              Valid campaign period: {dateRangeText}
+            </p>
+            <Input
+              id="datetime"
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => setDateTime(e.target.value)}
+              min={minDateStr} // Giới hạn dưới
+              max={maxDateStr} // Giới hạn trên
+            />
           </div>
-
-          {conflict && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Time slot conflict! {conflict.customer} already has an appointment at{" "}
-                {conflict.time} on {conflict.date}. You can still proceed or choose a different
-                time.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -128,16 +150,16 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, vehicle }) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSchedule} disabled={!date || !time}>
+          <Button onClick={handleSchedule} disabled={!dateTime}>
             <Calendar className="w-4 h-4 mr-2" />
             Schedule Appointment
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

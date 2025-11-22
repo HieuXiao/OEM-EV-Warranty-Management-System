@@ -1,19 +1,13 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { Search, Filter, Eye, Plus, ArrowUpDown, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, Eye, Plus } from "lucide-react";
 import SCStaffSidebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
+import ScsWarrCreate from "@/components/scstaff/ScsWarrCreate";
+import ScsWarrDetail from "@/components/scstaff/ScsWarrDetail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -21,36 +15,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { mockWarrantyClaims, vehicleModels, mockUsers } from "@/lib/Mock-data";
+import useAuth from "@/hook/useAuth";
+import axiosPrivate from "@/api/axios";
 
+const API = {
+  CLAIMS: "/api/warranty-claims",
+  ACCOUNTS: "/api/accounts/",
+  VEHICLES: "/api/vehicles",
+};
+
+// Màu sắc cho Badge trạng thái
 const getStatusColor = (status) => {
   const colors = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    "in progress": "bg-blue-100 text-blue-800 border-blue-300",
-    completed: "bg-green-100 text-green-800 border-green-300",
-    rejected: "bg-red-100 text-red-800 border-red-300",
+    CHECK: "bg-blue-100 text-blue-800 border-blue-300",
+    DECIDE: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    REPAIR: "bg-orange-100 text-orange-700 border-orange-300",
+    HANDOVER: "bg-purple-100 text-purple-800 border-purple-300",
+    DONE: "bg-green-100 text-green-800 border-green-300",
   };
   return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
-};
-
-const getPriorityColor = (priority) => {
-  const colors = {
-    low: "bg-gray-100 text-gray-700 border-gray-300",
-    medium: "bg-orange-100 text-orange-700 border-orange-300",
-    high: "bg-red-100 text-red-700 border-red-300",
-  };
-  return colors[priority] || "bg-gray-100 text-gray-700 border-gray-300";
-};
-
-const getStatisticsClaims = (dateFrom, dateTo) => {
-  return mockWarrantyClaims.filter((claim) => {
-    const claimDate = new Date(claim.createdAt);
-    const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom);
-    const matchesDateTo =
-      !dateTo || claimDate <= new Date(dateTo + "T23:59:59");
-    return matchesDateFrom && matchesDateTo;
-  });
 };
 
 const getDefaultDateFrom = () => {
@@ -63,577 +46,438 @@ const getDefaultDateTo = () => {
   return new Date().toISOString().split("T")[0];
 };
 
-export default function SCStaffWarrantyClaim() {
-  const [currentUser] = useState({
-    name: "Tran Thi B",
-    role: "SC Staff",
-    serviceCenter: "SC Hanoi Central",
-  });
+// Component Timeline (Mô phỏng hình 3)
+const WarrantyTimeline = ({ timeline = [], currentStatus }) => {
+  const STATUS_ORDER = ["CHECK", "DECIDE", "REPAIR", "HANDOVER", "DONE"];
+  // Màu sắc cho các chấm tròn timeline
+  const STATUS_DOT_COLORS = {
+    CHECK: "bg-blue-500 border-blue-500",
+    DECIDE: "bg-yellow-500 border-yellow-500",
+    REPAIR: "bg-orange-500 border-orange-500",
+    HANDOVER: "bg-purple-500 border-purple-500",
+    DONE: "bg-green-500 border-green-500",
+  };
 
+  // Parse timeline string từ backend (nếu có)
+  const statusTimes = timeline.reduce((acc, item) => {
+    const match = item.match(
+      /^(CHECK|DECIDE|REPAIR|HANDOVER|DONE)\s*:\s*([\d\-T:\.]+)/
+    );
+    if (match) {
+      const status = match[1];
+      const timeStr = match[2];
+      acc[status] = new Date(timeStr);
+    }
+    return acc;
+  }, {});
+
+  const currentIndex = STATUS_ORDER.indexOf(currentStatus);
+
+  const formatTime = (date) => {
+    if (!date) return null;
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return {
+      date: `${day}/${month}/${year}`,
+      time: `${hours}:${minutes}`,
+    };
+  };
+
+  return (
+    <div className="w-full overflow-x-auto pb-2 pt-2">
+      <div className="flex items-start min-w-[300px] justify-between relative">
+        {/* Line background connecting dots */}
+        <div className="absolute top-3 left-0 w-full h-0.5 bg-gray-200 -z-10" />
+
+        {STATUS_ORDER.map((status, index) => {
+          const hasTime = !!statusTimes[status];
+          const isReached = index <= currentIndex; // Status đã qua hoặc đang ở đó
+
+          const dateInfo = formatTime(statusTimes[status]);
+
+          return (
+            <div
+              key={status}
+              className="flex flex-col items-center gap-1 z-0 bg-transparent px-1"
+            >
+              {/* Dot */}
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  isReached || hasTime
+                    ? STATUS_DOT_COLORS[status] || "bg-gray-500 border-gray-500"
+                    : "bg-white border-gray-300"
+                }`}
+              />
+
+              {/* Label */}
+              <span
+                className={`text-[10px] font-bold uppercase ${
+                  isReached ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {status}
+              </span>
+
+              {/* Date/Time (if available) */}
+              {hasTime ? (
+                <div className="text-[9px] text-muted-foreground text-center leading-tight">
+                  <div>{dateInfo.date}</div>
+                  <div>{dateInfo.time}</div>
+                </div>
+              ) : (
+                <div className="h-[22px]"></div> // Spacer để giữ chiều cao
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default function SCStaffWarrantyClaim() {
+  const { auth } = useAuth();
+  const currentUser = {
+    id: auth?.accountId,
+    name: auth?.fullName,
+    role: auth?.role,
+  };
+
+  // Sidebar mobile state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
+
+  // Data state
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedClaim, setSelectedClaim] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Filter state
   const [dateFrom, setDateFrom] = useState(getDefaultDateFrom());
   const [dateTo, setDateTo] = useState(getDefaultDateTo());
-  const [vehicleModelFilter, setVehicleModelFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
-  const [newClaimTechnician, setNewClaimTechnician] = useState("");
+  const [userCenterId, setUserCenterId] = useState(null);
 
-  const scTechnicians = mockUsers.filter(
-    (user) => user.role === "sc_technician"
-  );
+  // Dialog state
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const statisticsClaims = getStatisticsClaims(dateFrom, dateTo);
-  const totalClaims = statisticsClaims.length;
-  const pendingClaims = statisticsClaims.filter(
-    (claim) => claim.status === "pending"
-  ).length;
-  const inProgressClaims = statisticsClaims.filter(
-    (claim) => claim.status === "in progress"
-  ).length;
-  const completedClaims = statisticsClaims.filter(
-    (claim) => claim.status === "completed"
-  ).length;
+  // Fetch claims
+  useEffect(() => {
+    const fetchClaims = async () => {
+      try {
+        setLoading(true);
+        const [claimsRes, vehiclesRes] = await Promise.all([
+          axiosPrivate.get(API.CLAIMS, { params: { dateFrom, dateTo } }),
+          axiosPrivate.get("/api/vehicles"),
+        ]);
+        const claimsData = Array.isArray(claimsRes.data) ? claimsRes.data : [];
+        const vehiclesData = Array.isArray(vehiclesRes.data)
+          ? vehiclesRes.data
+          : [];
 
-  const handleSetToday = () => {
-    setDateFrom(getDefaultDateFrom());
-    setDateTo(getDefaultDateTo());
-  };
+        const vehicleMap = Object.fromEntries(
+          vehiclesData.map((v) => [v.vin, v.plate || "—"])
+        );
 
-  const filteredClaims = mockWarrantyClaims
+        const merged = claimsData.map((c) => ({
+          ...c,
+          plate: vehicleMap[c.vin] || "—",
+        }));
+        setClaims(merged);
+      } catch (error) {
+        console.error("Failed to fetch claims:", error);
+        setClaims([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClaims();
+  }, [dateFrom, dateTo]);
+
+  // Fetch user center
+  useEffect(() => {
+    const fetchCenterId = async () => {
+      try {
+        const res = await axiosPrivate.get(API.ACCOUNTS);
+        const account = Array.isArray(res.data)
+          ? res.data.find(
+              (a) =>
+                a.accountId.toUpperCase() === auth?.accountId?.toUpperCase()
+            )
+          : null;
+        if (account?.serviceCenter?.centerId) {
+          setUserCenterId(account.serviceCenter.centerId);
+        }
+      } catch (err) {
+        console.error("Failed to fetch account info:", err);
+      }
+    };
+    if (auth?.accountId) fetchCenterId();
+  }, [auth?.accountId]);
+
+  // Filter & Sort logic
+  const filteredClaims = claims
     .filter((claim) => {
-      const matchesSearch =
-        claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "all" || claim.status === statusFilter;
-
-      const matchesVehicleModel =
-        vehicleModelFilter === "all" ||
-        claim.vehicleModel === vehicleModelFilter;
-
-      const claimDate = new Date(claim.createdAt);
-      const matchesDateFrom = !dateFrom || claimDate >= new Date(dateFrom);
-      const matchesDateTo =
-        !dateTo || claimDate <= new Date(dateTo + "T23:59:59");
-
+      if (userCenterId && claim.claimId?.includes("-")) {
+        const parts = claim.claimId.split("-");
+        const claimCenterId = parseInt(parts[1]) || 0;
+        return claimCenterId === userCenterId;
+      }
       return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesVehicleModel &&
-        matchesDateFrom &&
-        matchesDateTo
+        claim.serviceCenterStaffId?.toUpperCase() ===
+        auth?.accountId?.toUpperCase()
       );
     })
+    .filter((claim) => {
+      const matchesSearch =
+        claim.claimId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        claim.vin?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || claim.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
     .sort((a, b) => {
-      switch (sortBy) {
-        case "date-desc":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "date-asc":
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case "priority-high":
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        case "priority-low":
-          const priorityOrderLow = { high: 3, medium: 2, low: 1 };
-          return priorityOrderLow[a.priority] - priorityOrderLow[b.priority];
-        case "status":
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
-      }
+      const dateA = new Date(a.claimDate);
+      const dateB = new Date(b.claimDate);
+      if (sortBy === "date-desc") return dateB - dateA;
+      return 0;
     });
 
+  // Stats calculation
+  const userClaims = claims.filter((claim) => {
+    if (userCenterId && claim.claimId?.includes("-")) {
+      const parts = claim.claimId.split("-");
+      const claimCenterId = parseInt(parts[1]) || 0;
+      return claimCenterId === userCenterId;
+    }
+    return (
+      claim.serviceCenterStaffId?.toUpperCase() ===
+      auth?.accountId?.toUpperCase()
+    );
+  });
+
+  const totalClaims = userClaims.length;
+  const checkClaims = userClaims.filter((c) => c.status === "CHECK").length;
+  const decideClaims = userClaims.filter((c) => c.status === "DECIDE").length;
+  const repairClaims = userClaims.filter((c) => c.status === "REPAIR").length;
+  const doneClaims = userClaims.filter((c) => c.status === "DONE").length;
+
+  // Handlers
   const handleViewClaim = (claim) => {
     setSelectedClaim(claim);
-    setIsDialogOpen(true);
+    setIsDetailDialogOpen(true);
   };
 
-  const handleMarkComplete = () => {
-    console.log("[v0] Marking claim as complete:", selectedClaim?.claimNumber);
-    setIsDialogOpen(false);
-  };
-
-  const handleCreateClaim = () => {
-    setIsCreateDialogOpen(true);
-  };
-
-  const handleSubmitNewClaim = (e) => {
-    e.preventDefault();
-    console.log(
-      "[v0] Creating new warranty claim with technician:",
-      newClaimTechnician
-    );
-    setIsCreateDialogOpen(false);
-    setNewClaimTechnician("");
+  const handleClaimCreated = async () => {
+    try {
+      const response = await axiosPrivate.get(API.CLAIMS, {
+        params: { dateFrom, dateTo },
+      });
+      setClaims(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error("Failed to refresh claims:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSidebar />
-
-      {/* Main Content */}
-      <div className="lg:pl-64">
-        <Header />
-
-        <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Claims
+      <SCStaffSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <div className="lg:pl-64 transition-all duration-200">
+        <Header onMenuClick={handleOpenMenu} />
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+          {/* 1. Thống kê Cards (Giống Hình 2) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { label: "Total Claims", value: totalClaims },
+              { label: "Check", value: checkClaims },
+              { label: "Decide", value: decideClaims },
+              { label: "Repair", value: repairClaims },
+              { label: "Done", value: doneClaims },
+            ].map((item) => (
+              <Card key={item.label} className="shadow-sm">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    {item.label}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalClaims}</div>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-bold">{item.value}</div>
                 </CardContent>
               </Card>
+            ))}
+          </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{pendingClaims}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Awaiting review
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    In Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{inProgressClaims}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Active claims
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedClaims}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Successfully resolved
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* 2. Bộ lọc & Tìm kiếm (Hình 1 - Responsive) */}
+          <div className="flex flex-col lg:flex-row gap-4 bg-card p-4 rounded-lg border border-border shadow-sm">
+            {/* Date Range */}
+            <div className="flex gap-2 w-full lg:w-auto">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  From
+                </label>
                 <Input
-                  placeholder="Search by claim number, plate, or customer..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full"
+                  max={dateTo}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  To
+                </label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full"
+                  min={dateFrom}
+                />
+              </div>
+            </div>
+
+            {/* Search & Filter & Button */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-1 items-end">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search Claim ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+
+              <div className="w-full sm:w-[160px]">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="CHECK">Check</SelectItem>
+                    <SelectItem value="DECIDE">Decide</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
+                    <SelectItem value="HANDOVER">Handover</SelectItem>
+                    <SelectItem value="DONE">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button
-                onClick={handleCreateClaim}
-                className="bg-black hover:bg-gray-800 text-white"
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto whitespace-nowrap"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create
               </Button>
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="date-from"
-                  className="text-sm font-medium whitespace-nowrap"
-                >
-                  From:
-                </Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[160px]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="date-to"
-                  className="text-sm font-medium whitespace-nowrap"
-                >
-                  To:
-                </Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[160px]"
-                />
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSetToday}
-                className="gap-2 bg-transparent"
-              >
-                <Calendar className="h-4 w-4" />
-                Today
-              </Button>
-
-              <Select
-                value={vehicleModelFilter}
-                onValueChange={setVehicleModelFilter}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Models" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Models</SelectItem>
-                  {vehicleModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[200px]">
-                  <ArrowUpDown className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date-desc">Date (Newest First)</SelectItem>
-                  <SelectItem value="date-asc">Date (Oldest First)</SelectItem>
-                  <SelectItem value="priority-high">
-                    Priority (High to Low)
-                  </SelectItem>
-                  <SelectItem value="priority-low">
-                    Priority (Low to High)
-                  </SelectItem>
-                  <SelectItem value="status">Status (A-Z)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {filteredClaims.length} of {totalClaims} claims
+          {/* 3. Danh sách Claims (Kiểu Card như Hình 3) */}
+          <div className="space-y-4">
+            {loading ? (
+              <p className="text-center text-muted-foreground py-10">
+                Loading claims...
               </p>
-            </div>
+            ) : filteredClaims.length === 0 ? (
+              <div className="text-center py-10 border border-dashed rounded-lg bg-muted/10">
+                <p className="text-muted-foreground">No claims found.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                {filteredClaims.map((claim) => (
+                  <Card
+                    key={claim.claimId}
+                    className="hover:shadow-md transition-all border flex flex-col overflow-hidden"
+                  >
+                    <CardContent className="p-5 flex-1 flex flex-col gap-4">
+                      {/* Header: ID & Status */}
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg text-foreground break-all">
+                          Claim #{claim.claimId}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className={`${getStatusColor(
+                            claim.status
+                          )} shrink-0 text-xs uppercase font-semibold px-2 py-1`}
+                        >
+                          {claim.status}
+                        </Badge>
+                      </div>
 
-            <div className="space-y-4">
-              {filteredClaims.map((claim) => (
-                <Card
-                  key={claim.claimNumber}
-                  className="hover:shadow-md transition-shadow"
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold">
-                            {claim.claimNumber}
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(claim.status)}
-                          >
-                            {claim.status}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={getPriorityColor(claim.priority)}
-                          >
-                            {claim.priority}
-                          </Badge>
+                      {/* Info: Plate & Date */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground block text-xs">
+                            Vehicle Plate
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {claim.plate}
+                          </span>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">
-                              Vehicle:{" "}
-                            </span>
-                            <span className="font-medium">
-                              {claim.vehicleModel} - {claim.vehiclePlate}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">
-                              Customer:{" "}
-                            </span>
-                            <span className="font-medium">
-                              {claim.customerName}
-                            </span>
-                            <span className="block text-muted-foreground text-xs mt-1">
-                              {claim.customerPhone}
-                            </span>
-                          </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">
+                            Date
+                          </span>
+                          <span className="font-semibold text-foreground">
+                            {claim.claimDate}
+                          </span>
                         </div>
                       </div>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewClaim(claim)}
-                        className="ml-4"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      {/* Timeline (Mô phỏng Hình 3) */}
+                      <div className="pt-2 border-t">
+                        <WarrantyTimeline
+                          timeline={claim.timeline}
+                          currentStatus={claim.status}
+                        />
+                      </div>
+
+                      {/* Button View (Ở dưới cùng) */}
+                      <div className="mt-auto pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-gray-300 hover:bg-muted/50 text-foreground"
+                          onClick={() => handleViewClaim(claim)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">
-                {selectedClaim?.claimNumber}
-              </DialogTitle>
-              <Badge
-                variant="outline"
-                className={getStatusColor(selectedClaim?.status)}
-              >
-                {selectedClaim?.status}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Warranty claim details and actions
-            </p>
-          </DialogHeader>
-
-          {selectedClaim && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Vehicle
-                  </h4>
-                  <p className="font-medium">
-                    {selectedClaim.vehicleModel} - {selectedClaim.vehiclePlate}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Customer
-                  </h4>
-                  <p className="font-medium">{selectedClaim.customerName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedClaim.customerPhone}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Service Center
-                  </h4>
-                  <p className="font-medium">{selectedClaim.serviceCenter}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Kilometers
-                  </h4>
-                  <p className="font-medium">
-                    {selectedClaim.kilometers.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Priority
-                  </h4>
-                  <Badge
-                    variant="outline"
-                    className={getPriorityColor(selectedClaim.priority)}
-                  >
-                    {selectedClaim.priority}
-                  </Badge>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Created
-                  </h4>
-                  <p className="font-medium">{selectedClaim.createdAt}</p>
-                </div>
-                <div className="col-span-2">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    Assigned Technician
-                  </h4>
-                  <p className="font-medium">
-                    {selectedClaim.assignedTechnician || (
-                      <span className="text-muted-foreground italic">
-                        Not assigned yet
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                  Issue Description
-                </h4>
-                <p className="text-sm">{selectedClaim.issueDescription}</p>
-              </div>
-
-              {selectedClaim.estimatedCost && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                    Estimated Cost
-                  </h4>
-                  <p className="text-lg font-semibold">
-                    {selectedClaim.estimatedCost.toLocaleString()} VND
-                  </p>
-                </div>
-              )}
-
-              <Button
-                onClick={handleMarkComplete}
-                className="w-full bg-black hover:bg-gray-800 text-white"
-              >
-                Mark Complete
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              Create New Warranty Claim
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Fill in the details to create a new warranty claim
-            </p>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmitNewClaim} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">
-                  Created By (SC Staff)
-                </label>
-                <Input value={currentUser.name} disabled className="bg-muted" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Phone</label>
-                <Input placeholder="e.g., 0901234567" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Name</label>
-                <Input placeholder="Enter customer name" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vehicle Plate</label>
-                <Input placeholder="e.g., 30A-12345" required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vehicle Model</label>
-                <Select required>
-                  <SelectTrigger className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md">
-                    <SelectValue placeholder="Select vehicle model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicleModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Assign to Technician
-                </label>
-                <Select
-                  value={newClaimTechnician}
-                  onValueChange={setNewClaimTechnician}
-                  required
-                >
-                  <SelectTrigger className="w-full h-10 px-3 py-2 text-sm border border-input bg-background rounded-md">
-                    <SelectValue placeholder="Select a technician" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scTechnicians.map((tech) => (
-                      <SelectItem key={tech.id} value={tech.name}>
-                        {tech.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Previous Warranty Count
-                </label>
-                <Input placeholder="e.g., 01;02;10,.." required />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Issue Description</label>
-              <textarea
-                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background"
-                placeholder="Describe the issue in detail..."
-                required
-              />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="bg-black hover:bg-gray-800 text-white"
-              >
-                Create Claim
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ScsWarrCreate
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        currentUser={currentUser}
+        onClaimCreated={handleClaimCreated}
+      />
+      <ScsWarrDetail
+        isOpen={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        selectedClaim={selectedClaim}
+      />
     </div>
   );
 }

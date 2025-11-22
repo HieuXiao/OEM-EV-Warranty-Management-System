@@ -315,9 +315,9 @@ export default function CustomersTable() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <Card className="pt-4 px-2 sm:px-4 pb-4">
+        <CardHeader className="px-2 sm:px-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             {/* Title */}
             <div>
               <CardTitle>Customer Information</CardTitle>
@@ -327,7 +327,7 @@ export default function CustomersTable() {
             </div>
 
             {/* Search box + Add Button */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
               {/* Search box */}
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -335,7 +335,7 @@ export default function CustomersTable() {
                   placeholder="Search Customers..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 w-full"
                 />
               </div>
 
@@ -351,13 +351,14 @@ export default function CustomersTable() {
                 }}
               >
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2 w-full sm:w-auto">
                     <Plus className="h-4 w-4" />
                     Add Customer
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                {/* Mobile-friendly Dialog */}
+                <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Add New Customer</DialogTitle>
                     <DialogDescription>Create a new customer</DialogDescription>
@@ -460,8 +461,10 @@ export default function CustomersTable() {
                         <p className="text-sm text-red-500">{formErrors.vin}</p>
                       )}
                     </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1 grid gap-2">
+
+                    {/* Chuyển flex thành grid cho mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="grid gap-2">
                         <Label htmlFor="type">Vehicle Type</Label>
                         <Select
                           value={formVinData.type}
@@ -492,7 +495,7 @@ export default function CustomersTable() {
                         )}
                       </div>
 
-                      <div className="flex-1 grid gap-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="color">Color</Label>
                         <Input
                           id="color"
@@ -514,7 +517,7 @@ export default function CustomersTable() {
                         )}
                       </div>
 
-                      <div className="flex-1 grid gap-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="model">Model</Label>
                         <Select
                           value={formVinData.model}
@@ -584,12 +587,13 @@ export default function CustomersTable() {
         </CardHeader>
 
         {/* Customer Table */}
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
+        <CardContent className="pt-0 px-0 sm:px-4">
+          {/* Thêm overflow-x-auto để cuộn ngang bảng trên mobile */}
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>No.</TableHead>
+                  <TableHead className="w-[50px]">No.</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -627,7 +631,7 @@ export default function CustomersTable() {
             </Table>
           </div>
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 mt-2">
+          <div className="flex items-center justify-center gap-2 mt-4">
             <Button
               variant="outline"
               size="sm"

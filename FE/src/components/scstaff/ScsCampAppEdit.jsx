@@ -1,7 +1,8 @@
-"use client"
+// FE/src/components/scstaff/ScsCampAppEdit.jsx
+"use client";
 
-import { useState, useEffect } from "react"
-import { Save } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Save } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,96 +10,147 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import axiosPrivate from "@/api/axios";
+
+const APPOINTMENT_URL = "/api/service-appointments";
 
 const statusOptions = [
-  { value: "scheduled", label: "Scheduled" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no-show", label: "No Show" },
-  { value: "rescheduled", label: "Rescheduled" },
-]
+  { value: "Scheduled", label: "Scheduled" },
+  { value: "Completed", label: "Completed" },
+  { value: "Cancelled", label: "Cancelled" },
+  { value: "No-Show", label: "No Show" },
+  { value: "Rescheduled", label: "Rescheduled" },
+];
 
-export function EditAppointmentDialog({ open, onOpenChange, appointment }) {
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
-  const [status, setStatus] = useState("")
-  const [notes, setNotes] = useState("")
+const formatDateTimeForInput = (isoString) => {
+  if (!isoString) return "";
+  try {
+    const d = new Date(isoString);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  } catch (error) {
+    console.error("Invalid date string:", isoString);
+    return "";
+  }
+};
+
+export function EditAppointmentDialog({
+  open,
+  onOpenChange,
+  appointment,
+  onSaveSuccess,
+}) {
+  const [dateTime, setDateTime] = useState("");
+  const [status, setStatus] = useState("");
+  const [description, setDescription] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (appointment) {
-      setDate(appointment.date)
-      setTime(appointment.time)
-      setStatus(appointment.status)
-      setNotes(appointment.notes || "")
+      setDateTime(formatDateTimeForInput(appointment.date));
+      setStatus(appointment.status);
+      setDescription(appointment.description || "");
     }
-  }, [appointment])
+  }, [appointment]);
 
-  const handleSave = () => {
-    alert(`Appointment updated for ${appointment?.customer}`)
-    onOpenChange(false)
-  }
+  const handleSave = async () => {
+    if (!appointment) return;
 
-  if (!appointment) return null
+    setIsLoading(true);
+    try {
+      const updatedData = {
+        date: dateTime,
+        description: description,
+      };
+
+      await axiosPrivate.put(
+        `${APPOINTMENT_URL}/${appointment.appointmentId}`,
+        updatedData
+      );
+
+      await axiosPrivate.put(
+        `${APPOINTMENT_URL}/${appointment.appointmentId}/status`,
+        null,
+        { params: { status: status } }
+      );
+
+      if (onSaveSuccess) {
+        onSaveSuccess();
+      }
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to update appointment:", error);
+      alert("Error saving appointment. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!appointment) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, max-h-[90vh] để cuộn */}
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Edit Appointment</DialogTitle>
-          <DialogDescription>Update appointment details and status</DialogDescription>
+          <DialogDescription>
+            Update appointment details and status
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Customer Information</Label>
-            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
+            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm break-words">
               <p>
-                <span className="text-muted-foreground">Customer:</span> {appointment.customer}
+                <span className="text-muted-foreground">Customer:</span>{" "}
+                {appointment.vehicle?.customer?.customerName}
               </p>
               <p>
-                <span className="text-muted-foreground">Phone:</span> {appointment.phone}
+                <span className="text-muted-foreground">Phone:</span>{" "}
+                {appointment.vehicle?.customer?.customerPhone}
               </p>
               <p>
-                <span className="text-muted-foreground">VIN:</span> {appointment.vin}
+                <span className="text-muted-foreground">VIN:</span>{" "}
+                <span className="font-mono text-xs">
+                  {appointment.vehicle?.vin}
+                </span>
               </p>
               <p>
-                <span className="text-muted-foreground">License:</span> {appointment.licensePlate}
+                <span className="text-muted-foreground">License:</span>{" "}
+                {appointment.vehicle?.plate}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Date</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-time">Time</Label>
-              <Input
-                id="edit-time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-datetime">Date and Time</Label>
+            <Input
+              id="edit-datetime"
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => setDateTime(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger id="status">
-                <SelectValue />
+              <SelectTrigger id="status" className="w-full">
+                <SelectValue value={status} />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -111,27 +163,31 @@ export function EditAppointmentDialog({ open, onOpenChange, appointment }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notes</Label>
+            <Label htmlFor="edit-description">Description (Notes)</Label>
             <Textarea
-              id="edit-notes"
-              placeholder="Add notes about no-show, late arrival, rescheduling, etc..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              id="edit-description"
+              placeholder="Add notes..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={isLoading}>
             <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,262 +1,412 @@
-"use client"
+import { useReducer, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import axiosPrivate from "@/api/axios";
+import { cn } from "@/lib/utils";
+import useAuth from "@/hook/useAuth";
+import { ImagePlus } from "lucide-react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Camera, X, Trash2, CheckCircle2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { PARTS_LIST } from "@/lib/Mock-data"
+const API = {
+  CLAIMS: "/api/warranty-claims",
+  VEHICLE: (vin) => `/api/vehicles/${vin}`,
+  PARTS: "/api/part-under-warranty-controller",
+  CREATE_CHECK: "/api/claim-part-check/create",
+  UPLOAD_FILES: (claimId, fileId) =>
+    `/api/warranty-files/combined/upload-create?fileId=${fileId}&claimId=${claimId}`,
+  SKIP_REPAIR: (claimId, techId) =>
+    `/api/warranty-claims/workflow/${claimId}/technician/skip-repair?technicianId=${techId}`,
+  ASSIGN_EVM: "/api/warranty-claims/assign-evm/auto",
+  POLICIES: "/api/policies",
+};
 
-const ReportCheck = ({ job, onClose, onComplete }) => {
-  const [checkStarted, setCheckStarted] = useState(false)
-  const [checkedParts, setCheckedParts] = useState({})
-  const [partImages, setPartImages] = useState({})
-  const [partQuantities, setPartQuantities] = useState({})
-
-  const handleStartCheck = () => {
-    setCheckStarted(true)
-    // Update job status to "on_going" / "in_progress"
-    console.log("[v0] Starting check for job:", job.jobNumber)
-    console.log("[v0] Status changed from 'requested' to 'on_going'")
-    // In a real app, this would send an API request to update the job status
+function partsReducer(state, action) {
+  switch (action.type) {
+    case "SET_PARTS":
+      return action.parts.map((p) => ({
+        key: p.namePart,
+        partNumber: p.partNumber,
+        availableYear: p.availableYear,
+        kilometer: p.kilometer,
+        selection: "",
+        quantity: 1,
+        images: [],
+        error: "",
+      }));
+    case "SET_SELECTION":
+      return state.map((p) =>
+        p.key === action.key ? { ...p, selection: action.value, error: "" } : p
+      );
+    case "SET_QUANTITY":
+      return state.map((p) =>
+        p.key === action.key ? { ...p, quantity: Number(action.value) || 1 } : p
+      );
+    case "ADD_IMAGES":
+      return state.map((p) =>
+        p.key === action.key
+          ? { ...p, images: [...p.images, ...action.newImages].slice(0, 3), error: "" }
+          : p
+      );
+    case "DELETE_IMAGE":
+      return state.map((p) =>
+        p.key === action.key
+          ? { ...p, images: p.images.filter((_, i) => i !== action.index) }
+          : p
+      );
+    case "SET_ERROR":
+      return state.map((p) =>
+        p.key === action.key ? { ...p, error: action.error } : p
+      );
+    default:
+      return state;
   }
+}
 
-  const handleTogglePartCheck = (partName) => {
-    setCheckedParts((prev) => ({
-      ...prev,
-      [partName]: !prev[partName],
-    }))
-  }
+export default function ScTechnicianCheckForm({ job, onClose, onComplete }) {
+  const { auth } = useAuth();
+  const technicianId = auth?.accountId || auth?.id || "";
+  const claimId = job?.claimId || job?.id;
 
-  const handleImageUpload = (partName, event) => {
-    const files = event.target.files
-    if (files && files.length > 0) {
-      const newImages = Array.from(files).map((file) => URL.createObjectURL(file))
-      setPartImages((prev) => ({
-        ...prev,
-        [partName]: [...(prev[partName] || []), ...newImages],
-      }))
-      if (!partQuantities[partName]) {
-        setPartQuantities((prev) => ({ ...prev, [partName]: 0 }))
+  const [claimInfo, setClaimInfo] = useState(null);
+  const [vehiclePlate, setVehiclePlate] = useState("UNKNOWN");
+  const [checkStarted, setCheckStarted] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [parts, dispatch] = useReducer(partsReducer, []);
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    if (!claimId) return;
+    const fetchClaimInfo = async () => {
+      try {
+        const res = await axiosPrivate.get(`${API.CLAIMS}/${claimId}`);
+        setClaimInfo(res.data);
+
+        if (res.data.vin) {
+          try {
+            const vehicleRes = await axiosPrivate.get(API.VEHICLE(res.data.vin));
+            setVehiclePlate(vehicleRes.data.plate || "UNKNOWN");
+          } catch (err) {
+            console.error("Fetch vehicle plate failed:", err);
+            setVehiclePlate("UNKNOWN");
+          }
+        }
+      } catch (err) {
+        console.error("fetchClaimInfo failed:", err);
       }
-    }
-  }
+    };
+    fetchClaimInfo();
+  }, [claimId]);
 
-  const handleDeleteImage = (partName, imageIndex) => {
-    setPartImages((prev) => {
-      const updatedImages = [...(prev[partName] || [])]
-      updatedImages.splice(imageIndex, 1)
-      if (updatedImages.length === 0) {
-        setPartQuantities((prevQty) => {
-          const newQty = { ...prevQty }
-          delete newQty[partName]
-          return newQty
+useEffect(() => {
+  const fetchParts = async () => {
+    if (!claimInfo?.vin) return;
+
+    try {
+      const vehicleRes = await axiosPrivate.get(API.VEHICLE(claimInfo.vin));
+      const vehicleModel = vehicleRes.data?.model || "";
+
+      const policyRes = await axiosPrivate.get(API.POLICIES);
+
+      const list = (Array.isArray(policyRes.data) ? policyRes.data : [])
+        .filter((p) => p.isEnable && p.partUnderWarranty?.isEnable)
+        .map((p) => {
+          const part = p.partUnderWarranty;
+          const matchModel =
+            part.vehicleModel === "select-all" ||
+            part.vehicleModel.split(",").map(m => m.trim()).includes(vehicleModel);
+
+          if (!matchModel) return null;
+
+          return {
+            namePart: part.partName,
+            partNumber: part.partId,
+            availableYear: p.availableYear,
+            kilometer: p.kilometer,
+          };
         })
-        const newImages = { ...prev }
-        delete newImages[partName]
-        return newImages
+        .filter(Boolean);
+
+      dispatch({ type: "SET_PARTS", parts: list });
+    } catch (e) {
+      console.error("fetchParts failed:", e);
+    }
+  };
+
+  fetchParts();
+}, [claimInfo]);
+
+  const handleImageUpload = (key, e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const invalid = files.filter((f) => !f.type.startsWith("image/"));
+    if (invalid.length > 0) {
+      dispatch({
+        type: "SET_ERROR",
+        key,
+        error: "Only image files are allowed",
+      });
+      return;
+    }
+
+    const valid = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
+    dispatch({ type: "ADD_IMAGES", key, newImages: valid });
+    e.target.value = "";
+  };
+
+  const validateAllParts = () => {
+    let valid = true;
+    parts.forEach((p) => {
+      if (!p.selection) {
+        dispatch({
+          type: "SET_ERROR",
+          key: p.key,
+          error: "Please select a status.",
+        });
+        valid = false;
+      } else if (p.selection === "REPAIR") {
+        if (p.images.length === 0) {
+          dispatch({
+            type: "SET_ERROR",
+            key: p.key,
+            error: "Please add at least one image.",
+          });
+          valid = false;
+        }
+        if (!p.quantity || p.quantity < 1) {
+          dispatch({
+            type: "SET_ERROR",
+            key: p.key,
+            error: "Quantity must be at least 1.",
+          });
+          valid = false;
+        }
       }
-      return { ...prev, [partName]: updatedImages }
-    })
-  }
+    });
+    return valid;
+  };
 
-  const handleQuantityChange = (partName, value) => {
-    const numValue = Number.parseInt(value) || 0
-    if (numValue >= 0) {
-      setPartQuantities((prev) => ({ ...prev, [partName]: numValue }))
+  const handleUploadAllParts = async () => {
+    for (const p of parts) {
+      if (p.selection !== "REPAIR" || p.images.length === 0) continue;
+      const formData = new FormData();
+      p.images.forEach((img) => img.file && formData.append("files", img.file));
+      const fileId = `${claimId}-${p.key}`;
+      await axiosPrivate.post(API.UPLOAD_FILES(claimId, fileId), formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     }
+  };
+
+  const handleCompleteCheck = async () => {
+  if (!claimId || uploading) return;
+  if (!validateAllParts()) {
+    setFormError("Please complete all required fields before submitting.");
+    return;
   }
 
-  const hasImages = (partName) => {
-    return partImages[partName] && partImages[partName].length > 0
+  setUploading(true);
+  setFormError("");
+  try {
+    const payloads = parts
+      .filter((p) => p.selection)
+      .map((p) => ({
+        partNumber: p.partNumber,
+        partId: p.partNumber,
+        warrantyId: claimInfo?.claimId || claimId,
+        vin: claimInfo?.vin,
+        quantity: p.quantity,
+        isRepair: p.selection === "REPAIR",
+      }));
+
+    const hasRepair = payloads.some((p) => p.isRepair);
+
+    for (const data of payloads)
+      await axiosPrivate.post(API.CREATE_CHECK, data);
+
+    if (hasRepair){
+      await handleUploadAllParts();
+      await axiosPrivate.post(API.ASSIGN_EVM);
+    } 
+    else{
+      await axiosPrivate.post(API.SKIP_REPAIR(claimId, technicianId));
+    } 
+
+    onComplete?.(claimId);
+    onClose?.();
+  } catch (err) {
+    console.error("[CheckForm] Complete failed:", err);
+    setFormError("Failed to complete check. Please try again later.");
+  } finally {
+    setUploading(false);
   }
-
-  const allPartsChecked = PARTS_LIST.every((part) => checkedParts[part])
-
-  const hasRepairNeeded = Object.keys(partImages).length > 0
-
-  const handleCompleteCheck = () => {
-    if (hasRepairNeeded) {
-      console.log("[v0] Job type changed to 'repair' - parts need repair")
-      // In a real app, update job type to "repair"
-    } else {
-      console.log("[v0] Job status changed to 'completed' - no repairs needed")
-      // In a real app, update job status to "completed"
-    }
-    onComplete()
-  }
-
-  const canClose = !checkStarted || allPartsChecked
+};
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-bold text-cyan-500">REPORT CHECK - Job #{job?.jobNumber}</h2>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onClose}
-            disabled={!canClose}
-            title={!canClose ? "Complete all checks before closing" : ""}
-          >
-            <X className="h-4 w-4 mr-1" />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div className="sticky top-0 bg-white border-b p-5 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-cyan-600">
+            REPORT CHECK — Claim #{claimInfo?.claimId || claimId}
+          </h2>
+          <Button variant="destructive" onClick={onClose}>
             Close
           </Button>
         </div>
 
-        <div className="p-6">
-          <div className="space-y-6">
-            {/* Vehicle Details */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Vehicle Details</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Vehicle plate:</Label>
-                    <Input value={job?.vehiclePlate || ""} disabled className="mt-1 bg-muted" />
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Model vehicle:</Label>
-                    <Input value={job?.vehicleModel || ""} disabled className="mt-1 bg-muted" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground">Note:</Label>
-                  <Input value={job?.comment || ""} disabled className="mt-1 bg-muted" />
-                </div>
+        {claimInfo ? (
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border-b">
+            <div><Label>Vehicle Plate</Label><p>{vehiclePlate}</p></div>
+            <div><Label>Claim Date</Label><p>{claimInfo.claimDate}</p></div>
+            <div className="md:col-span-2">
+              <Label>Description</Label>
+              <div className="p-3 bg-gray-50 border rounded-md text-sm">
+                {claimInfo.description || "No description"}
               </div>
             </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 p-6">Loading claim info...</p>
+        )}
 
-            {!checkStarted && (
-              <div className="flex justify-center py-4">
-                <Button onClick={handleStartCheck} size="lg" className="bg-cyan-500 hover:bg-cyan-600 text-white px-8">
-                  Start Check
-                </Button>
-              </div>
-            )}
-
-            {checkStarted && (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Parts Checklist</h3>
-                  <span className="text-sm text-muted-foreground">
-                    {Object.values(checkedParts).filter(Boolean).length} / {PARTS_LIST.length} checked
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  {PARTS_LIST.map((part) => (
-                    <div
-                      key={part}
-                      className={cn(
-                        "border rounded-lg p-5 transition-all hover:shadow-md",
-                        checkedParts[part] && !hasImages(part)
-                          ? "border-green-500 bg-green-500/5 shadow-sm"
-                          : hasImages(part)
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border hover:border-primary/30",
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleTogglePartCheck(part)}
-                            className={cn(
-                              "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                              checkedParts[part]
-                                ? "bg-green-500 border-green-500"
-                                : "border-muted-foreground hover:border-green-500",
-                            )}
-                          >
-                            {checkedParts[part] && <CheckCircle2 className="h-4 w-4 text-white" />}
-                          </button>
-                          <span className="text-sm font-semibold">{part}</span>
-                        </div>
-                        <label className="cursor-pointer p-2 rounded-md hover:bg-muted transition-colors">
-                          <Camera className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+        <div className="p-6 space-y-6">
+          {!checkStarted ? (
+            <div className="flex justify-center py-8">
+              <Button size="lg" onClick={() => setCheckStarted(true)} className="bg-cyan-600 text-white">
+                Start Check
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {parts.map((part) => (
+                  <div
+                    key={part.key}
+                    className={cn(
+                      "rounded-lg border p-5 shadow-sm transition-all",
+                      part.selection === "REPAIR"
+                        ? "border-amber-400 bg-amber-50"
+                        : part.selection === "CHECKED"
+                        ? "border-green-400 bg-green-50"
+                        : "border-gray-200 hover:border-cyan-300"
+                    )}
+                  >
+                    <div className="flex justify-between mb-3">
+                      <div>
+                        <span className="font-semibold text-sm">{part.key}</span>
+                        <p className="text-xs text-gray-500">
+                          Year: {part.availableYear} — Km: {part.kilometer}
+                        </p>
+                      </div>
+                      {part.selection === "REPAIR" && (
+                        <label className="cursor-pointer text-cyan-600 flex items-center gap-1">
+                          <ImagePlus className="w-5 h-5" />
                           <input
                             type="file"
                             accept="image/*"
                             multiple
+                            onChange={(e) => handleImageUpload(part.key, e)}
+                            disabled={part.images.length >= 3}
                             className="hidden"
-                            onChange={(e) => handleImageUpload(part, e)}
                           />
                         </label>
-                      </div>
-
-                      {/* Image thumbnails */}
-                      {hasImages(part) && (
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap gap-2">
-                            {partImages[part].map((img, idx) => (
-                              <div key={idx} className="relative group">
-                                <img
-                                  src={img || "/placeholder.svg"}
-                                  alt={`${part}-${idx}`}
-                                  className="w-16 h-16 object-cover rounded border border-border"
-                                />
-                                <button
-                                  onClick={() => handleDeleteImage(part, idx)}
-                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Quantity input */}
-                          <div className="flex items-center gap-2 pt-2 border-t border-border">
-                            <Label className="text-xs font-medium">Quantity:</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={partQuantities[part] || 0}
-                              onChange={(e) => handleQuantityChange(part, e.target.value)}
-                              className="h-8 w-20 text-sm"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {!hasImages(part) && (
-                        <p className="text-xs text-muted-foreground text-center py-2">
-                          {checkedParts[part] ? "Part checked - OK" : "Check part and upload images if repair needed"}
-                        </p>
                       )}
                     </div>
-                  ))}
+
+                    <div className="flex gap-3 mb-2 items-center">
+                      <Label>Status</Label>
+                      <select
+                        value={part.selection}
+                        onChange={(e) =>
+                          dispatch({
+                            type: "SET_SELECTION",
+                            key: part.key,
+                            value: e.target.value,
+                          })
+                        }
+                        className="border rounded px-2 py-1 text-sm w-32"
+                      >
+                        <option value="">Select...</option>
+                        <option value="CHECKED">CHECKED</option>
+                        <option value="REPAIR">REPAIR</option>
+                      </select>
+                    </div>
+
+                    {part.selection === "REPAIR" && (
+                      <>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label>Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={part.quantity}
+                            onChange={(e) =>
+                              dispatch({
+                                type: "SET_QUANTITY",
+                                key: part.key,
+                                value: e.target.value,
+                              })
+                            }
+                            className="h-8 w-20 text-sm"
+                          />
+                        </div>
+
+                        {part.images.length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-xs text-gray-500 mb-1">
+                              {part.images.length}/3 image(s)
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              {part.images.map((img, idx) => (
+                               <div key={idx} className="fix">
+                                <img
+                                  src={img.url}
+                                  alt=""
+                                  onClick={() =>
+                                    dispatch({
+                                      type: "DELETE_IMAGE",
+                                      key: part.key,
+                                      index: idx,
+                                    })
+                                  }
+                                  className="w-16 h-16 object-cover rounded border cursor-pointer hover:brightness-50 transition"
+                                />
+                              </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {part.error && (
+                      <p className="text-xs text-red-500 mt-1">{part.error}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col items-end mt-6 gap-2">
+                {formError && (
+                  <p className="text-red-500 text-sm font-medium">{formError}</p>
+                )}
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-cyan-600 text-white"
+                    onClick={handleCompleteCheck}
+                    disabled={uploading}
+                  >
+                    {uploading ? "Saving..." : "Complete Check"}
+                  </Button>
                 </div>
               </div>
-            )}
-          </div>
-
-          {checkStarted && (
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={!canClose}
-                title={!canClose ? "Complete all checks before closing" : ""}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCompleteCheck}
-                disabled={!allPartsChecked}
-                className="bg-cyan-500 hover:bg-cyan-600"
-              >
-                {hasRepairNeeded ? "Complete & Create Repair Job" : "Complete Check"}
-              </Button>
-            </div>
+            </>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-export default ReportCheck

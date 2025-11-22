@@ -1,211 +1,329 @@
-import { useEffect, useState } from "react";
+import { useReducer, useEffect, useRef, useState, useCallback } from "react";
 import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
 import Header from "@/components/Header";
-import ReportRepair from "@/components/sctechnician/ScTechnicianRepiarForm";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import ReportRepair from "@/components/sctechnician/ScTechnicianRepairForm";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { mockJobs, mockUsers } from "@/lib/Mock-data";
+import { Button } from "@/components/ui/button";
+import { Search, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
+import axiosPrivate from "@/api/axios";
+import useAuth from "@/hook/useAuth";
+
+const API = {
+  WARRANTY_CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+};
+
+const initialState = {
+  jobs: [],
+  loading: true,
+  error: "",
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, loading: true, error: "" };
+    case "FETCH_SUCCESS":
+      return { ...state, loading: false, jobs: action.payload };
+    case "FETCH_ERROR":
+      return { ...state, loading: false, error: action.payload };
+    default:
+      return state;
+  }
+}
 
 export default function SCTechnicianRepair() {
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [jobs, setJobs] = useState(
-    mockJobs.filter((job) => job.type === "repair")
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const { auth } = useAuth();
+  const techId = auth?.accountId;
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { jobs, loading, error } = state;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
-    return date
-      .toLocaleString("en-GB", {
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
+
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 4;
+
+  const vehicleCache = useRef({});
+
+  const formatDateTime = useCallback((isoString) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleString("en-GB", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .replace(",", "");
-  };
-
-  function getStatusColor(status) {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-500";
-      case "in_progress":
-        return "bg-blue-500";
-      case "completed":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
+      });
+    } catch {
+      return isoString;
     }
-  }
+  }, []);
 
-  const handleOpenReport = (job) => {
-    setSelectedJob(job);
-  };
+  // --- fetch + caching ---
+  const fetchClaimsAndEnrich = async (forceRefresh = false) => {
+    if (!techId) return;
+    const cacheKey = `repair_data_${techId}`;
+    const cached = sessionStorage.getItem(cacheKey);
 
-  const handleCloseReport = () => {
-    setSelectedJob(null);
-  };
+    if (cached && !forceRefresh) {
+      try {
+        dispatch({ type: "FETCH_SUCCESS", payload: JSON.parse(cached) });
+        return;
+      } catch {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
 
-  const handleCompleteRepair = () => {
-    setJobs((prevJobs) => {
-      // Update the status
-      const updatedJobs = prevJobs.map((job) =>
-        job.id === selectedJob.id ? { ...job, status: "completed" } : job
+    dispatch({ type: "FETCH_START" });
+    try {
+      const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
+        axiosPrivate.get(API.WARRANTY_CLAIMS),
+        axiosPrivate.get(API.VEHICLES),
+        axiosPrivate.get(API.ACCOUNTS),
+      ]);
+
+      const claims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
+      const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+      const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
+
+      const vehicleMap = Object.fromEntries(vehicles.map((v) => [v.vin, v]));
+
+      const filteredClaims = claims.filter(
+        (c) =>
+          c.status === "REPAIR" &&
+          c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
       );
 
-      // Move completed jobs to the end of the list
-      const sortedJobs = [
-        ...updatedJobs.filter((job) => job.status !== "completed"),
-        ...updatedJobs.filter((job) => job.status === "completed"),
-      ];
+      const enriched = filteredClaims.map((claim) => {
+        const vehicle = vehicleMap[claim.vin];
+        const scStaff = accounts.find(
+          (a) => a.accountId === claim.serviceCenterStaffId
+        );
+        return {
+          id: claim.claimId,
+          claimId: claim.claimId,
+          jobNumber: `CLM-${claim.claimId}`,
+          plate: claim.plate || vehicle?.plate || "N/A",
+          claimDate: claim.claimDate,
+          createdAt: claim.claimDate,
+          comment:
+            claim.description || vehicle?.campaign?.serviceDescription || "",
+          status: claim.status,
+          scStaff,
+          rawClaim: claim,
+        };
+      });
 
-      return sortedJobs;
-    });
-
-    setSelectedJob(null);
+      sessionStorage.setItem(cacheKey, JSON.stringify(enriched));
+      dispatch({ type: "FETCH_SUCCESS", payload: enriched });
+    } catch (err) {
+      console.error("[SCTechnicianRepair] fetchClaimsAndEnrich failed:", err);
+      dispatch({
+        type: "FETCH_ERROR",
+        payload: "Failed to load repair jobs. Please try again later.",
+      });
+    }
   };
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    const matchesTechnician =
-      job.assignedTechnician.toLowerCase() === mockUsers[5].name.toLowerCase();
-    return matchesSearch && matchesStatus && matchesTechnician;
+  useEffect(() => {
+    fetchClaimsAndEnrich();
+  }, [techId]);
+
+  const handleOpenReport = (job) => setSelectedJob(job);
+  const handleCloseReport = () => setSelectedJob(null);
+
+  const handleCompleteRepair = () => {
+    setSelectedJob(null);
+    fetchClaimsAndEnrich(true);
+  };
+
+  // --- filtering / sorting / pagination ---
+  const filteredJobs = jobs.filter((job) =>
+    [job.jobNumber, job.plate].some((field) =>
+      field?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const dateA = new Date(a.claimDate || a.createdAt);
+    const dateB = new Date(b.claimDate || b.createdAt);
+    if (sortOrder === "newest") {
+      if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+      return (
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
+    } else {
+      if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+      return (
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
+    }
   });
+
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentJobs = sortedJobs.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar />
-      {/* Main Content */}
+      <SCTechnicianSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold">Repair Jobs</h1>
-              <p className="text-muted-foreground mt-1">
-                Active repair and maintenance tasks
+              <h1 className="text-4xl font-bold tracking-tight">Repair Jobs</h1>
+              <p className="text-muted-foreground mt-2 text-lg">
+                Active repair and maintenance tasks assigned to you
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchClaimsAndEnrich(true)}
+              disabled={loading}
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+          </div>
 
-            {/* Filters */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by job number or vehicle plate..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-[200px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {/* Search */}
+          <div className="flex gap-3 mb-4">
+            <Search className="text-muted-foreground" />
+            <Input
+              placeholder="Search by job number or plate..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 h-12 text-base"
+            />
+          </div>
+
+          {/* Sort */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={sortOrder === "newest" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("newest")}
+            >
+              Newest
+            </Button>
+            <Button
+              variant={sortOrder === "oldest" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("oldest")}
+            >
+              Oldest
+            </Button>
+          </div>
+
+          {/* Content */}
+          <Card>
+            <CardContent className="pt-6">
+              {loading ? (
+                <div className="text-center text-muted-foreground animate-pulse py-8">
+                  Loading repair jobs...
                 </div>
-              </CardContent>
-            </Card>
+              ) : error ? (
+                <div className="text-center text-destructive py-8">{error}</div>
+              ) : currentJobs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+                  No repair jobs assigned to your account
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1}-
+                      {Math.min(
+                        startIndex + currentJobs.length,
+                        filteredJobs.length
+                      )}{" "}
+                      of {filteredJobs.length} job(s)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground px-2">
+                        Page {currentPage} of {totalPages || 1}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={
+                          currentPage === totalPages || totalPages === 0
+                        }
+                      >
+                        Next <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
 
-            {/* Jobs List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Repair Jobs List</CardTitle>
-                <CardDescription>
-                  {filteredJobs.length} job(s) found
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {filteredJobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold">{job.jobNumber}</p>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize",
-                                getStatusColor(job.status)
-                              )}
-                            >
-                              {job.status.replace("_", " ")}
-                            </Badge>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {currentJobs.map((job) => (
+                      <div
+                        key={job.id}
+                        onClick={() => handleOpenReport(job)}
+                        className="p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-lg">
+                              {job.jobNumber}
+                            </p>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="space-y-1.5 text-sm">
                             <p className="text-muted-foreground">
-                              <span className="font-medium">Vehicle:</span>{" "}
-                              {job.vehicleModel} - {job.vehiclePlate}
+                              <span className="font-medium">
+                                Vehicle Plate:
+                              </span>{" "}
+                              {job.plate}
                             </p>
                             <p className="text-muted-foreground">
                               <span className="font-medium">Date:</span>{" "}
-                              {formatDateTime(job.createdAt)}
+                              {formatDateTime(job.claimDate || job.createdAt)}
                             </p>
                             <p className="text-muted-foreground">
                               <span className="font-medium">SC Staff:</span>{" "}
-                              {job.assignedStaff}
-                            </p>
-                            <p className="text-muted-foreground">
-                              <span className="font-medium">Technician:</span>{" "}
-                              {job.assignedTechnician}
+                              {job.scStaff?.fullName || "N/A"}
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenReport(job)}
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Report
-                          </Button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Report Modal */}
       {selectedJob && (
         <ReportRepair
           job={selectedJob}

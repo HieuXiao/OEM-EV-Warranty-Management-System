@@ -1,211 +1,161 @@
+import { useEffect, useState } from "react";
 import SCStaffSibebar from "@/components/scstaff/ScsSidebar";
 import Header from "@/components/Header";
-import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Shield,
-  Package,
-  Users,
-  Clock,
-  Check,
-  ArrowUpRight,
-  Activity,
-} from "lucide-react";
-import {
-  mockWarrantyClaims,
-  mockRecallCampaigns,
-  mockParts,
-  mockUsers,
-  mockActivityLogs,
-} from "@/lib/Mock-data";
-import { useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import axiosPrivate from "@/api/axios";
+import ScsDashTable from "@/components/scstaff/ScsDashTable";
+import useAuth from "@/hook/useAuth";
+
+const API = {
+  CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+  CAMPAIGNS: "/api/campaigns/all",
+  APPOINTMENTS: "/api/service-appointments",
+};
 
 export default function SCStaffDashboard() {
-  // Card information
-  const totalClaims = mockWarrantyClaims.length;
-  //
-  const toDoClaims = mockWarrantyClaims.filter(
-    (c) => c.status === "to_do"
-  ).length;
-  //
-  const needHandOver = mockWarrantyClaims.filter(
-    (c) => c.status === "completed" || c.status === "rejected"
-  ).length;
-  //
+  const { auth } = useAuth();
 
-  //
-  const startedCampaigns = mockRecallCampaigns.filter(
-    (rc) => rc.status === "started"
-  ).length;
-  //
-  const endedCampaigns = mockRecallCampaigns.filter(
-    (rc) => rc.status === "ended"
-  ).length;
+  const [claims, setClaims] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 
-  function getStatusColor(status) {
-    switch (status) {
-      case "required": 
-        return "bg-red-600 text-white";
-      case "on_going": 
-        return "bg-amber-500 text-white";
-      case "completed": 
-        return "bg-blue-600 text-white";
-      case "hand_overed":
-        return "bg-emerald-600 text-white";
-      default: 
-        return "bg-gray-500 text-white";
-    }
-  }
+  const [campaigns, setCampaigns] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
+
+  useEffect(() => {
+    document.title = "SC Staff Dashboard";
+
+    const fetchData = async () => {
+      try {
+        const [
+          claimsRes,
+          vehiclesRes,
+          accountsRes,
+          campaignsRes,
+          appointmentsRes,
+        ] = await Promise.all([
+          axiosPrivate.get(API.CLAIMS),
+          axiosPrivate.get(API.VEHICLES),
+          axiosPrivate.get(API.ACCOUNTS),
+          axiosPrivate.get(API.CAMPAIGNS),
+          axiosPrivate.get(API.APPOINTMENTS),
+        ]);
+
+        setClaims(claimsRes.data || []);
+        setVehicles(vehiclesRes.data || []);
+        setAccounts(accountsRes.data || []);
+        setCampaigns(campaignsRes.data || []);
+        setAppointments(appointmentsRes.data || []);
+      } catch (err) {
+        console.error("[Dashboard] Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [auth]);
+
+  const filteredClaims = claims
+    .filter(
+      (claim) =>
+        claim.serviceCenterStaffId?.toUpperCase() ===
+        auth?.accountId?.toUpperCase()
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.claimDate);
+      const dateB = new Date(b.claimDate);
+
+      const serialA = parseInt(a.claimId?.split("-").pop()) || 0;
+      const serialB = parseInt(b.claimId?.split("-").pop()) || 0;
+
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return serialB - serialA;
+    });
+
+  const mergedData = filteredClaims.map((claim) => {
+    const vehicle = vehicles.find((v) => v.vin === claim.vin);
+    const staff = accounts.find(
+      (a) => a.accountId === claim.serviceCenterStaffId
+    );
+
+    return {
+      ...claim,
+      vehicleModel: vehicle?.model || "",
+      vehiclePlate: vehicle?.plate || "",
+      issueDescription: claim.description,
+      staffName: staff?.fullName || "",
+    };
+  });
+
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const completedThisMonth = mergedData.filter((c) => {
+    const isOwner =
+      c.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase();
+    const isDone = c.status?.toUpperCase() === "DONE";
+
+    if (!isOwner || !isDone) return false;
+
+    const d = new Date(c.claimDate);
+
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }).length;
+
+  const activeCampaigns = campaigns.filter((c) => {
+    const start = new Date(c.startDate);
+    const end = new Date(c.endDate);
+    return today >= start && today <= end;
+  }).length;
+
+  const todayAppointments = appointments.filter((app) => {
+    const appDate = new Date(app.date);
+    const isToday =
+      appDate.getFullYear() === today.getFullYear() &&
+      appDate.getMonth() === today.getMonth() &&
+      appDate.getDate() === today.getDate();
+
+    const sameCenter =
+      app.vehicle?.customer?.serviceCenter?.centerId === auth?.centerId;
+
+    return isToday && sameCenter;
+  }).length;
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCStaffSibebar />
-      {/* Main Content */}
-      <div className="lg:pl-64">
-        <Header />
-        <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            {/* DB (CARD) - 4 Main Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {/* CARD-01 - Active Warranties */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Claims
-                  </CardTitle>
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalClaims}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-yellow-600">
-                      {needHandOver} Need Handover
-                    </span>
-                  </p>
-                </CardContent>
-              </Card>
-              {/* CARD-02 - Completed This Month */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Completed This Month
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{startedCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {endedCampaigns} monthly target
-                  </p>
-                </CardContent>
-              </Card>
-              {/* CARD-03 - Active Campaigns */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Campaigns
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{endedCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1 text-yellow-600">
-                    {endedCampaigns} need report
-                  </p>
-                </CardContent>
-              </Card>
-              {/* CARD-04 - Today’s Appointments */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Today’s Appointments
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{endedCampaigns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {endedCampaigns} completed
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* DB (TABLE) - Table */}
-            <Card>
-              {/* DB (TABLE) - Table / Header */}
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>List Warranty Claims</CardTitle>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/scstaff/warranty">
-                      Warranty Claim
-                      <ArrowUpRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              {/* DB (TABLE) - Table / Lists Warranties */}
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {[...mockWarrantyClaims]
-                    .sort((a, b) => {
-                      const order = {
-                        completed: 1,
-                        on_going: 2,
-                        to_do: 3,
-                        hand_overed: 4,
-                      };
-                      return order[a.status] - order[b.status];
-                    })
-                    .slice(0, 6)
-                    .map((claim) => (
-                      <div
-                        key={claim.id}
-                        className="flex items-start gap-4 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-sm">
-                              {claim.claimNumber}
-                            </p>
-
-                            {/* Status Badge */}
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs capitalize text-white",
-                                getStatusColor(claim.status)
-                              )}
-                            >
-                              {claim.status.replace("_", " ")}
-                            </Badge>
-                          </div>
-
-                          <p className="text-sm text-muted-foreground truncate">
-                            {claim.vehicleModel} - {claim.vehiclePlate}
-                          </p>
-
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                            {claim.issueDescription}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
+      <SCStaffSibebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <div className="lg:pl-64 transition-all duration-200">
+        <Header onMenuClick={handleOpenMenu} />
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+          {/* Main Content Card - Remove padding on mobile if needed, or keep it */}
+          <div className="w-full">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-muted-foreground animate-pulse">
+                  Loading dashboard data...
+                </p>
+              </div>
+            ) : (
+              <ScsDashTable
+                claims={mergedData}
+                activeCampaigns={activeCampaigns}
+                todayAppointments={todayAppointments}
+                completedThisMonth={completedThisMonth}
+              />
+            )}
           </div>
         </div>
       </div>

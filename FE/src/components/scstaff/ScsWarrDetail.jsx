@@ -1,276 +1,286 @@
-"use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ArrowLeft } from "lucide-react"
-import { vehicleModels, mockUsers } from "@/lib/Mock-data"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import axiosPrivate from "@/api/axios";
+import ScsWarrPart from "@/components/scstaff/ScsWarrPart";
+import useAuth from "@/hook/useAuth";
 
-export default function WarrantyDetail({ warranty, onBack, onUpdate }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState(warranty)
+const API = {
+  CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+  APPOINTMENTS: "/api/service-appointments",
+};
 
-  const scTechnicians = mockUsers.filter(
-    (user) => user.role === "sc_technician"
-  )
+const getStatusColor = (status) => {
+  const colors = {
+    CHECK: "bg-blue-100 text-blue-800 border-blue-300",
+    DECIDE: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    REPAIR: "bg-orange-100 text-orange-700 border-orange-300",
+    HANDOVER: "bg-purple-100 text-purple-800 border-purple-300",
+    DONE: "bg-green-100 text-green-800 border-green-300",
+  };
+  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
+};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
+  const { auth } = useAuth();
 
-  const handleSelectChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const [loading, setLoading] = useState(false);
+  const [claim, setClaim] = useState(null);
+  const [vehicle, setVehicle] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [fetching, setFetching] = useState(false);
 
-  const handleSave = () => {
-    onUpdate(formData)
-    setIsEditing(false)
-  }
+  useEffect(() => {
+    const fetchAll = async () => {
+      if (!selectedClaim?.claimId || !isOpen) return;
+      try {
+        setFetching(true);
 
-  const handleCancel = () => {
-    setFormData(warranty)
-    setIsEditing(false)
-  }
+        const [claimsRes, vehiclesRes, accountsRes, appointmentsRes] =
+          await Promise.all([
+            axiosPrivate.get(API.CLAIMS),
+            axiosPrivate.get(API.VEHICLES),
+            axiosPrivate.get(API.ACCOUNTS),
+            axiosPrivate.get(API.APPOINTMENTS),
+          ]);
+
+        // Claim
+        const foundClaim = claimsRes.data.find(
+          (c) => c.claimId === selectedClaim.claimId
+        );
+        if (!foundClaim) return setClaim(null);
+        setClaim(foundClaim);
+
+        // Vehicle
+        const foundVehicle = vehiclesRes.data.find(
+          (v) => v.vin === foundClaim.vin
+        );
+        setVehicle(foundVehicle || null);
+
+        // Accounts
+        setAccounts(accountsRes.data);
+
+        // Map campaignName từ appointment
+        if (foundClaim.campaignIds?.length > 0 && foundClaim.vin) {
+          const matchedApp = appointmentsRes.data.find(
+            (a) =>
+              a.vehicle?.vin === foundClaim.vin &&
+              foundClaim.campaignIds.includes(a.campaign?.campaignId)
+          );
+          if (matchedApp) {
+            foundClaim.campaignName = matchedApp.campaign?.campaignName || "—";
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching details:", error);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchAll();
+  }, [selectedClaim, isOpen]);
+
+  const handleMarkComplete = async () => {
+    if (!claim || claim.status !== "HANDOVER") return;
+    if (
+      claim.serviceCenterStaffId.toUpperCase() !==
+      auth?.accountId?.toUpperCase()
+    )
+      return;
+
+    try {
+      setLoading(true);
+      const staffId = claim.serviceCenterStaffId;
+
+      await axiosPrivate.post(
+        `${API.CLAIMS}/workflow/${claim.claimId}/staff/done`,
+        null,
+        { params: { staffId, done: true } }
+      );
+
+      // Update appointment status
+      if (claim.campaignIds?.length > 0 && claim.vin) {
+        try {
+          const matchedAppointment = await axiosPrivate.get(API.APPOINTMENTS);
+          const appointment = matchedAppointment.data.find(
+            (a) =>
+              a.vehicle?.vin === claim.vin &&
+              claim.campaignIds.includes(a.campaign?.campaignId)
+          );
+
+          if (appointment && appointment.status === "Scheduled") {
+            await axiosPrivate.put(
+              `${API.APPOINTMENTS}/${appointment.appointmentId}/status`,
+              null,
+              { params: { status: "Completed" } }
+            );
+          }
+        } catch (err) {
+          console.error("Error updating appointment status:", err);
+        }
+      }
+
+      setClaim({ ...claim, status: "DONE", staffDone: true });
+      onOpenChange(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error marking claim complete:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAccountName = (accountId) => {
+    const acc = accounts.find((a) => a.accountId === accountId);
+    return acc ? acc.fullName : "—";
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{warranty.warrantyId}</h1>
-          <p className="text-sm text-muted-foreground">{warranty.customer}</p>
-        </div>
-      </div>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, max-w-3xl cho desktop */}
+      <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+        <DialogHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <DialogTitle className="text-xl">
+              Claim #{claim?.claimId || selectedClaim?.claimId}
+            </DialogTitle>
+            {claim?.status && (
+              <Badge
+                variant="outline"
+                className={`${getStatusColor(claim.status)} w-fit`}
+              >
+                {claim.status}
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Warranty claim details and actions
+          </p>
+        </DialogHeader>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Warranty Information</CardTitle>
-                  <CardDescription>
-                    View and manage warranty details
-                  </CardDescription>
-                </div>
-                {/* {!isEditing && (
-                  <Button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-black hover:bg-gray-800 text-white"
-                  >
-                    Edit
-                  </Button>
-                )} */}
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-4">
-                {/* Customer Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Customer Name</label>
-                    <Input
-                      name="customer"
-                      value={formData.customer}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Phone</label>
-                    <Input
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                </div>
-
-                {/* Vehicle Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Vehicle Plate</label>
-                    <Input
-                      name="vehiclePlate"
-                      value={formData.vehiclePlate}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Vehicle Model</label>
-                    {isEditing ? (
-                      <Select
-                        value={formData.vehicleModel}
-                        onValueChange={(val) =>
-                          handleSelectChange("vehicleModel", val)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select vehicle model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vehicleModels.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={formData.vehicleModel}
-                        disabled
-                        className="bg-muted"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Technician Assignment */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Assigned Technician
-                  </label>
-                  {isEditing ? (
-                    <Select
-                      value={formData.technician}
-                      onValueChange={(val) =>
-                        handleSelectChange("technician", val)
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a technician" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {scTechnicians.map((tech) => (
-                          <SelectItem key={tech.id} value={tech.name}>
-                            {tech.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      value={formData.technician}
-                      disabled
-                      className="bg-muted"
-                    />
-                  )}
-                </div>
-
-                {/* Issue Description */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Issue Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={`w-full min-h-[120px] px-3 py-2 text-sm rounded-md border border-input ${
-                      isEditing ? "bg-background" : "bg-muted"
-                    }`}
-                  />
-                </div>
-
-                {/* Previous Warranty Count */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Previous Warranty Count
-                  </label>
-                  <Input
-                    name="previousCount"
-                    value={formData.previousCount || ""}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={!isEditing ? "bg-muted" : ""}
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                {isEditing && (
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="outline" onClick={handleCancel}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSave}
-                      className="bg-black hover:bg-gray-800 text-white"
-                    >
-                      Save Changes
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Status & Metadata */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Current Status
-                  </p>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    {formData.status}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Metadata</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+        {fetching ? (
+          <p className="text-center text-sm text-muted-foreground py-10">
+            Loading claim details...
+          </p>
+        ) : claim ? (
+          <div className="space-y-6">
+            {/* CHỈNH SỬA: Grid 1 cột mobile, 2 cột desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <p className="text-xs text-muted-foreground">Created By</p>
-                <p className="font-medium">{formData.createdBy}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Vehicle Plate
+                </h4>
+                <p className="font-medium">{vehicle?.plate || "—"}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Warranty ID</p>
-                <p className="font-medium">{formData.warrantyId}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Model
+                </h4>
+                <p className="font-medium">{vehicle?.model || "—"}</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  )
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Type
+                </h4>
+                <p className="font-medium">{vehicle?.type || "—"}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Claim Date
+                </h4>
+                <p className="font-medium">{claim.claimDate}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Technician
+                </h4>
+                <p className="font-medium">
+                  {getAccountName(claim.serviceCenterTechnicianId)}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  SC Staff
+                </h4>
+                <p className="font-medium">
+                  {getAccountName(claim.serviceCenterStaffId)}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  EVM Staff
+                </h4>
+                <p className="font-medium">{getAccountName(claim.evmId)}</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Description
+              </h4>
+              <p className="text-sm p-2 bg-muted/30 rounded">
+                {claim.description || "—"}
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                EVM Description
+              </h4>
+              <p className="text-sm p-2 bg-muted/30 rounded">
+                {claim.evmDescription || "—"}
+              </p>
+            </div>
+
+            {claim.campaignIds?.length > 0 ? (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Campaign
+                </h4>
+                <p className="text-sm">{claim.campaignName || "—"}</p>
+              </div>
+            ) : (
+              <p className="text-sm italic text-muted-foreground">
+                No campaign associated.
+              </p>
+            )}
+
+            <ScsWarrPart warrantyId={claim?.claimId} autoLoad={true} />
+
+            <Button
+              onClick={handleMarkComplete}
+              disabled={
+                claim.status !== "HANDOVER" ||
+                loading ||
+                claim.serviceCenterStaffId.toUpperCase() !==
+                  auth?.accountId?.toUpperCase()
+              }
+              className="w-full bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+            >
+              {loading
+                ? "Processing..."
+                : claim.status === "HANDOVER"
+                ? "Mark Complete"
+                : claim.status === "DONE"
+                ? "Completed"
+                : "Can only mark complete when status is HANDOVER"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-center text-muted-foreground py-10">
+            No claim selected.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }

@@ -1,153 +1,273 @@
-"use client";
-
-import { useState } from "react";
+import { useReducer, useEffect, useRef, useState, useCallback } from "react";
 import SCTechnicianSidebar from "@/components/sctechnician/SCTechnicianSidebar";
 import Header from "@/components/Header";
 import ReportCheck from "@/components/sctechnician/ScTechnicianCheckForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { mockJobs, mockUsers } from "@/lib/Mock-data";
+import { Search, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
+import axiosPrivate from "@/api/axios";
+import useAuth from "@/hook/useAuth";
+
+const API = {
+  WARRANTY_CLAIMS: "/api/warranty-claims",
+  VEHICLES: "/api/vehicles",
+  ACCOUNTS: "/api/accounts/",
+};
+
+// --- reducer ---
+const initialState = {
+  jobs: [],
+  loading: true,
+  error: "",
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "FETCH_START":
+      return { ...state, loading: true, error: "" };
+    case "FETCH_SUCCESS":
+      return { ...state, loading: false, jobs: action.payload };
+    case "FETCH_ERROR":
+      return { ...state, loading: false, error: action.payload };
+    case "UPDATE_JOB_STATUS":
+      return {
+        ...state,
+        jobs: state.jobs.map((j) =>
+          j.id === action.payload.id
+            ? { ...j, status: action.payload.status }
+            : j
+        ),
+      };
+    default:
+      return state;
+  }
+}
 
 export default function SCTechnicianCheck() {
+  const { auth } = useAuth();
+  const techId = auth?.accountId;
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { jobs, loading, error } = state;
+
   const [selectedJob, setSelectedJob] = useState(null);
-  const [jobs, setJobs] = useState(
-    mockJobs.filter((job) => job.type === "check")
-  );
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
-    return date
-      .toLocaleString("en-GB", {
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
+
+  const vehicleCache = useRef({});
+
+  const formatDateTime = useCallback((isoString) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleString("en-GB", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .replace(",", "");
-  };
-
-  function getTypeColor(type) {
-    switch (type) {
-      case "check":
-        return "bg-blue-500 text-white";
-      default:
-        return;
+      });
+    } catch {
+      return isoString;
     }
-  }
+  }, []);
 
-  const handleCardClick = (job) => {
-    setSelectedJob(job);
+  // --- fetch + caching ---
+  const fetchClaimsAndEnrich = async (forceRefresh = false) => {
+    if (!techId) return;
+    const cacheKey = `check_data_${techId}`;
+    const cached = sessionStorage.getItem(cacheKey);
+
+    if (cached && !forceRefresh) {
+      try {
+        dispatch({ type: "FETCH_SUCCESS", payload: JSON.parse(cached) });
+        return;
+      } catch {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
+
+    dispatch({ type: "FETCH_START" });
+    try {
+      const [claimsRes, vehiclesRes, accountsRes] = await Promise.all([
+        axiosPrivate.get(API.WARRANTY_CLAIMS),
+        axiosPrivate.get(API.VEHICLES),
+        axiosPrivate.get(API.ACCOUNTS),
+      ]);
+
+      const claims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
+      const vehicles = Array.isArray(vehiclesRes?.data) ? vehiclesRes.data : [];
+      const accounts = Array.isArray(accountsRes?.data) ? accountsRes.data : [];
+
+      const vehicleMap = Object.fromEntries(vehicles.map((v) => [v.vin, v]));
+      const accountMap = Object.fromEntries(
+        accounts.map((a) => [a.accountId, a])
+      );
+
+      const filteredClaims = claims.filter(
+        (c) =>
+          c.status === "CHECK" &&
+          c.serviceCenterTechnicianId?.toUpperCase() === techId?.toUpperCase()
+      );
+
+      const enriched = filteredClaims.map((claim) => {
+        const vehicle = vehicleMap[claim.vin];
+        const scStaff = accountMap[claim.serviceCenterStaffId];
+        const scTechnician = accountMap[claim.serviceCenterTechnicianId];
+
+        return {
+          id: claim.claimId,
+          claimId: claim.claimId,
+          jobNumber: `CLM-${claim.claimId}`,
+          vin: claim.vin || "N/A",
+          plate: vehicle?.plate || "N/A",
+          claimDate: claim.claimDate,
+          createdAt: claim.claimDate,
+          comment:
+            claim.description || vehicle?.campaign?.serviceDescription || "",
+          status: claim.status,
+          scStaff,
+          scTechnician,
+          rawClaim: claim,
+        };
+      });
+
+      sessionStorage.setItem(cacheKey, JSON.stringify(enriched));
+      dispatch({ type: "FETCH_SUCCESS", payload: enriched });
+    } catch (err) {
+      console.error("[SCTechnicianCheck] fetchClaimsAndEnrich failed:", err);
+      dispatch({
+        type: "FETCH_ERROR",
+        payload: "Failed to load jobs. Please try again.",
+      });
+    }
   };
 
-  const handleCloseReport = () => {
-    setSelectedJob(null);
-  };
+  useEffect(() => {
+    fetchClaimsAndEnrich();
+  }, [techId]);
+
+  const handleCardClick = (job) => setSelectedJob(job);
+  const handleCloseReport = () => setSelectedJob(null);
 
   const handleCompleteCheck = () => {
-    setJobs((prevJobs) =>
-      prevJobs.map((job) =>
-        job.id === selectedJob.id
-          ? { ...job, status: "completed", hasReport: true }
-          : job
-      )
-    );
-    setSelectedJob(null);
+    if (selectedJob) {
+      dispatch({
+        type: "UPDATE_JOB_STATUS",
+        payload: { id: selectedJob.id, status: "completed" },
+      });
+      setSelectedJob(null);
+      fetchClaimsAndEnrich(true);
+    }
   };
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.jobNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // --- filtering / sorting / pagination ---
+  const filteredJobs = jobs.filter((job) =>
+    [job.jobNumber, job.plate].some((field) =>
+      field?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const dateA = new Date(a.claimDate || a.createdAt);
+    const dateB = new Date(b.claimDate || b.createdAt);
+    if (sortOrder === "newest") {
+      if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+      return (
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
+    } else {
+      if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
+      return (
+        parseInt(a.claimId?.match(/(\d+)$/)?.[1] || 0) -
+        parseInt(b.claimId?.match(/(\d+)$/)?.[1] || 0)
+      );
+    }
   });
 
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentJobs = filteredJobs.slice(startIndex, endIndex);
-
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  };
-
-  const handleSearchChange = (value) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
-  const handleStatusChange = (value) => {
-    setStatusFilter(value);
-    setCurrentPage(1);
-  };
+  const currentJobs = sortedJobs.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <SCTechnicianSidebar />
-      {/* Main Content */}
+      <SCTechnicianSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="lg:pl-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight">
-                  Check Jobs
-                </h1>
-                <p className="text-muted-foreground mt-2 text-lg">
-                  Diagnostic and inspection tasks
-                </p>
-              </div>
-
-              {/* Search and Filter */}
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by job number or vehicle plate..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 h-12 text-base"
-                  />
-                </div>
-                {/* <Select value={statusFilter} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full md:w-[200px] h-12">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select> */}
-              </div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight">Check Jobs</h1>
+              <p className="text-muted-foreground mt-2 text-lg">
+                Diagnostic and inspection tasks assigned to you
+              </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchClaimsAndEnrich(true)}
+              disabled={loading}
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+          </div>
 
-            <Card>
-              <CardContent className="pt-6">
+          {/* Search */}
+          <div className="flex gap-3 mb-4">
+            <Search className="text-muted-foreground" />
+            <Input
+              placeholder="Search by job number, VIN or model..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 h-12 text-base"
+            />
+          </div>
+
+          {/* Sort */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={sortOrder === "newest" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("newest")}
+            >
+              Newest
+            </Button>
+            <Button
+              variant={sortOrder === "oldest" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("oldest")}
+            >
+              Oldest
+            </Button>
+          </div>
+
+          {/* Content */}
+          <Card>
+            <CardContent className="pt-6">
+              {loading ? (
+                <div className="text-center text-muted-foreground animate-pulse py-8">
+                  Loading jobs...
+                </div>
+              ) : error ? (
+                <div className="text-center text-destructive py-8">{error}</div>
+              ) : currentJobs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+                  No jobs assigned to your account
+                </div>
+              ) : (
                 <div className="space-y-4">
-                  {/* Pagination info */}
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
                       Showing {startIndex + 1}-
@@ -158,11 +278,12 @@ export default function SCTechnicianCheck() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handlePreviousPage}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
                         disabled={currentPage === 1}
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
+                        <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                       </Button>
                       <span className="text-sm text-muted-foreground px-2">
                         Page {currentPage} of {totalPages || 1}
@@ -170,76 +291,65 @@ export default function SCTechnicianCheck() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleNextPage}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
                         disabled={
                           currentPage === totalPages || totalPages === 0
                         }
                       >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        Next <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {currentJobs.length > 0 ? (
-                      currentJobs.map((job) => (
-                        <div
-                          key={job.id}
-                          onClick={() => handleCardClick(job)}
-                          className="p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer"
-                        >
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-lg">
-                                {job.jobNumber}
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-xs capitalize",
-                                  getTypeColor(job.type)
-                                )}
-                              >
-                                {job.type.replace("_", " ")}
-                              </Badge>
-                            </div>
-                            <div className="space-y-1.5 text-sm">
-                              <p className="text-muted-foreground">
-                                <span className="font-medium">Vehicle:</span>{" "}
-                                {job.vehicleModel} - {job.vehiclePlate}
-                              </p>
-                              <p className="text-muted-foreground">
-                                <span className="font-medium">Date:</span>{" "}
-                                {formatDateTime(job.createdAt)}
-                              </p>
-                              <p className="text-muted-foreground">
-                                <span className="font-medium">SC Staff:</span>{" "}
-                                {job.assignedStaff}
-                              </p>
-                            </div>
+                    {currentJobs.map((job) => (
+                      <div
+                        key={job.id}
+                        onClick={() => handleCardClick(job)}
+                        className="p-4 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/50 transition-all cursor-pointer"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-lg">
+                              {job.jobNumber}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5 text-sm">
+                            <p className="text-muted-foreground">
+                              <span className="font-medium">
+                                Vehicle Plate:
+                              </span>{" "}
+                              {job.plate}
+                            </p>
+                            <p className="text-muted-foreground">
+                              <span className="font-medium">Date:</span>{" "}
+                              {formatDateTime(job.claimDate || job.createdAt)}
+                            </p>
+                            <p className="text-muted-foreground">
+                              <span className="font-medium">SC Staff:</span>{" "}
+                              {job.scStaff?.fullName ||
+                                job.scStaff?.username ||
+                                "N/A"}
+                            </p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 text-center py-8 text-muted-foreground">
-                        No jobs found matching your criteria
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Report Modal */}
       {selectedJob && (
         <ReportCheck
           job={selectedJob}
           onClose={handleCloseReport}
-          onComplete={handleCompleteCheck}
+          onComplete={handleCompleteCheck} // <- refresh data after complete check
         />
       )}
     </div>

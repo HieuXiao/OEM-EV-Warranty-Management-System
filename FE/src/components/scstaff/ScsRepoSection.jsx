@@ -1,252 +1,287 @@
-// FE/src/components/scstaff/ScsReportSection.jsx
+import React, { useState, useMemo } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, FileText, Send, Loader2 } from "lucide-react";
+import { SubmitReportDialog } from "./ScsRepoSubmitDialog";
 
-import { useState } from "react"
-import { FileText, Plus, Edit, Eye, ChevronDown, ChevronUp, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreateReportDialog } from "@/components/scstaff/ScsRepoCreate"
-import { ViewReportDialog } from "@/components/scstaff/ScsRepoView"
-import { EditReportDialog } from "@/components/scstaff/ScsRepoEdit"
-import { mockReports } from "@/lib/Mock-data"
-import { campaigns } from "@/lib/Mock-data"
+const getCampaignDateStatus = (startDateStr, endDateStr) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const startDate = new Date(startDateStr);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(endDateStr);
+  endDate.setHours(0, 0, 0, 0);
 
-export default function ReportsSection() {
-  const [reports, setReports] = useState(mockReports)
-  const [expandedReports, setExpandedReports] = useState(new Set())
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCampaign, setSelectedCampaign] = useState("0")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [selectedReport, setSelectedReport] = useState(null)
+  if (startDate && now < startDate) return "not yet";
+  if (endDate && now > endDate) return "completed";
+  return "on going";
+};
 
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      report.campaignName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.summary.toLowerCase().includes(searchQuery.toLowerCase())
+function getStatusColor(status) {
+  switch (status) {
+    case "not yet":
+      return "bg-yellow-500";
+    case "on going":
+      return "bg-blue-500";
+    case "completed":
+      return "bg-green-500";
+    default:
+      return "bg-gray-500";
+  }
+}
 
-    const matchesCampaign = selectedCampaign === "0" || report.campaignId === Number.parseInt(selectedCampaign)
-    const matchesStatus = selectedStatus === "all" || report.status === selectedStatus
+export default function ScsReportSection({
+  currentAccount = {},
+  allCampaigns = [],
+  myAppointments = [],
+  mySubmittedReports = [],
+  allVehicles = [],
+  onRefreshData,
+  status,
+  error,
+}) {
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
 
-    return matchesSearch && matchesCampaign && matchesStatus
-  })
+  const campaignReportData = useMemo(() => {
+    const myCenterId = currentAccount.serviceCenter?.centerId;
+    if (!myCenterId) return [];
 
-  const toggleExpand = (reportId) => {
-    const newExpanded = new Set(expandedReports)
-    if (newExpanded.has(reportId)) {
-      newExpanded.delete(reportId)
-    } else {
-      newExpanded.add(reportId)
+    const reportMap = new Map(
+      (mySubmittedReports || [])
+        .filter((r) => r.serviceCenterId?.centerId === myCenterId)
+        .map((r) => [r.campaignId?.campaignId, r])
+    );
+
+    const completedApptMap = new Map();
+    for (const appt of myAppointments || []) {
+      if (
+        appt.vehicle.customer.serviceCenter?.centerId === myCenterId &&
+        appt.status === "Completed" &&
+        appt.campaign
+      ) {
+        const campaignId = appt.campaign.campaignId;
+        completedApptMap.set(
+          campaignId,
+          (completedApptMap.get(campaignId) || 0) + 1
+        );
+      }
     }
-    setExpandedReports(newExpanded)
+
+    return (allCampaigns || [])
+      .map((campaign) => {
+        const campaignModelSet = new Set(campaign.model || []);
+
+        const affectedVehiclesCount = (allVehicles || []).filter(
+          (vehicle) =>
+            campaignModelSet.has(vehicle.model) &&
+            vehicle.customer.serviceCenter?.centerId === myCenterId
+        ).length;
+
+        if (affectedVehiclesCount === 0) {
+          return null;
+        }
+
+        const completedVehiclesCount =
+          completedApptMap.get(campaign.campaignId) || 0;
+
+        const submittedReport = reportMap.get(campaign.campaignId);
+        const campaignStatus = getCampaignDateStatus(
+          campaign.startDate,
+          campaign.endDate
+        );
+
+        return {
+          ...campaign,
+          campaignStatus: campaignStatus,
+          reportStatus: submittedReport ? "Submitted" : "Not Submitted",
+          submittedReport: submittedReport || null,
+          scStats: {
+            affectedVehicles: affectedVehiclesCount,
+            completedVehicles: completedVehiclesCount,
+          },
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const statusPriority = {
+          "on going": 1,
+          "not yet": 2,
+          completed: 3,
+        };
+        const priorityA = statusPriority[a.campaignStatus] || 99;
+        const priorityB = statusPriority[b.campaignStatus] || 99;
+        return priorityA - priorityB;
+      });
+  }, [
+    currentAccount,
+    allCampaigns,
+    allVehicles,
+    myAppointments,
+    mySubmittedReports,
+  ]);
+
+  const handleSubmitClick = (campaign) => {
+    setSelectedCampaign(campaign);
+    setSubmitDialogOpen(true);
+  };
+
+  const onReportSubmitted = () => {
+    onRefreshData();
+    setSubmitDialogOpen(false);
+    setSelectedCampaign(null);
+  };
+
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  const handleView = (report) => {
-    setSelectedReport(report)
-    setViewDialogOpen(true)
-  }
-
-  const handleEdit = (report) => {
-    setSelectedReport(report)
-    setEditDialogOpen(true)
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "default"
-      case "in-progress":
-        return "secondary"
-      case "draft":
-        return "outline"
-      default:
-        return "outline"
-    }
-  }
-
-  const getCompletionPercentage = (report) => {
-    return Math.round((report.completedServices / report.totalVehicles) * 100)
+  if (status === "error") {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search reports by campaign or content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-2">
-            <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Campaign" />
-              </SelectTrigger>
-              <SelectContent>
-                {campaigns.map((campaign) => (
-                  <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                    {campaign.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Report
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Reports List */}
-      <div className="space-y-4">
-        {filteredReports.length === 0 ? (
-          <Card className="p-8 text-center">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">No reports found</h3>
-            <p className="text-muted-foreground mb-4">Try adjusting your filters or create a new report</p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Report
-            </Button>
-          </Card>
-        ) : (
-          filteredReports.map((report) => {
-            const isExpanded = expandedReports.has(report.id)
-            const completionPercentage = getCompletionPercentage(report)
-
-            return (
-              <Card key={report.id} className="overflow-hidden">
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-card-foreground">{report.campaignName}</h3>
-                        <Badge variant={getStatusColor(report.status)}>{report.status}</Badge>
-                        <Badge variant="outline">{report.reportType}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Created: {new Date(report.createdDate).toLocaleDateString()}</span>
-                        <span>Updated: {new Date(report.updatedDate).toLocaleDateString()}</span>
-                        <span>By: {report.createdBy}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleView(report)}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(report)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Progress Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Total Vehicles</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.totalVehicles}</p>
-                    </div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Completed</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.completedServices}</p>
-                    </div>
-                    <div className="bg-muted rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Pending</p>
-                      <p className="text-2xl font-bold text-card-foreground">{report.pendingServices}</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-card-foreground">Completion Progress</span>
-                      <span className="text-sm font-medium text-card-foreground">{completionPercentage}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{ width: `${completionPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Summary Preview */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-card-foreground mb-2">Summary</h4>
-                    <p className="text-sm text-muted-foreground">{report.summary}</p>
-                  </div>
-
-                  {/* Expandable Details */}
-                  {isExpanded && (
-                    <div className="space-y-4 pt-4 border-t border-border">
-                      {report.issues && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-card-foreground mb-2">Issues Identified</h4>
-                          <p className="text-sm text-muted-foreground">{report.issues}</p>
-                        </div>
-                      )}
-                      {report.recommendations && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-card-foreground mb-2">Recommendations</h4>
-                          <p className="text-sm text-muted-foreground">{report.recommendations}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Expand/Collapse Button */}
-                  <Button variant="ghost" size="sm" onClick={() => toggleExpand(report.id)} className="w-full mt-2">
-                    {isExpanded ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-2" />
-                        Show Less
-                      </>
+    status === "success" && (
+      <>
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle>Campaign Reports</CardTitle>
+            <CardDescription>
+              Submit your PDF summary report for each campaign to EVMStaff.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <div className="border rounded-lg overflow-hidden">
+              {/* CHỈNH SỬA: overflow-x-auto để cuộn ngang trên mobile */}
+              <div className="overflow-x-auto">
+                {/* CHỈNH SỬA: min-w-[800px] để giữ layout bảng đẹp */}
+                <Table className="min-w-[800px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Campaign Status</TableHead>
+                      <TableHead className="text-center">Comp/Aff</TableHead>
+                      <TableHead className="text-center">
+                        Report Status
+                      </TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {campaignReportData.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center h-24 text-muted-foreground"
+                        >
+                          No campaigns assigned to this service center.
+                        </TableCell>
+                      </TableRow>
                     ) : (
-                      <>
-                        <ChevronDown className="w-4 h-4 mr-2" />
-                        Show More Details
-                      </>
+                      campaignReportData.map((campaign) => (
+                        <TableRow key={campaign.campaignId}>
+                          <TableCell className="font-medium">
+                            {campaign.campaignName}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={getStatusColor(
+                                campaign.campaignStatus
+                              )}
+                            >
+                              {campaign.campaignStatus.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-semibold">
+                              {campaign.scStats.completedVehicles} /{" "}
+                              {campaign.scStats.affectedVehicles}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                campaign.reportStatus === "Submitted"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {campaign.reportStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {campaign.reportStatus === "Submitted" ? (
+                              <Button asChild variant="outline" size="sm">
+                                <a
+                                  href={
+                                    campaign.submittedReport
+                                      ?.reportFileUrls?.[0]
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  View
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleSubmitClick(campaign)}
+                                disabled={
+                                  campaign.campaignStatus !== "completed"
+                                }
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Submit
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
                     )}
-                  </Button>
-                </div>
-              </Card>
-            )
-          })
-        )}
-      </div>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      <CreateReportDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-      <ViewReportDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} report={selectedReport} />
-      <EditReportDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} report={selectedReport} />
-    </div>
-  )
+        <SubmitReportDialog
+          open={submitDialogOpen}
+          onOpenChange={setSubmitDialogOpen}
+          campaign={selectedCampaign}
+          account={currentAccount}
+          onReportSubmitted={onReportSubmitted}
+        />
+      </>
+    )
+  );
 }

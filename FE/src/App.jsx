@@ -1,12 +1,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 // IMPORT PUBLIC
+import NotFound from "./pages/NotFound";
 import Login from "./pages/LoginPage";
+import UserProfile from "./pages/UserProfile";
 // IMPORT ADMIN
 import AdminUserManagement from "./pages/AdminUserManagement";
 import AdminWarehouseArea from "./pages/AdminWarehouseArea";
 import AdminPartsPolicy from "./pages/AdminParts&Policy";
 import AdminSetting from "./pages/AdminSetting";
+import AdminServiceCenter from "./pages/AdminServiceCenter";
 // IMPORT SCSTAFF
 import SCStaffDashboard from "./pages/SCStaffDashboard";
 import SCStaffProfile from "./pages/SCStaffProfile";
@@ -22,21 +25,32 @@ import SCTechnicianRepair from "./pages/SCTechnicianRepair";
 // IMPORT EVMSTAFF
 import EVMStaffProductPart from "./pages/EVMStaffProduct&Part";
 import EVMStaffWarehouse from "./pages/EVMStaffWarehouse";
-import EVMStaffReportAnalysis from "./pages/EVMStaffReport&Analysis";
+import EVMStaffReportAnalysis from "./pages/EVMStaffReport";
 import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
 import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
 import EVMStaffReportDetail from "./components/evmstaff/EVMStaffReportDetail";
-import EVMStaffWarehouseDetail from "./components/evmstaff/EVMStaffWarehouseDetail";
+import EVMStaffWarehouseDetail from "./components/evmstaff/EvmWareDetail";
 import RequireAuth from "./components/RequireAuth";
+import RootRedirect from "./components/RootRedirect";
 
 function App() {
   return (
     <>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
+        <Route path="*" element={<NotFound />} />
+        <Route
+          element={
+            <RequireAuth
+              allowedRoles={["ADMIN", "SC_STAFF", "SC_TECHNICIAN", "EVM_STAFF"]}
+            />
+          }
+        >
+          <Route path="/profile" element={<UserProfile />} />
+        </Route>
 
         {/* Admin */}
         <Route element={<RequireAuth allowedRoles={["ADMIN"]} />}>
@@ -44,6 +58,10 @@ function App() {
           <Route path="/admin/users" element={<AdminUserManagement />} />
           <Route path="/admin/warehouses" element={<AdminWarehouseArea />} />
           <Route path="/admin/parts-policy" element={<AdminPartsPolicy />} />
+          <Route
+            path="/admin/service-centers"
+            element={<AdminServiceCenter />}
+          />
         </Route>
 
         {/* ScStaff */}
@@ -67,11 +85,11 @@ function App() {
 
         {/* EVMStaff */}
         <Route element={<RequireAuth allowedRoles={["EVM_STAFF"]} />}>
-          <Route path="/evmstaff/products" element={<EVMStaffProductPart />} />
+          {/* <Route path="/evmstaff/products" element={<EVMStaffProductPart />} />
           <Route
             path="/evmstaff/products/:id"
             element={<EVMStaffDetailPart />}
-          />
+          /> */}
           <Route
             path="/evmstaff/warranty"
             element={<EVMStaffWarrantyClaim />}

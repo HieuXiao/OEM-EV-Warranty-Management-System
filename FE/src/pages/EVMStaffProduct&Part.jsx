@@ -31,6 +31,10 @@ export default function EVMStaffProductPart() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenMenu = () => setIsMobileMenuOpen(true);
+  const handleCloseMenu = () => setIsMobileMenuOpen(false);
 
   const filteredParts = parts.filter((part) => {
     const matchesSearch =
@@ -79,9 +83,12 @@ export default function EVMStaffProductPart() {
 
   return (
     <div className="flex h-screen bg-background">
-      <EVMStaffSideBar />
+      <EVMStaffSideBar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
       <div className="flex-1 flex flex-col ml-64">
-        <Header />
+        <Header onMenuClick={handleOpenMenu} />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
@@ -118,7 +125,11 @@ export default function EVMStaffProductPart() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((part) => (
-                    <TableRow key={part.id} onClick={() => navigate(`${part.id}`)} className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100">
+                    <TableRow
+                      key={part.id}
+                      onClick={() => navigate(`${part.id}`)}
+                      className="group cursor-pointer hover:bg-blue-50 active:bg-blue-100"
+                    >
                       <TableCell className="font-medium bg-transparent group-hover:bg-transparent group-active:bg-transparent">
                         {part.serial}
                       </TableCell>
