@@ -122,14 +122,17 @@ export default function WarrantiesTable({ onSelectWarranty }) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <CardHeader className="px-4 sm:px-6">
+        {/* CHỈNH SỬA: Header Responsive */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <CardTitle>Warranty Requests</CardTitle>
-            <CardDescription>Manage all warranty cases submitted</CardDescription>
+            <CardDescription>
+              Manage all warranty cases submitted
+            </CardDescription>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -140,60 +143,80 @@ export default function WarrantiesTable({ onSelectWarranty }) {
               />
             </div>
 
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button className="bg-black hover:bg-gray-800 text-white">
+                <Button className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-1" /> Create
                 </Button>
               </DialogTrigger>
 
-              <DialogContent className="max-w-2xl">
+              {/* CHỈNH SỬA: Modal Responsive */}
+              <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl">Create New Warranty Claim</DialogTitle>
+                  <DialogTitle className="text-xl">
+                    Create New Warranty Claim
+                  </DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmitNewClaim} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2 col-span-2">
-                      <label className="text-sm font-medium">Created By (SC Staff)</label>
-                      <Input value={currentUser.name} disabled className="bg-muted" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-sm font-medium">
+                        Created By (SC Staff)
+                      </label>
+                      <Input
+                        value={currentUser.name}
+                        disabled
+                        className="bg-muted"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Customer Phone</label>
+                      <label className="text-sm font-medium">
+                        Customer Phone
+                      </label>
                       <Input
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        placeholder="e.g., 0901234567"
+                        placeholder="0901234567"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Customer Name</label>
+                      <label className="text-sm font-medium">
+                        Customer Name
+                      </label>
                       <Input
                         name="customer"
                         value={formData.customer}
                         onChange={handleChange}
-                        placeholder="Enter customer name"
+                        placeholder="Enter name"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Vehicle Plate</label>
+                      <label className="text-sm font-medium">
+                        Vehicle Plate
+                      </label>
                       <Input
                         name="vehiclePlate"
                         value={formData.vehiclePlate}
                         onChange={handleChange}
-                        placeholder="e.g., 30A-12345"
+                        placeholder="30A-12345"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Vehicle Model</label>
+                      <label className="text-sm font-medium">
+                        Vehicle Model
+                      </label>
                       <Select
                         value={formData.vehicleModel}
                         onValueChange={(val) =>
@@ -202,7 +225,7 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                         required
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select vehicle model" />
+                          <SelectValue placeholder="Select model" />
                         </SelectTrigger>
                         <SelectContent>
                           {vehicleModels.map((model) => (
@@ -215,14 +238,16 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Assign to Technician</label>
+                      <label className="text-sm font-medium">
+                        Assign to Technician
+                      </label>
                       <Select
                         value={newClaimTechnician}
                         onValueChange={setNewClaimTechnician}
                         required
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a technician" />
+                          <SelectValue placeholder="Select technician" />
                         </SelectTrigger>
                         <SelectContent>
                           {scTechnicians.map((tech) => (
@@ -235,29 +260,33 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Previous Warranty Count</label>
+                      <label className="text-sm font-medium">
+                        Previous Warranty Count
+                      </label>
                       <Input
                         name="previousCount"
                         value={formData.previousCount}
                         onChange={handleChange}
-                        placeholder="e.g., 01;02;10,.."
+                        placeholder="01;02..."
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Issue Description</label>
+                    <label className="text-sm font-medium">
+                      Issue Description
+                    </label>
                     <textarea
                       name="description"
                       value={formData.description}
                       onChange={handleChange}
                       className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background"
-                      placeholder="Describe the issue in detail..."
+                      placeholder="Describe issue..."
                       required
                     />
                   </div>
 
-                  <div className="flex justify-end gap-3">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-4 border-t pt-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -265,7 +294,10 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-black hover:bg-gray-800 text-white">
+                    <Button
+                      type="submit"
+                      className="bg-black hover:bg-gray-800 text-white"
+                    >
                       Create Claim
                     </Button>
                   </div>
@@ -276,9 +308,10 @@ export default function WarrantiesTable({ onSelectWarranty }) {
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
+      <CardContent className="px-0 sm:px-6 pb-6">
+        {/* CHỈNH SỬA: Bảng cuộn ngang */}
+        <div className="rounded-md border overflow-x-auto mx-4 sm:mx-0">
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
@@ -289,11 +322,13 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody>
               {filteredWarranties.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-muted-foreground py-6"
+                  >
                     No warranty claims found.
                   </TableCell>
                 </TableRow>
@@ -308,7 +343,9 @@ export default function WarrantiesTable({ onSelectWarranty }) {
                     <TableCell>{w.customer}</TableCell>
                     <TableCell>{w.phone}</TableCell>
                     <TableCell>{w.vehiclePlate}</TableCell>
-                    <TableCell>{w.description}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {w.description}
+                    </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {w.status}
@@ -329,22 +366,20 @@ export default function WarrantiesTable({ onSelectWarranty }) {
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-4 w-4 mr-1" /> Previous
             </Button>
-
             <span className="text-sm font-medium text-muted-foreground">
               Page {currentPage} of {totalPages}
             </span>
-
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
             >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         )}

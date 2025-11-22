@@ -1,15 +1,7 @@
-// FE/src/components/evmstaff/EvmWareDetail.jsx
-
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -30,16 +22,9 @@ import {
 import EvmWareDetailReceive from "./EvmWareDetaReceive";
 import EvmWareDetaRegister from "./EvmWareDetaRegister";
 
-// === CONSTANTS ===
 const ROWS_PER_PAGE = 10;
 const LOW_STOCK_THRESHOLD = 50;
 
-// === HELPER FUNCTIONS ===
-/**
- * Formats a number as Vietnamese currency (VND).
- * @param {number} amount
- * @returns {string}
- */
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -53,7 +38,6 @@ export default function EvmWareDetail({
   onBack,
   onReceiveSuccess,
 }) {
-  // ============= 1. INPUT VALIDATION & INITIALIZATION =============
   if (!warehouse) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -66,21 +50,12 @@ export default function EvmWareDetail({
     );
   }
 
-  // === MAIN TABLE STATE ===
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  // === MINI-MODAL STATE ===
   const [showMiniReceive, setShowMiniReceive] = useState(false);
   const [selectedPart, setSelectedPart] = useState(null);
   const [showRegisterPart, setShowRegisterPart] = useState(false);
 
-  // ============= 2. DATA PROCESSING =============
-
-  /**
-   * Processes the raw part data from the warehouse API.
-   * Calculates Total Value and sets the 'isLow' flag based on LOW_STOCK_THRESHOLD.
-   */
   const processedParts = useMemo(() => {
     return (warehouse?.parts || []).map((part) => {
       const price = parseFloat(part.price) || 0;
@@ -97,10 +72,6 @@ export default function EvmWareDetail({
     });
   }, [warehouse]);
 
-  // === FILTERING & PAGINATION LOGIC ===
-  /**
-   * Filters parts based on user search input (Part Name or Part Number).
-   */
   const filteredParts = useMemo(() => {
     return processedParts.filter(
       (part) =>
@@ -109,9 +80,6 @@ export default function EvmWareDetail({
     );
   }, [processedParts, searchTerm]);
 
-  /**
-   * Applies pagination to the filtered list.
-   */
   const totalPages = Math.ceil(filteredParts.length / ROWS_PER_PAGE);
   const safeCurrentPage = Math.min(currentPage, totalPages || 1);
   const currentParts = filteredParts.slice(
@@ -119,9 +87,6 @@ export default function EvmWareDetail({
     safeCurrentPage * ROWS_PER_PAGE
   );
 
-  // ============= 3. HANDLERS =============
-
-  // === PAGINATION HANDLERS ===
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
@@ -129,74 +94,58 @@ export default function EvmWareDetail({
     setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
-  // === MODAL HANDLERS ===
-  /**
-   * Opens the mini 'Receive' modal for a specific part.
-   * @param {object} part - The part object from the table row.
-   */
   const handleOpenMiniReceive = (part) => {
     setSelectedPart(part);
     setShowMiniReceive(true);
   };
 
-  /**
-   * Called upon successful stock update from the mini 'Receive' modal.
-   * Triggers data refresh in the parent component.
-   * @param {number} whId - The warehouse ID to refresh.
-   */
   const handleMiniReceiveSuccess = (whId = warehouse.whId) => {
     setShowMiniReceive(false);
     onReceiveSuccess(whId);
   };
 
-  /**
-   * Called upon successful part registration from the 'Register' modal.
-   * Triggers data refresh in the parent component.
-   * @param {number} whId - The warehouse ID to refresh.
-   */
   const handleRegisterSuccess = (whId = warehouse.whId) => {
     setShowRegisterPart(false);
     onReceiveSuccess(whId);
   };
 
-  // ============= 4. RENDER FUNCTION =============
-
   return (
     <div className="space-y-6">
-      {/* --- Header Section --- */}
-      <div className="flex items-start justify-between">
+      {/* Header Responsive */}
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
             {warehouse.name} Details
           </h2>
-          <p className="text-muted-foreground text-lg">{warehouse.location}</p>
+          <p className="text-muted-foreground text-sm sm:text-lg">
+            {warehouse.location}
+          </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button
-            onClick={() => setShowRegisterPart(true)} // Nút Register
-            className="flex items-center bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Register New Part
-          </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
             onClick={onBack}
             variant="outline"
             className="flex items-center"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to List
+            Back
+          </Button>
+          <Button
+            onClick={() => setShowRegisterPart(true)}
+            className="flex items-center bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Register New Part
           </Button>
         </div>
       </div>
 
-      {/* --- Inventory Card --- */}
+      {/* Inventory Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-medium">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+          <CardTitle className="text-lg sm:text-xl font-medium">
             Inventory - {filteredParts.length} Unique Parts
           </CardTitle>
-          {/* --- Search Bar --- */}
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -211,10 +160,11 @@ export default function EvmWareDetail({
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div className="border rounded-lg max-h-[60vh] overflow-y-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
+        <CardContent className="px-0 sm:px-6">
+          {/* Table Wrapper for Horizontal Scroll */}
+          <div className="border rounded-lg overflow-x-auto mx-4 sm:mx-0">
+            <Table className="min-w-[800px]">
+              <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>Part Number</TableHead>
                   <TableHead>Name Part</TableHead>
@@ -243,7 +193,6 @@ export default function EvmWareDetail({
                       <TableCell className="text-right font-medium">
                         {formatCurrency(part.totalValue)}
                       </TableCell>
-                      {/* Is Low (Icon) */}
                       <TableCell className="text-center">
                         {part.isLow && (
                           <AlertTriangle className="h-5 w-5 text-red-500 mx-auto" />
@@ -252,6 +201,8 @@ export default function EvmWareDetail({
                       <TableCell className="text-center">
                         <Button
                           size="sm"
+                          variant="ghost"
+                          className="border"
                           onClick={() => handleOpenMiniReceive(part)}
                         >
                           <Plus className="h-4 w-4 mr-1" />
@@ -275,9 +226,9 @@ export default function EvmWareDetail({
             </Table>
           </div>
 
-          {/* --- Pagination --- */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
+            <div className="flex items-center justify-center gap-4 mt-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -286,7 +237,7 @@ export default function EvmWareDetail({
               >
                 <ChevronLeft className="h-4 w-4 mr-1" /> Prev
               </Button>
-              <span className="mx-2">
+              <span className="text-sm text-muted-foreground">
                 Page {safeCurrentPage} of {totalPages}
               </span>
               <Button
@@ -302,9 +253,9 @@ export default function EvmWareDetail({
         </CardContent>
       </Card>
 
-      {/* --- Mini-Modal for Receiving Specific Part --- */}
+      {/* Mini-Modal Receive */}
       <Dialog open={showMiniReceive} onOpenChange={setShowMiniReceive}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md p-6 rounded-xl">
           {selectedPart && (
             <EvmWareDetailReceive
               part={selectedPart}
@@ -317,12 +268,12 @@ export default function EvmWareDetail({
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL: Register Part --- */}
+      {/* Register Part Modal */}
       <Dialog open={showRegisterPart} onOpenChange={setShowRegisterPart}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="w-[95vw] sm:max-w-xl p-6 rounded-xl max-h-[90vh] overflow-y-auto">
           <EvmWareDetaRegister
             warehouse={warehouse}
-            partCatalog={partCatalog} // Pass catalog cho form register
+            partCatalog={partCatalog}
             onSuccess={handleRegisterSuccess}
             onClose={() => setShowRegisterPart(false)}
           />

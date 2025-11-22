@@ -11,7 +11,7 @@ const API = {
   VEHICLES: "/api/vehicles",
   ACCOUNTS: "/api/accounts/",
   CAMPAIGNS: "/api/campaigns/all",
-  APPOINTMENTS: "/api/service-appointments"
+  APPOINTMENTS: "/api/service-appointments",
 };
 
 export default function SCStaffDashboard() {
@@ -40,13 +40,13 @@ export default function SCStaffDashboard() {
           vehiclesRes,
           accountsRes,
           campaignsRes,
-          appointmentsRes
+          appointmentsRes,
         ] = await Promise.all([
           axiosPrivate.get(API.CLAIMS),
           axiosPrivate.get(API.VEHICLES),
           axiosPrivate.get(API.ACCOUNTS),
           axiosPrivate.get(API.CAMPAIGNS),
-          axiosPrivate.get(API.APPOINTMENTS)
+          axiosPrivate.get(API.APPOINTMENTS),
         ]);
 
         setClaims(claimsRes.data || []);
@@ -54,7 +54,6 @@ export default function SCStaffDashboard() {
         setAccounts(accountsRes.data || []);
         setCampaigns(campaignsRes.data || []);
         setAppointments(appointmentsRes.data || []);
-
       } catch (err) {
         console.error("[Dashboard] Error fetching data:", err);
       } finally {
@@ -101,7 +100,7 @@ export default function SCStaffDashboard() {
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
-  const completedThisMonth = mergedData.filter(c => {
+  const completedThisMonth = mergedData.filter((c) => {
     const isOwner =
       c.serviceCenterStaffId?.toUpperCase() === auth?.accountId?.toUpperCase();
     const isDone = c.status?.toUpperCase() === "DONE";
@@ -127,8 +126,7 @@ export default function SCStaffDashboard() {
       appDate.getDate() === today.getDate();
 
     const sameCenter =
-      app.vehicle?.customer?.serviceCenter?.centerId ===
-      auth?.centerId;
+      app.vehicle?.customer?.serviceCenter?.centerId === auth?.centerId;
 
     return isToday && sameCenter;
   }).length;
@@ -139,12 +137,17 @@ export default function SCStaffDashboard() {
         isMobileOpen={isMobileMenuOpen}
         onClose={handleCloseMenu}
       />
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 transition-all duration-200">
         <Header onMenuClick={handleOpenMenu} />
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
-          <Card className="p-4">
+          {/* Main Content Card - Remove padding on mobile if needed, or keep it */}
+          <div className="w-full">
             {loading ? (
-              <p className="text-center text-muted-foreground">Loading...</p>
+              <div className="flex items-center justify-center py-12">
+                <p className="text-muted-foreground animate-pulse">
+                  Loading dashboard data...
+                </p>
+              </div>
             ) : (
               <ScsDashTable
                 claims={mergedData}
@@ -153,7 +156,7 @@ export default function SCStaffDashboard() {
                 completedThisMonth={completedThisMonth}
               />
             )}
-          </Card>
+          </div>
         </div>
       </div>
     </div>

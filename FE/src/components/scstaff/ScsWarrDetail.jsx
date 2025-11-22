@@ -31,7 +31,7 @@ const getStatusColor = (status) => {
 
 export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
   const { auth } = useAuth();
-  
+
   const [loading, setLoading] = useState(false);
   const [claim, setClaim] = useState(null);
   const [vehicle, setVehicle] = useState(null);
@@ -43,7 +43,7 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
       if (!selectedClaim?.claimId || !isOpen) return;
       try {
         setFetching(true);
-        
+
         const [claimsRes, vehiclesRes, accountsRes, appointmentsRes] =
           await Promise.all([
             axiosPrivate.get(API.CLAIMS),
@@ -91,8 +91,12 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
   const handleMarkComplete = async () => {
     if (!claim || claim.status !== "HANDOVER") return;
-    if (claim.serviceCenterStaffId.toUpperCase() !== auth?.accountId?.toUpperCase()) return;
-    
+    if (
+      claim.serviceCenterStaffId.toUpperCase() !==
+      auth?.accountId?.toUpperCase()
+    )
+      return;
+
     try {
       setLoading(true);
       const staffId = claim.serviceCenterStaffId;
@@ -142,14 +146,18 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      {/* CHỈNH SỬA: w-[95vw] cho mobile, max-w-3xl cho desktop */}
+      <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
         <DialogHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <DialogTitle className="text-xl">
               Claim #{claim?.claimId || selectedClaim?.claimId}
             </DialogTitle>
             {claim?.status && (
-              <Badge variant="outline" className={getStatusColor(claim.status)}>
+              <Badge
+                variant="outline"
+                className={`${getStatusColor(claim.status)} w-fit`}
+              >
                 {claim.status}
               </Badge>
             )}
@@ -165,54 +173,85 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
           </p>
         ) : claim ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+            {/* CHỈNH SỬA: Grid 1 cột mobile, 2 cột desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Vehicle Plate</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Vehicle Plate
+                </h4>
                 <p className="font-medium">{vehicle?.plate || "—"}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Model</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Model
+                </h4>
                 <p className="font-medium">{vehicle?.model || "—"}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Type</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Type
+                </h4>
                 <p className="font-medium">{vehicle?.type || "—"}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Claim Date</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Claim Date
+                </h4>
                 <p className="font-medium">{claim.claimDate}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Technician</h4>
-                <p className="font-medium">{getAccountName(claim.serviceCenterTechnicianId)}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Technician
+                </h4>
+                <p className="font-medium">
+                  {getAccountName(claim.serviceCenterTechnicianId)}
+                </p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">SC Staff</h4>
-                <p className="font-medium">{getAccountName(claim.serviceCenterStaffId)}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  SC Staff
+                </h4>
+                <p className="font-medium">
+                  {getAccountName(claim.serviceCenterStaffId)}
+                </p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">EVM Staff</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  EVM Staff
+                </h4>
                 <p className="font-medium">{getAccountName(claim.evmId)}</p>
               </div>
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-              <p className="text-sm">{claim.description || "—"}</p>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Description
+              </h4>
+              <p className="text-sm p-2 bg-muted/30 rounded">
+                {claim.description || "—"}
+              </p>
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">EVM Description</h4>
-              <p className="text-sm">{claim.evmDescription || "—"}</p>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                EVM Description
+              </h4>
+              <p className="text-sm p-2 bg-muted/30 rounded">
+                {claim.evmDescription || "—"}
+              </p>
             </div>
 
             {claim.campaignIds?.length > 0 ? (
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Campaign</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                  Campaign
+                </h4>
                 <p className="text-sm">{claim.campaignName || "—"}</p>
               </div>
             ) : (
-              <p className="text-sm italic text-muted-foreground">No campaign associated.</p>
+              <p className="text-sm italic text-muted-foreground">
+                No campaign associated.
+              </p>
             )}
 
             <ScsWarrPart warrantyId={claim?.claimId} autoLoad={true} />
@@ -222,9 +261,10 @@ export default function ScsWarrDetail({ isOpen, onOpenChange, selectedClaim }) {
               disabled={
                 claim.status !== "HANDOVER" ||
                 loading ||
-                claim.serviceCenterStaffId.toUpperCase() !== auth?.accountId?.toUpperCase()
+                claim.serviceCenterStaffId.toUpperCase() !==
+                  auth?.accountId?.toUpperCase()
               }
-              className="w-full bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
               {loading
                 ? "Processing..."

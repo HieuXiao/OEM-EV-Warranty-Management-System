@@ -1,9 +1,13 @@
 // FE/src/components/admin/AdUserTable.jsx
 
-// ======================= IMPORTS =======================
 import React, { useState } from "react";
-// UI Component Imports
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,14 +24,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input"; 
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; 
+} from "@/components/ui/select";
 import {
   MoreVertical,
   Edit,
@@ -35,10 +39,9 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Search, 
+  Search,
 } from "lucide-react";
 
-// Role priority map for sorting (Lower number means higher priority/appears first)
 const ROLE_PRIORITY = {
   admin: 1,
   evm_staff: 2,
@@ -47,125 +50,73 @@ const ROLE_PRIORITY = {
   default: 99,
 };
 
-/**
- * AdUserTable Component
- * Displays a paginated table of users with actions (Edit, Toggle Status).
- * The list is sorted primarily by Role Priority and secondarily by Account ID (as a proxy for newest).
- * @param {Object[]} users - Array of user objects (already filtered by the parent component).
- * @param {boolean} loading - Loading state.
- * @param {function} onEdit - Handler to set user for editing.
- * @param {function} onToggleStatus - Handler to change user's enabled status.
- * @param {function} onSelectUser - Handler to view user details.
- * @param {string} searchQuery - Current search query string.
- * @param {function} setSearchQuery - Setter for search query state.
- * @param {string} filterRole - Currently selected role filter.
- * @param {function} setFilterRole - Setter for role filter state.
- */
+const getRolePriority = (role) =>
+  ROLE_PRIORITY[role?.toLowerCase()] || ROLE_PRIORITY.default;
+
+const getRoleColor = (role) => {
+  switch (role?.toLowerCase()) {
+    case "admin":
+      return "bg-red-500 hover:bg-red-600";
+    case "evm_staff":
+      return "bg-blue-500 hover:bg-blue-600";
+    case "sc_staff":
+      return "bg-green-500 hover:bg-green-600";
+    case "sc_technician":
+      return "bg-orange-500 hover:bg-orange-600";
+    default:
+      return "bg-gray-500 hover:bg-gray-600";
+  }
+};
+
+const getRoleLabel = (role) => {
+  switch (role?.toLowerCase()) {
+    case "evm_staff":
+      return "EVM Staff";
+    case "sc_staff":
+      return "SC Staff";
+    case "sc_technician":
+      return "Technician";
+    default:
+      return role?.charAt(0).toUpperCase() + role?.slice(1);
+  }
+};
+
 export default function AdUserTable({
   users = [],
   loading = false,
   onEdit,
   onToggleStatus,
   onSelectUser,
-  // Props for Filter and Search functionality
   searchQuery,
   setSearchQuery,
   filterRole,
   setFilterRole,
 }) {
-  // ================== PAGINATION STATE ==================
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage] = useState(6); // Keep rows per page constant
+  const rowsPerPage = 10;
 
-  // ================== SORTING LOGIC ==================
-  
-  // 1. Sort the received user list: Role (Priority Ascending) -> Newest (ID Descending)
-  const sortedUsers = [...users].sort((a, b) => {
-    const roleA = a.roleName?.toLowerCase() || 'default';
-    const roleB = b.roleName?.toLowerCase() || 'default';
-    const priorityA = ROLE_PRIORITY[roleA] || ROLE_PRIORITY.default;
-    const priorityB = ROLE_PRIORITY[roleB] || ROLE_PRIORITY.default;
-
-    // Primary Sort: By Role Priority (Ascending: Admin first)
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-
-    // Secondary Sort: Newest First (Assuming higher accountId/order is newer)
-    if (a.accountId < b.accountId) return 1; 
-    if (a.accountId > b.accountId) return -1; 
-
-    return 0;
-  });
-
-  // ================== PAGINATION CALCULATION ==================
-  const totalPages = Math.ceil(sortedUsers.length / rowsPerPage);
-  const currentUsers = sortedUsers.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+  const sortedUsers = [...users].sort(
+    (a, b) => getRolePriority(a.roleName) - getRolePriority(b.roleName)
   );
-  
-  // Use currentUsers for display
-  const displayUsers = currentUsers; 
 
-  // ================== UTILITY FUNCTIONS ==================
+  const totalPages = Math.ceil(sortedUsers.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const displayUsers = sortedUsers.slice(startIndex, startIndex + rowsPerPage);
 
-  /** Maps role name to a Tailwind background color class */
-  const getRoleColor = (role) => {
-    switch (role) {
-      case "admin":
-        return "bg-purple-500";
-      case "evm_staff":
-        return "bg-blue-500";
-      case "sc_staff":
-        return "bg-green-500";
-      case "sc_technician":
-        return "bg-orange-500";
-      default:
-        return "bg-gray-400";
-    }
-  };
-
-  /** Maps role name to a user-friendly label */
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case "admin":
-        return "Admin";
-      case "evm_staff":
-        return "EVM Staff";
-      case "sc_staff":
-        return "SC Staff";
-      case "sc_technician":
-        return "Technician";
-      default:
-        return "Unknown";
-    }
-  };
-
-  // ================== UI RENDERING ==================
   return (
-    <Card className="pt-4 px-4 pb-4">
-      
-      {/* CardHeader */}
-      <CardHeader> 
-        <div className="flex flex-row items-center justify-between">
-          
-          {/* Left Block: Title and Description (Matched AdServTable) */}
+    <Card className="pt-4 px-2 sm:px-4 pb-4">
+      <CardHeader className="px-2 sm:px-6">
+        {/* CHỈNH SỬA: Responsive Header Layout */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle>
-              All Users
-            </CardTitle>
-            <CardDescription>
-              Click on a row to view details.
-            </CardDescription>
+            <CardTitle>All Users</CardTitle>
+            <CardDescription>Click on a row to view details.</CardDescription>
           </div>
 
-          {/* Right Block: Filter and Search */}
-          <div className="flex items-center gap-2">
-            
-            {/* Filter role dropdown */}
+          {/* Stack filters on mobile */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
             <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-[160px] border-gray-300 focus-visible:ring-1 focus-visible:ring-primary h-10">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Filter Role" />
               </SelectTrigger>
               <SelectContent>
@@ -176,25 +127,21 @@ export default function AdUserTable({
                 <SelectItem value="sc_technician">Technician</SelectItem>
               </SelectContent>
             </Select>
-            
-            {/* Search box */}
+
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search user..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
+                className="pl-8 w-full"
               />
             </div>
           </div>
         </div>
       </CardHeader>
-      
-      {/* CardContent */}
-      <CardContent className="pt-0 px-4"> 
-        
-        {/* Loading Indicator */}
+
+      <CardContent className="pt-0 px-0 sm:px-4">
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-gray-500 mr-2" />
@@ -202,9 +149,9 @@ export default function AdUserTable({
           </div>
         ) : (
           <>
-            {/* User Table */}
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
+            {/* CHỈNH SỬA: Responsive Table Wrapper */}
+            <div className="rounded-md border overflow-x-auto mx-4 sm:mx-0">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[150px]">Username</TableHead>
@@ -213,7 +160,9 @@ export default function AdUserTable({
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="w-[120px]">Status</TableHead>
-                    <TableHead className="text-right w-[80px]">Actions</TableHead>
+                    <TableHead className="text-right w-[80px]">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -222,23 +171,21 @@ export default function AdUserTable({
                     displayUsers.map((u) => (
                       <TableRow
                         key={u.accountId}
-                        // Clicking the row shows user details
                         onClick={() => onSelectUser?.(u)}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
                       >
-                        {/* Username */}
-                        <TableCell className="font-semibold text-gray-600">{u.username}</TableCell>
-                        {/* Full Name */}
-                        <TableCell className="font-medium text-foreground">{u.fullName}</TableCell>
+                        <TableCell className="font-semibold text-gray-600">
+                          {u.username}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {u.fullName}
+                        </TableCell>
                         <TableCell>{u.phone || "—"}</TableCell>
                         <TableCell title={u.email}>
-                          {/* Truncate long emails */}
                           {u.email?.length > 25
                             ? u.email.slice(0, 25) + "..."
                             : u.email}
                         </TableCell>
-
-                        {/* Role Badge */}
                         <TableCell>
                           <Badge
                             className={`${getRoleColor(
@@ -248,8 +195,6 @@ export default function AdUserTable({
                             {getRoleLabel(u.roleName?.toLowerCase())}
                           </Badge>
                         </TableCell>
-
-                        {/* Status Badge */}
                         <TableCell>
                           <Badge
                             className={`gap-1 ${
@@ -264,8 +209,6 @@ export default function AdUserTable({
                             {u.enabled ? "Enabled" : "Disabled"}
                           </Badge>
                         </TableCell>
-
-                        {/* Action Dropdown */}
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -273,7 +216,6 @@ export default function AdUserTable({
                                 <MoreVertical className="h-4 w-4 text-gray-500 hover:text-foreground" />
                               </Button>
                             </DropdownMenuTrigger>
-
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -283,7 +225,6 @@ export default function AdUserTable({
                               >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
-
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -305,18 +246,30 @@ export default function AdUserTable({
                       </TableRow>
                     ))
                   ) : (
-                    // No users found row (Empty State)
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-gray-500">
+                      <TableCell
+                        colSpan={7}
+                        className="text-center text-gray-500"
+                      >
                         <div className="p-10 text-center">
-                          <h3 className="text-xl font-semibold text-muted-foreground">No Users Found</h3>
+                          <h3 className="text-xl font-semibold text-muted-foreground">
+                            No Users Found
+                          </h3>
                           <p className="mt-2 text-sm text-gray-500">
-                            The current filter and search settings did not match any users.
+                            The current filter and search settings did not match
+                            any users.
                           </p>
-                          {(searchQuery || filterRole !== 'all') && (
-                              <Button variant="link" onClick={() => { setSearchQuery(''); setFilterRole('all'); }} className="mt-2">
-                                  Clear Search and Filters
-                              </Button>
+                          {(searchQuery || filterRole !== "all") && (
+                            <Button
+                              variant="link"
+                              onClick={() => {
+                                setSearchQuery("");
+                                setFilterRole("all");
+                              }}
+                              className="mt-2"
+                            >
+                              Clear Filters
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -326,9 +279,8 @@ export default function AdUserTable({
               </Table>
             </div>
 
-            {/* Pagination Controls (MOVED TO BOTTOM & CENTERED, ADJUSTED SPACING) */}
             {sortedUsers.length > rowsPerPage && (
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4"> 
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
                 <Button
                   variant="outline"
                   size="sm"
@@ -337,16 +289,15 @@ export default function AdUserTable({
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" /> Prev
                 </Button>
-                
-                {/* Placed Page X of Y between buttons */}
-                <span className="mx-2"> 
+                <span className="mx-2">
                   Page {currentPage} of {totalPages}
                 </span>
-
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages}
                 >
                   Next <ChevronRight className="h-4 w-4 ml-1" />

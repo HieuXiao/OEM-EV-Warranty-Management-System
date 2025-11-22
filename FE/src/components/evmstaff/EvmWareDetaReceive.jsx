@@ -1,5 +1,3 @@
-// FE/src/components/evmstaff/EvmWareDetaReceive.jsx
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +13,6 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import useAuth from "@/hook/useAuth";
 import axios from "axios";
 
-// === CONSTANTS ===
 const ADD_QUANTITY_API_URL = "/api/repair-parts/add-quantity";
 
 export default function EvmWareDetailReceive({
@@ -26,21 +23,13 @@ export default function EvmWareDetailReceive({
   onClose,
 }) {
   const { auth } = useAuth();
-
-  // === FORM STATE ===
-  // Dùng state là string để cho phép giá trị rỗng khi người dùng xóa (sửa bug)
   const [additionalQuantity, setAdditionalQuantity] = useState("1");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  /**
-   * Handles the submission of the receive form.
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-
-    // Lấy giá trị số lượng an toàn từ state string
     const quantityToSend = parseInt(additionalQuantity, 10) || 0;
 
     if (!part || quantityToSend <= 0) {
@@ -48,9 +37,7 @@ export default function EvmWareDetailReceive({
       return;
     }
 
-    const partNumber = part.partNumber;
-
-    if (!partNumber) {
+    if (!part.partNumber) {
       setError("Missing part number information.");
       return;
     }
@@ -58,10 +45,9 @@ export default function EvmWareDetailReceive({
     setIsSubmitting(true);
 
     try {
-      // --- Prepare Payload as Query Parameters for PATCH ---
       const params = {
-        partNumber: partNumber,
-        quantity: quantityToSend, // Gửi giá trị số đã được kiểm tra
+        partNumber: part.partNumber,
+        quantity: quantityToSend,
         warehouseId: warehouse.whId,
       };
 
@@ -70,7 +56,6 @@ export default function EvmWareDetailReceive({
         headers: { Authorization: `Bearer ${auth.token}` },
       });
 
-      // Success!
       onSuccess();
     } catch (err) {
       console.error("Error receiving stock (detail form):", err);
@@ -83,24 +68,25 @@ export default function EvmWareDetailReceive({
     }
   };
 
-  // === RENDER ===
   return (
     <form onSubmit={handleSubmit}>
       <DialogHeader>
-        <DialogTitle>Receive: {part?.namePart}</DialogTitle>
-        <DialogDescription>
-          Add new stock for {part?.partNumber} in {warehouse?.name}.
+        <DialogTitle>Receive Stock</DialogTitle>
+        <DialogDescription className="truncate">
+          Add stock for{" "}
+          <span className="font-medium text-foreground">{part?.namePart}</span>
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-6 py-4">
-        <div className="grid grid-cols-2 gap-4">
+        {/* Responsive Grid for Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Current Quantity</Label>
             <Input
               value={part?.quantity || 0}
               disabled
-              className="font-medium text-blue-600"
+              className="font-medium text-blue-600 bg-muted"
             />
           </div>
           <div className="space-y-2">
@@ -111,13 +97,8 @@ export default function EvmWareDetailReceive({
               id="mini-additional-quantity"
               type="number"
               min="1"
-              // SỬA BUG: Chỉ lưu giá trị string (e.target.value) vào state
               value={additionalQuantity}
-              onChange={(e) => {
-                // Chỉ cho phép nhập số hoặc chuỗi rỗng, không áp đặt min/max ngay lập tức
-                const value = e.target.value;
-                setAdditionalQuantity(value);
-              }}
+              onChange={(e) => setAdditionalQuantity(e.target.value)}
               className="font-medium"
               autoFocus
             />
@@ -132,21 +113,22 @@ export default function EvmWareDetailReceive({
         )}
       </div>
 
-      <DialogFooter>
+      <DialogFooter className="flex-col sm:flex-row gap-2">
         <Button
           type="button"
           variant="outline"
           onClick={onClose}
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           Cancel
         </Button>
         <Button
           type="submit"
-          // Disable nếu đang submit, hoặc nếu giá trị số lượng sau khi parse <= 0
           disabled={
             isSubmitting || (parseInt(additionalQuantity, 10) || 0) <= 0
           }
+          className="w-full sm:w-auto"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           Receive Stock
