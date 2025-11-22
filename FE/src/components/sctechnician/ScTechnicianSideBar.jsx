@@ -69,14 +69,14 @@ export default function SCTechnicianSidebar({ isMobileOpen, onClose }) {
             <Phone className="h-4 w-4" />
             1900150xxx
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             className="w-full justify-start gap-2 bg-transparent"
           >
             <BookOpen className="h-4 w-4" />
             Guide
-          </Button>
+          </Button> */}
         </div>
       </div>
     </aside>
