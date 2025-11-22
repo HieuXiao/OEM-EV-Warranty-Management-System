@@ -397,7 +397,7 @@ export default function SCStaffWarrantyClaim() {
                 <p className="text-muted-foreground">No claims found.</p>
               </div>
             ) : (
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-2">
                 {filteredClaims.map((claim) => (
                   <Card
                     key={claim.claimId}
