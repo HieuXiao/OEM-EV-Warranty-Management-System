@@ -224,7 +224,11 @@ export default function AdUserCreate({
                       key={center.centerId}
                       value={center.centerId.toString()}
                     >
-                      {center.centerName} - {center.location}
+                      <div className="w-full whitespace-normal break-words text-sm !text-left">
+                        <span className="font-medium break-words">
+                          {center.centerName} - {center.location}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

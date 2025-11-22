@@ -362,17 +362,16 @@ export default function ScsWarrCreate({
         scStaffId: currentUser.accountId?.toUpperCase(),
         scTechnicianId: selectedTechnician.toUpperCase(),
         claimDate: new Date().toISOString().split("T")[0],
-        description,
-        campaignIds:
-          isCampaignChecked && selectedCampaign
-            ? [Number(selectedCampaign)]
-            : null,
-      };
+        description: description,
+        campaignIds: isCampaignChecked && selectedCampaign ? [Number(selectedCampaign)] : null,
+      }
 
-      await axiosPrivate.post(API.CLAIMS, payload);
-      dispatch({ type: "RESET_FORM" });
-      onOpenChange(false);
-      onClaimCreated?.();
+      console.log("Creating claim with payload:", payload)
+
+      await axiosPrivate.post(API.CLAIMS, payload)
+      dispatch({ type: "RESET_FORM" })
+      onOpenChange(false)
+      onClaimCreated?.()
     } catch (err) {
       console.error("Error creating claim:", err);
     } finally {
