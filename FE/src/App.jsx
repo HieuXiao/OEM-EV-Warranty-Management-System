@@ -25,7 +25,7 @@ import SCTechnicianRepair from "./pages/SCTechnicianRepair";
 // IMPORT EVMSTAFF
 import EVMStaffProductPart from "./pages/EVMStaffProduct&Part";
 import EVMStaffWarehouse from "./pages/EVMStaffWarehouse";
-import EVMStaffReportAnalysis from "./pages/EVMStaffReport&Analysis";
+import EVMStaffReportAnalysis from "./pages/EVMStaffReport";
 import EVMStaffWarrantyClaim from "./pages/EVMStaffWarrantyClaim";
 import EVMStaffCampaign from "./pages/EVMStaffCampaign";
 import EVMStaffDetailPart from "./components/evmstaff/EVMStaffDetailPart";
